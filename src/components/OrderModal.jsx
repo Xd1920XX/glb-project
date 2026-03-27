@@ -6,7 +6,6 @@ export function OrderModal({ config, price, onClose }) {
   const [submitted, setSubmitted] = useState(false)
 
   const frame = FRAMES.find((f) => f.id === config.frameId)
-  const lid = LIDS.find((l) => l.id === config.lidId)
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose() }
@@ -50,20 +49,20 @@ export function OrderModal({ config, price, onClose }) {
             <div className="modal-summary">
               <div className="summary-row">
                 <span>Frame</span>
-                <span>
-                  {frame.label} — {frame.slots} slots
-                </span>
+                <span>{frame?.label} — {frame?.slots} slots</span>
               </div>
-              <div className="summary-row">
-                <span>Lid</span>
-                <span className="summary-lid">
-                  <span
-                    className="summary-lid-dot"
-                    style={{ background: lid.color }}
-                  />
-                  {lid.label}
-                </span>
-              </div>
+              {config.lids.map((lidId, i) => {
+                const lid = LIDS.find((l) => l.id === lidId)
+                return lid ? (
+                  <div key={i} className="summary-row">
+                    <span>Slot {i + 1}</span>
+                    <span className="summary-lid">
+                      <span className="summary-lid-dot" style={{ background: lid.color }} />
+                      {lid.label}
+                    </span>
+                  </div>
+                ) : null
+              })}
               {config.showPanels && (
                 <div className="summary-row">
                   <span>Front Panels</span>

@@ -11,7 +11,7 @@ function StepHeader({ number, label }) {
 
 export function ConfigPanel({
   frameId,
-  lidId,
+  lids,
   showPanels,
   price,
   onFrameChange,
@@ -20,8 +20,8 @@ export function ConfigPanel({
   onOrder,
 }) {
   const frame = FRAMES.find((f) => f.id === frameId)
-  const lid = LIDS.find((l) => l.id === lidId)
-  if (!frame || !lid) return null
+  if (!frame) return null
+
   return (
     <div className="config-panel">
       <div className="config-header">
@@ -33,14 +33,14 @@ export function ConfigPanel({
       <div className="step">
         <StepHeader number={1} label="Frame Size" />
         <div className="frame-grid">
-          {FRAMES.map((frame) => (
+          {FRAMES.map((f) => (
             <button
-              key={frame.id}
-              className={`frame-card${frameId === frame.id ? ' selected' : ''}`}
-              onClick={() => onFrameChange(frame.id)}
+              key={f.id}
+              className={`frame-card${frameId === f.id ? ' selected' : ''}`}
+              onClick={() => onFrameChange(f.id)}
             >
-              <div className="frame-card-label">{frame.label}</div>
-              <div className="frame-card-desc">{frame.slots} slots</div>
+              <div className="frame-card-label">{f.label}</div>
+              <div className="frame-card-desc">{f.slots} slots</div>
             </button>
           ))}
         </div>
@@ -48,27 +48,35 @@ export function ConfigPanel({
 
       <hr className="step-divider" />
 
-      {/* Step 2 – Lids */}
+      {/* Step 2 – Lids per slot */}
       <div className="step">
-        <StepHeader number={2} label="Lid Type" />
-        <div className="lid-grid">
-          {LIDS.map((lid) => (
-            <button
-              key={lid.id}
-              className={`lid-swatch${lidId === lid.id ? ' selected' : ''}`}
-              onClick={() => onLidChange(lid.id)}
-            >
-              <div
-                className="lid-color"
-                style={{
-                  background: lid.color,
-                  boxShadow: lid.border
-                    ? 'inset 0 0 0 1.5px #ccc'
-                    : 'inset 0 0 0 1px rgba(0,0,0,0.08)',
-                }}
-              />
-              <div className="lid-name">{lid.label}</div>
-            </button>
+        <StepHeader number={2} label="Lid per Slot" />
+        <div className="slot-rows">
+          {lids.map((lidId, i) => (
+            <div key={i} className="slot-row">
+              <span className="slot-row-label">{i + 1}</span>
+              <div className="slot-swatches">
+                {LIDS.map((lid) => (
+                  <button
+                    key={lid.id}
+                    title={lid.label}
+                    className={`slot-swatch${lidId === lid.id ? ' selected' : ''}`}
+                    onClick={() => onLidChange(i, lid.id)}
+                  >
+                    <span
+                      className="slot-swatch-dot"
+                      style={{
+                        background: lid.color,
+                        boxShadow: lid.border
+                          ? 'inset 0 0 0 1.5px #ccc'
+                          : 'inset 0 0 0 1px rgba(0,0,0,0.1)',
+                      }}
+                    />
+                    <span className="slot-swatch-name">{lid.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </div>
@@ -96,10 +104,18 @@ export function ConfigPanel({
             <span>Frame {frame.label}</span>
             <span>€{frame.price}</span>
           </div>
-          <div className="price-line">
-            <span>Lid — {lid.label}</span>
-            <span>€{lid.price}</span>
-          </div>
+          {lids.map((lidId, i) => {
+            const lid = LIDS.find((l) => l.id === lidId)
+            return lid ? (
+              <div key={i} className="price-line">
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: lid.color, flexShrink: 0, display: 'inline-block', boxShadow: lid.border ? 'inset 0 0 0 1px #ccc' : undefined }} />
+                  Slot {i + 1} — {lid.label}
+                </span>
+                <span>€{lid.price}</span>
+              </div>
+            ) : null
+          })}
           {showPanels && (
             <div className="price-line">
               <span>Front Panels</span>
