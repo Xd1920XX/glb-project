@@ -1,17 +1,39 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Viewer3D } from './components/Viewer3D.jsx'
-import { ConfigPanel } from './components/ConfigPanel.jsx'
-import { OrderModal } from './components/OrderModal.jsx'
-import { FRAMES, LIDS, FRONT_PANELS } from './config/models.js'
-import { useAuth } from './contexts/AuthContext.jsx'
+import { useState, useEffect } from 'react'
+import { useParams } from 'react-router-dom'
+import { Viewer3D } from '../components/Viewer3D.jsx'
+import { ConfigPanel } from '../components/ConfigPanel.jsx'
+import { OrderModal } from '../components/OrderModal.jsx'
+import { FRAMES, LIDS, FRONT_PANELS } from '../config/models.js'
+import { api } from '../api/client.js'
 
-export default function App() {
-  const { user } = useAuth()
+export default function EmbedPage() {
+  const { id } = useParams()
+  const [ready, setReady] = useState(false)
+  const [notFound, setNotFound] = useState(false)
+
   const [frameId, setFrameId] = useState('B3')
   const [lidId, setLidId] = useState('Bio')
   const [showPanels, setShowPanels] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
+  const [configuratorId, setConfiguratorId] = useState(null)
+
+  useEffect(() => {
+    api.getPublicConfigurator(id)
+      .then((cfg) => {
+        setFrameId(cfg.default_frame)
+        setLidId(cfg.default_lid)
+        setShowPanels(Boolean(cfg.default_panels))
+        setConfiguratorId(cfg.id)
+        if (cfg.accent_color) {
+          document.documentElement.style.setProperty('--accent', cfg.accent_color)
+        }
+        setReady(true)
+      })
+      .catch(() => setNotFound(true))
+  }, [id])
+
+  if (notFound) return <div style={{ padding: 40, textAlign: 'center', color: '#888' }}>Configurator not found.</div>
+  if (!ready) return null
 
   const frame = FRAMES.find((f) => f.id === frameId)
   const lid = LIDS.find((l) => l.id === lidId)
@@ -22,9 +44,6 @@ export default function App() {
   return (
     <div className="app">
       <div className="viewer-pane">
-        <Link to={user ? '/dashboard' : '/login'} style={{ position: 'absolute', top: 14, right: 14, zIndex: 10, fontSize: 12, color: 'rgba(255,255,255,0.7)', textDecoration: 'none', background: 'rgba(0,0,0,0.3)', padding: '5px 10px', borderRadius: 5, backdropFilter: 'blur(4px)' }}>
-          {user ? 'Dashboard' : 'Sign in'}
-        </Link>
         <Viewer3D frameUrl={frame?.path} lidUrl={lid?.path} panelsUrl={panelsUrl} slots={slots} lidId={lidId} />
       </div>
       <div className="config-pane">
@@ -44,6 +63,7 @@ export default function App() {
         <OrderModal
           config={{ frameId, lidId, showPanels }}
           price={price}
+          configuratorId={configuratorId}
           onClose={() => setModalOpen(false)}
         />
       )}

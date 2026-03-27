@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react'
 import { FRAMES, LIDS } from '../config/models.js'
+import { api } from '../api/client.js'
 
-export function OrderModal({ config, price, onClose }) {
+export function OrderModal({ config, price, configuratorId, onClose }) {
   const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', notes: '' })
   const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
   const frame = FRAMES.find((f) => f.id === config.frameId)
   const lid = LIDS.find((l) => l.id === config.lidId)
@@ -18,9 +21,30 @@ export function OrderModal({ config, price, onClose }) {
     return (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }))
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
-    setSubmitted(true)
+    setError('')
+    setLoading(true)
+    try {
+      if (configuratorId) {
+        await api.submitOrder(configuratorId, {
+          frame_id: config.frameId,
+          lid_id: config.lidId,
+          show_panels: config.showPanels,
+          price,
+          customer_name: form.name,
+          customer_email: form.email,
+          customer_phone: form.phone,
+          customer_address: form.address,
+          notes: form.notes,
+        })
+      }
+      setSubmitted(true)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -131,8 +155,9 @@ export function OrderModal({ config, price, onClose }) {
                   onChange={set('notes')}
                 />
               </div>
-              <button type="submit" className="order-btn">
-                Place Order · €{price}
+              {error && <p className="auth-error">{error}</p>}
+              <button type="submit" className="order-btn" disabled={loading}>
+                {loading ? 'Placing order…' : `Place Order · €${price}`}
               </button>
             </form>
           </>
