@@ -1,14 +1,5 @@
 import { Canvas, useThree } from '@react-three/fiber'
-import {
-  OrbitControls,
-  useGLTF,
-  Html,
-  useProgress,
-  Environment,
-  ContactShadows,
-  Bounds,
-  useBounds,
-} from '@react-three/drei'
+import { OrbitControls, useGLTF, Html, useProgress, Stage } from '@react-three/drei'
 import { Suspense, useMemo, useEffect } from 'react'
 import * as THREE from 'three'
 import { FRAMES, LIDS, FRONT_PANELS } from '../config/models.js'
@@ -64,15 +55,6 @@ function DynamicBackground({ frameUrl }) {
   return null
 }
 
-// Fits camera to the loaded scene once, then hands off to OrbitControls
-function FitCamera() {
-  const bounds = useBounds()
-  useEffect(() => {
-    bounds.refresh().fit()
-  }, [])
-  return null
-}
-
 function Loader() {
   const { progress } = useProgress()
   return (
@@ -84,21 +66,20 @@ function Loader() {
 
 export function Viewer3D({ frameUrl, lidUrl, panelsUrl, slots, lidId }) {
   return (
-    <Canvas shadows dpr={[1, 2]} camera={{ position: [4, 2, 6], fov: 45 }}>
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[5, 10, 5]} intensity={1.2} castShadow shadow-mapSize={[1024, 1024]} />
-      <directionalLight position={[-4, 4, -4]} intensity={0.3} />
-      <Environment preset="warehouse" />
-
+    <Canvas shadows dpr={[1, 2]} camera={{ fov: 45 }}>
       <Suspense fallback={<Loader />}>
         {frameUrl && <DynamicBackground frameUrl={frameUrl} />}
-        <Bounds fit clip observe margin={1.3}>
-          <FitCamera />
+        <Stage
+          environment="warehouse"
+          intensity={0.6}
+          adjustCamera={1.2}
+          shadows="contact"
+          preset="soft"
+        >
           {frameUrl && <Model url={frameUrl} />}
           {lidUrl && <Model url={lidUrl} visibleSlots={slots} />}
           {panelsUrl && <Model url={panelsUrl} visibleSlots={slots} lidType={lidId} />}
-        </Bounds>
-        <ContactShadows position={[0, -0.01, 0]} opacity={0.35} scale={20} blur={2} />
+        </Stage>
       </Suspense>
 
       <OrbitControls
@@ -108,8 +89,8 @@ export function Viewer3D({ frameUrl, lidUrl, panelsUrl, slots, lidId }) {
         enableDamping
         dampingFactor={0.05}
         enablePan={false}
-        minPolarAngle={Math.PI / 8}
-        maxPolarAngle={Math.PI / 2.2}
+        minPolarAngle={0.1}
+        maxPolarAngle={Math.PI / 2.1}
       />
     </Canvas>
   )
