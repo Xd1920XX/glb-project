@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FRAMES, LIDS, PRICES } from '../config/models.js'
+import { FRAMES, LIDS } from '../config/models.js'
 
 export function OrderModal({ config, price, onClose }) {
   const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', notes: '' })

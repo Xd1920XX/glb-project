@@ -1,4 +1,4 @@
-import { FRAMES, LIDS, FRONT_PANELS, PRICES } from '../config/models.js'
+import { FRAMES, LIDS, FRONT_PANELS } from '../config/models.js'
 
 function StepHeader({ number, label }) {
   return (
@@ -21,6 +21,7 @@ export function ConfigPanel({
 }) {
   const frame = FRAMES.find((f) => f.id === frameId)
   const lid = LIDS.find((l) => l.id === lidId)
+  if (!frame || !lid) return null
   return (
     <div className="config-panel">
       <div className="config-header">
@@ -93,16 +94,16 @@ export function ConfigPanel({
         <div className="price-breakdown">
           <div className="price-line">
             <span>Frame {frame.label}</span>
-            <span>€{PRICES.frames[frameId]}</span>
+            <span>€{frame.price}</span>
           </div>
           <div className="price-line">
             <span>Lid — {lid.label}</span>
-            <span>€{PRICES.lids[lidId]}</span>
+            <span>€{lid.price}</span>
           </div>
           {showPanels && (
             <div className="price-line">
               <span>Front Panels</span>
-              <span>€{PRICES.panels}</span>
+              <span>€{FRONT_PANELS.price}</span>
             </div>
           )}
         </div>

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Viewer3D } from './components/Viewer3D.jsx'
 import { ConfigPanel } from './components/ConfigPanel.jsx'
 import { OrderModal } from './components/OrderModal.jsx'
-import { FRAMES, LIDS, FRONT_PANELS, PRICES } from './config/models.js'
+import { FRAMES, LIDS, FRONT_PANELS } from './config/models.js'
 
 export default function App() {
   const [frameId, setFrameId] = useState('B3')
@@ -11,20 +11,15 @@ export default function App() {
   const [modalOpen, setModalOpen] = useState(false)
 
   const frame = FRAMES.find((f) => f.id === frameId)
-  const frameUrl = frame?.path
-  const lidUrl = LIDS.find((l) => l.id === lidId)?.path
+  const lid = LIDS.find((l) => l.id === lidId)
   const panelsUrl = showPanels ? FRONT_PANELS.path : null
   const slots = frame?.slots ?? 5
-
-  const price =
-    PRICES.frames[frameId] +
-    PRICES.lids[lidId] +
-    (showPanels ? PRICES.panels : 0)
+  const price = (frame?.price ?? 0) + (lid?.price ?? 0) + (showPanels ? FRONT_PANELS.price : 0)
 
   return (
     <div className="app">
       <div className="viewer-pane">
-        <Viewer3D frameUrl={frameUrl} lidUrl={lidUrl} panelsUrl={panelsUrl} slots={slots} lidId={lidId} />
+        <Viewer3D frameUrl={frame?.path} lidUrl={lid?.path} panelsUrl={panelsUrl} slots={slots} lidId={lidId} />
       </div>
       <div className="config-pane">
         <ConfigPanel
