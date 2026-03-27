@@ -1,38 +1,29 @@
 import { Canvas, useThree } from '@react-three/fiber'
-import { OrbitControls, useGLTF, Html, useProgress, Stage } from '@react-three/drei'
+import {
+  OrbitControls,
+  useGLTF,
+  Html,
+  useProgress,
+  Environment,
+  ContactShadows,
+  Bounds,
+  useBounds,
+} from '@react-three/drei'
 import { Suspense, useMemo, useEffect } from 'react'
 import * as THREE from 'three'
 import { FRAMES, LIDS, FRONT_PANELS } from '../config/models.js'
 
-// Node naming conventions found in the GLB files:
-//   Lids:   Container_Kaas_Pos1_Bio_Kleeps_...   (one type per file, 5 positions)
-//   Panels: Container_Esipaneel_Pos1_Bio          (all 7 types × 5 positions in one file)
-//
-// Rules:
-//   - Hide any node whose PosN > visibleSlots
-//   - For panels: additionally hide nodes whose type segment != lidType
 function applyVisibility(root, visibleSlots, lidType) {
   root.traverse((obj) => { obj.visible = true })
-
   root.traverse((obj) => {
     if (!obj.name) return
-
     const posMatch = obj.name.match(/Pos(\d+)/i)
     if (!posMatch) return
-
     const pos = parseInt(posMatch[1], 10)
-
-    if (pos > visibleSlots) {
-      obj.visible = false
-      return
-    }
-
-    // Panels file contains all lid-type variants — show only the selected one
+    if (pos > visibleSlots) { obj.visible = false; return }
     if (lidType) {
       const typeMatch = obj.name.match(/Pos\d+_([A-Za-z]+)/i)
-      if (typeMatch) {
-        obj.visible = typeMatch[1].toLowerCase() === lidType.toLowerCase()
-      }
+      if (typeMatch) obj.visible = typeMatch[1].toLowerCase() === lidType.toLowerCase()
     }
   })
 }
@@ -40,18 +31,15 @@ function applyVisibility(root, visibleSlots, lidType) {
 function Model({ url, visibleSlots, lidType }) {
   const { scene } = useGLTF(url)
   const cloned = useMemo(() => scene.clone(true), [scene])
-
   useEffect(() => {
     if (visibleSlots !== undefined) applyVisibility(cloned, visibleSlots, lidType)
   }, [cloned, visibleSlots, lidType])
-
   return <primitive object={cloned} />
 }
 
 function DynamicBackground({ frameUrl }) {
   const { scene } = useGLTF(frameUrl)
   const threeScene = useThree((s) => s.scene)
-
   useEffect(() => {
     const colors = []
     scene.traverse((obj) => {
@@ -73,7 +61,15 @@ function DynamicBackground({ frameUrl }) {
     )
     return () => { threeScene.background = null }
   }, [scene, threeScene])
+  return null
+}
 
+// Fits camera to the loaded scene once, then hands off to OrbitControls
+function FitCamera() {
+  const bounds = useBounds()
+  useEffect(() => {
+    bounds.refresh().fit()
+  }, [])
   return null
 }
 
@@ -88,29 +84,32 @@ function Loader() {
 
 export function Viewer3D({ frameUrl, lidUrl, panelsUrl, slots, lidId }) {
   return (
-    <Canvas shadows dpr={[1, 2]} camera={{ fov: 45 }}>
+    <Canvas shadows dpr={[1, 2]} camera={{ position: [4, 2, 6], fov: 45 }}>
+      <ambientLight intensity={0.6} />
+      <directionalLight position={[5, 10, 5]} intensity={1.2} castShadow shadow-mapSize={[1024, 1024]} />
+      <directionalLight position={[-4, 4, -4]} intensity={0.3} />
+      <Environment preset="warehouse" />
+
       <Suspense fallback={<Loader />}>
         {frameUrl && <DynamicBackground frameUrl={frameUrl} />}
-        <Stage
-          environment="warehouse"
-          intensity={0.6}
-          adjustCamera={1.2}
-          shadows="contact"
-          preset="soft"
-        >
+        <Bounds fit clip observe margin={1.3}>
+          <FitCamera />
           {frameUrl && <Model url={frameUrl} />}
           {lidUrl && <Model url={lidUrl} visibleSlots={slots} />}
           {panelsUrl && <Model url={panelsUrl} visibleSlots={slots} lidType={lidId} />}
-        </Stage>
+        </Bounds>
+        <ContactShadows position={[0, -0.01, 0]} opacity={0.35} scale={20} blur={2} />
       </Suspense>
 
       <OrbitControls
         makeDefault
         autoRotate
         autoRotateSpeed={0.5}
+        enableDamping
+        dampingFactor={0.05}
         enablePan={false}
-        minPolarAngle={0.1}
-        maxPolarAngle={Math.PI / 2.1}
+        minPolarAngle={Math.PI / 8}
+        maxPolarAngle={Math.PI / 2.2}
       />
     </Canvas>
   )
