@@ -14,6 +14,12 @@
   --hover-bg: #f5f4f2;
 }
 
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial,
     sans-serif;
@@ -22,7 +28,7 @@ body {
 }
 
 #root {
-  height: 100vh;
+  height: 100%;
 }
 
 /* ── Layout ─────────────────────────────── */
@@ -44,13 +50,18 @@ body {
   background: var(--surface);
   border-left: 1px solid var(--border);
   overflow-y: auto;
-  padding: 40px 28px 60px;
+  padding: 32px 28px 32px;
+  scrollbar-width: none;
+}
+
+.config-pane::-webkit-scrollbar {
+  display: none;
 }
 
 /* ── Config header ───────────────────────── */
 
 .config-header {
-  margin-bottom: 36px;
+  margin-bottom: 28px;
 }
 
 .config-title {
@@ -97,7 +108,7 @@ body {
 .step-divider {
   border: none;
   border-top: 1px solid var(--border);
-  margin: 28px 0;
+  margin: 20px 0;
 }
 
 /* ── Frame grid ──────────────────────────── */
@@ -186,6 +197,7 @@ body {
 
 .toggle-row {
   all: unset;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
