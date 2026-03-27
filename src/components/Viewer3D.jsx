@@ -1,5 +1,5 @@
 import { Canvas, useThree } from '@react-three/fiber'
-import { OrbitControls, useGLTF, Html, useProgress, Stage } from '@react-three/drei'
+import { useGLTF, Html, useProgress, Stage, PresentationControls } from '@react-three/drei'
 import { Suspense, useMemo, useEffect } from 'react'
 import * as THREE from 'three'
 import { FRAMES, LIDS, FRONT_PANELS } from '../config/models.js'
@@ -76,22 +76,20 @@ export function Viewer3D({ frameUrl, lidUrl, panelsUrl, slots, lidId }) {
           shadows="contact"
           preset="soft"
         >
-          {frameUrl && <Model url={frameUrl} />}
-          {lidUrl && <Model url={lidUrl} visibleSlots={slots} />}
-          {panelsUrl && <Model url={panelsUrl} visibleSlots={slots} lidType={lidId} />}
+          <PresentationControls
+            global
+            rotation={[0, -Math.PI / 6, 0]}
+            polar={[-Math.PI / 12, Math.PI / 12]}
+            azimuth={[-Infinity, Infinity]}
+            config={{ mass: 2, tension: 400 }}
+            speed={1.5}
+          >
+            {frameUrl && <Model url={frameUrl} />}
+            {lidUrl && <Model url={lidUrl} visibleSlots={slots} />}
+            {panelsUrl && <Model url={panelsUrl} visibleSlots={slots} lidType={lidId} />}
+          </PresentationControls>
         </Stage>
       </Suspense>
-
-      <OrbitControls
-        makeDefault
-        autoRotate
-        autoRotateSpeed={0.5}
-        enableDamping
-        dampingFactor={0.05}
-        enablePan={false}
-        minPolarAngle={0.1}
-        maxPolarAngle={Math.PI / 2.1}
-      />
     </Canvas>
   )
 }
