@@ -1,4 +1,4 @@
-import { FRAMES, LIDS, FRONT_PANELS } from '../config/models.js'
+import { FRAMES, LIDS, FRONT_PANELS, PRICES } from '../config/models.js'
 
 function StepHeader({ number, label }) {
   return (
@@ -13,10 +13,14 @@ export function ConfigPanel({
   frameId,
   lidId,
   showPanels,
+  price,
   onFrameChange,
   onLidChange,
   onPanelsChange,
+  onOrder,
 }) {
+  const frame = FRAMES.find((f) => f.id === frameId)
+  const lid = LIDS.find((l) => l.id === lidId)
   return (
     <div className="config-panel">
       <div className="config-header">
@@ -79,6 +83,35 @@ export function ConfigPanel({
         >
           <span className="toggle-label">{FRONT_PANELS.label}</span>
           <span className={`toggle-switch${showPanels ? ' on' : ''}`} />
+        </button>
+      </div>
+
+      <hr className="step-divider" />
+
+      {/* Price summary */}
+      <div className="price-section">
+        <div className="price-breakdown">
+          <div className="price-line">
+            <span>Frame {frame.label}</span>
+            <span>€{PRICES.frames[frameId]}</span>
+          </div>
+          <div className="price-line">
+            <span>Lid — {lid.label}</span>
+            <span>€{PRICES.lids[lidId]}</span>
+          </div>
+          {showPanels && (
+            <div className="price-line">
+              <span>Front Panels</span>
+              <span>€{PRICES.panels}</span>
+            </div>
+          )}
+        </div>
+        <div className="price-total">
+          <span>Total</span>
+          <span>€{price}</span>
+        </div>
+        <button className="order-btn" onClick={onOrder}>
+          Order Now
         </button>
       </div>
     </div>

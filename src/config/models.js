@@ -71,3 +71,9 @@ export const FRONT_PANELS = {
   label: 'Front Panels',
   path: encode('/GLB/3. Esipaneelid/Container-Esipaneelid_Pos1-5_v1.glb'),
 }
+
+export const PRICES = {
+  frames:  { B3: 299, B4: 349, B5: 419 },
+  lids:    { Bio: 24, Klaas: 18, Paber: 18, Pakend: 22, Prugi: 12, Puhas: 28, Taara: 32 },
+  panels:  49,
+}
