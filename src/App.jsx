@@ -10,9 +10,11 @@ export default function App() {
   const [showPanels, setShowPanels] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
 
-  const frameUrl = FRAMES.find((f) => f.id === frameId)?.path
+  const frame = FRAMES.find((f) => f.id === frameId)
+  const frameUrl = frame?.path
   const lidUrl = LIDS.find((l) => l.id === lidId)?.path
   const panelsUrl = showPanels ? FRONT_PANELS.path : null
+  const slots = frame?.slots ?? 5
 
   const price =
     PRICES.frames[frameId] +
@@ -22,7 +24,7 @@ export default function App() {
   return (
     <div className="app">
       <div className="viewer-pane">
-        <Viewer3D frameUrl={frameUrl} lidUrl={lidUrl} panelsUrl={panelsUrl} />
+        <Viewer3D frameUrl={frameUrl} lidUrl={lidUrl} panelsUrl={panelsUrl} slots={slots} lidId={lidId} />
       </div>
       <div className="config-pane">
         <ConfigPanel
