@@ -1,30 +1,38 @@
 import { useRef, useState, useEffect } from 'react'
 import { COLORS } from '../config/sauna.js'
 
-const SENSITIVITY = 25 // px of drag per frame step
-const FALLBACK_FOLDER = COLORS[0].folder // natural is always the fallback
+const SENSITIVITY = 18 // px per frame step
+const FALLBACK_FOLDER = COLORS[0].folder
 
 export function ImageSpinner({ folder, frameCount, frameIndex, onFrameChange }) {
   const [dragging, setDragging] = useState(false)
   const [useFallback, setUseFallback] = useState(false)
-  const startX = useRef(0)
+
+  const prevX = useRef(0)
+  const acc = useRef(0)
+  const frameRef = useRef(frameIndex)
+  frameRef.current = frameIndex
 
   useEffect(() => { setUseFallback(false) }, [folder])
-  const startFrame = useRef(0)
 
   function handlePointerDown(e) {
     setDragging(true)
-    startX.current = e.clientX
-    startFrame.current = frameIndex
+    prevX.current = e.clientX
+    acc.current = 0
     e.currentTarget.setPointerCapture(e.pointerId)
   }
 
   function handlePointerMove(e) {
     if (!dragging) return
-    const delta = e.clientX - startX.current
-    const steps = Math.round(delta / SENSITIVITY)
-    const next = ((startFrame.current - steps) % frameCount + frameCount) % frameCount
-    onFrameChange(next)
+    acc.current += e.clientX - prevX.current
+    prevX.current = e.clientX
+    const steps = Math.trunc(acc.current / SENSITIVITY)
+    if (steps !== 0) {
+      acc.current -= steps * SENSITIVITY
+      const next = ((frameRef.current - steps) % frameCount + frameCount) % frameCount
+      frameRef.current = next
+      onFrameChange(next)
+    }
   }
 
   function handlePointerUp() {

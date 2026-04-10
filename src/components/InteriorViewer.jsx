@@ -17,7 +17,7 @@ function PanoSphere({ url }) {
 export function InteriorViewer({ src }) {
   return (
     <Canvas
-      camera={{ fov: 100, position: [0, 0, 0.01] }}
+      camera={{ fov: 80, position: [0, 0, 0.01] }}
       style={{ width: '100%', height: '100%' }}
     >
       <Suspense fallback={null}>

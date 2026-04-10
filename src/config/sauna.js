@@ -3,7 +3,7 @@ const encode = (p) => encodeURI(p)
 export const FRAME_COUNT = 16
 
 export const COLORS = [
-  { id: 'natural', label: 'Natural', swatch: '#C8B48A', folder: '/new/jpg',       glb: null },
+  { id: 'natural', label: 'Natural', swatch: '#C8B48A', folder: '/new/jpg',       glb: encode('/new/Sauna City XS.glb') },
   { id: 'brown',   label: 'Brown',   swatch: '#6B4226', folder: '/new/jpg-brown', glb: encode('/new/Sauna City XS.glb') },
 ]
 
