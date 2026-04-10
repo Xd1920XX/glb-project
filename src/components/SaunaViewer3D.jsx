@@ -2,7 +2,7 @@ import { Canvas } from '@react-three/fiber'
 import { useGLTF, OrbitControls, Bounds, useBounds, Environment } from '@react-three/drei'
 import { Suspense, useLayoutEffect } from 'react'
 
-useGLTF.preload(encodeURI('/new/Sauna City XS.glb'))
+useGLTF.preload('/new/' + encodeURIComponent('Sauna City XS.glb'))
 
 function Model({ url }) {
   const { scene } = useGLTF(url)

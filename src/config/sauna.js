@@ -1,10 +1,10 @@
-const encode = (p) => encodeURI(p)
+const encode = (p) => p.split('/').map((s) => (s ? encodeURIComponent(s) : s)).join('/')
 
 export const FRAME_COUNT = 16
 
 export const COLORS = [
-  { id: 'natural', label: 'Natural', swatch: '#C8B48A', folder: '/new/jpg',       glb: encode('/new/Sauna City XS.glb') },
-  { id: 'brown',   label: 'Brown',   swatch: '#6B4226', folder: '/new/jpg-brown', glb: null, image: encode('/new/jpg-brown/wood-43_d 1,8x2,4m 2 nat 2 33333_wood dark_4.jpg') },
+  { id: 'natural', label: 'Natural', swatch: '#C8B48A', folder: '/new/jpg',       glb: null },
+  { id: 'brown',   label: 'Brown',   swatch: '#6B4226', folder: '/new/jpg-brown', glb: encode('/new/Sauna City XS.glb') },
 ]
 
 export const INTERIORS = [
