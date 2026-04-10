@@ -1,0 +1,10 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Users can upload/read/delete only within their own folder
+    match /users/{uid}/{allPaths=**} {
+      allow read:   if true; // public read for embed iframes
+      allow write, delete: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}
