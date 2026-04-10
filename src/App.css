@@ -33,6 +33,7 @@ body {
   display: grid;
   grid-template-columns: 1fr 400px;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -478,6 +479,7 @@ body {
   height: 100%;
   cursor: grab;
   user-select: none;
+  touch-action: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -544,6 +546,15 @@ body {
   object-fit: contain;
   pointer-events: none;
   user-select: none;
+}
+
+/* ── Panel container ─────────────────────────────────────────────── */
+
+.config-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 /* ── View tabs (top of panel) ────────────────────────────────────── */
@@ -707,25 +718,54 @@ body {
 /* ── Mobile ──────────────────────────────────────────────────────── */
 
 @media (max-width: 768px) {
-  #root { height: auto; }
+  html, body, #root { height: 100%; overflow: hidden; }
 
   .app {
     grid-template-columns: 1fr;
-    grid-template-rows: 55vw auto;
-    height: auto;
-    min-height: 100vh;
-    overflow-y: auto;
+    grid-template-rows: auto 1fr;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
   }
 
   .viewer-pane {
-    height: 55vw;
-    min-height: 260px;
+    height: 56vw;
+    min-height: 240px;
+    max-height: 48vh;
   }
 
   .config-pane {
     border-left: none;
     border-top: 1px solid var(--border);
-    overflow-y: visible;
-    padding: 28px 20px 48px;
+    padding: 0;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
   }
+
+  /* tabs stay full-width and legible */
+  .view-tab {
+    padding: 14px 0;
+    font-size: 14px;
+  }
+
+  /* body scrolls internally on mobile */
+  .tab-body {
+    padding: 20px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* tighter overlay buttons */
+  .spinner-hint { bottom: 12px; font-size: 11px; padding: 5px 12px; }
+  .view-3d-btn  { bottom: 12px; right: 12px; }
+
+  /* slightly smaller interior thumbnails to fit single-column */
+  .interior-item-thumb { width: 72px; height: 48px; }
+}
+
+/* ── Small phones ────────────────────────────────────────────────── */
+
+@media (max-width: 390px) {
+  .viewer-pane { min-height: 210px; }
+  .tab-body    { padding: 16px 16px calc(20px + env(safe-area-inset-bottom, 0px)); }
+  .color-card  { padding: 10px 12px; }
 }
