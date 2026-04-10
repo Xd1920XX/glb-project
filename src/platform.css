@@ -309,7 +309,6 @@ html, body, #root { min-height: 100%; }
 /* ── Hero ── */
 .hero {
   position: relative;
-  overflow: hidden;
   padding: 110px 24px 90px;
 }
 .hero::before {
