@@ -775,8 +775,6 @@ body {
 /* ── Mobile ──────────────────────────────────────────────────────── */
 
 @media (max-width: 768px) {
-  html, body, #root { height: 100%; overflow: hidden; }
-
   .app,
   .configurator-view {
     grid-template-columns: 1fr;
