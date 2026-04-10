@@ -911,7 +911,7 @@ html, body, #root { min-height: 100%; }
   padding: 40px 24px 80px;
 }
 .billing-container {
-  max-width: 520px;
+  max-width: 680px;
   margin: 0 auto;
 }
 .billing-back  { margin-bottom: 24px; }
@@ -1053,6 +1053,108 @@ html, body, #root { min-height: 100%; }
 .billing-subscribe-summary { font-size: 14px; color: var(--text-muted); line-height: 1.5; }
 
 .billing-paypal-area { min-height: 48px; }
+
+/* ── Billing sections ─────────────────────────────────────────────── */
+
+.billing-section {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.billing-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  margin-bottom: 18px;
+}
+
+/* Billing info form */
+.billing-info-form { display: flex; flex-direction: column; gap: 12px; }
+.billing-info-row  { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.billing-info-row-3 { grid-template-columns: 1fr 1fr 1fr; }
+.billing-info-actions { margin-top: 4px; }
+
+/* Active plan card */
+.billing-active-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.billing-active-plan-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.billing-active-plan-name  { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); margin-bottom: 4px; }
+.billing-active-plan-price { font-size: 28px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
+.billing-active-plan-price span { font-size: 14px; font-weight: 500; color: var(--text-muted); letter-spacing: 0; }
+.billing-active-plan-meta  { font-size: 13px; color: var(--text-muted); text-align: right; }
+
+.billing-active-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.billing-cancel-btn { color: #dc2626 !important; border-color: #fca5a5 !important; }
+.billing-cancel-btn:hover { background: #fef2f2 !important; }
+
+/* Plan change */
+.billing-change-back {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.billing-change-note {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Invoice history */
+.billing-empty-note {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.billing-invoice-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.billing-invoice-head {
+  display: grid;
+  grid-template-columns: 120px 1fr 90px 80px;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--bg);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+.billing-invoice-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 90px 80px;
+  gap: 12px;
+  padding: 12px 16px;
+  font-size: 13px;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+.billing-invoice-row:last-child { border-bottom: none; }
+.billing-invoice-amount { font-weight: 600; }
+.billing-invoice-status { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 20px; text-align: center; }
+.billing-invoice-status.paid      { background: #dcfce7; color: #15803d; }
+.billing-invoice-status.cancelled { background: #fef2f2; color: #dc2626; }
 
 .billing-unconfigured {
   font-size: 13px;
@@ -1211,6 +1313,11 @@ html, body, #root { min-height: 100%; }
   .dash-main      { padding: 24px 16px; }
   .dash-header    { padding: 0 16px; }
   .billing-page   { padding: 24px 16px 60px; }
+  .billing-section { padding: 18px 16px; }
+  .billing-info-row   { grid-template-columns: 1fr; }
+  .billing-info-row-3 { grid-template-columns: 1fr; }
+  .billing-invoice-head { grid-template-columns: 90px 1fr 70px 70px; font-size: 10px; padding: 8px 12px; }
+  .billing-invoice-row  { grid-template-columns: 90px 1fr 70px 70px; font-size: 12px; padding: 10px 12px; }
   .pricing-grid   { grid-template-columns: 1fr 1fr; gap: 12px; }
 
   .builder-body {
