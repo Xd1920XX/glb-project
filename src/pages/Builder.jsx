@@ -5,8 +5,20 @@ import { getConfigurator, saveConfigurator, publishConfigurator, getPublishedCou
 import { getEmbedLimit } from '../config/plans.js'
 import { uploadFile, deleteFile } from '../firebase/storage.js'
 import { ConfiguratorRenderer } from '../components/ConfiguratorRenderer.jsx'
+import { ENV_PRESETS } from '../components/SaunaViewer3D.jsx'
 
 const DEFAULT_BG = { type: 'none', color: '#ffffff', imageUrl: null, imagePath: null }
+
+const DEFAULT_VIEWER_SETTINGS = {
+  spinnerSensitivity:    18,
+  spinnerAutoRotate:     false,
+  spinnerAutoRotateSpeed: 3,
+  glbAutoRotate:         false,
+  glbAutoRotateSpeed:    1,
+  glbEnvironment:        'city',
+  glbAllowZoom:          true,
+  glbFov:                42,
+}
 
 function uid() { return Math.random().toString(36).slice(2) }
 
@@ -299,6 +311,105 @@ function BackgroundEditor({ bg, uid: userUid, onChange }) {
   )
 }
 
+// ── Viewer settings editor ─────────────────────────────────────────
+
+function ViewerSettingsEditor({ settings, onChange }) {
+  const s = settings
+  function set(key, val) { onChange({ ...s, [key]: val }) }
+
+  return (
+    <div className="vs-editor">
+      {/* ── Rotation images ── */}
+      <p className="vs-group-label">Rotation images</p>
+
+      <div className="vs-row">
+        <label className="vs-label">Drag sensitivity</label>
+        <div className="vs-slider-wrap">
+          <input type="range" min="5" max="60" step="1"
+            value={s.spinnerSensitivity ?? 18}
+            onChange={(e) => set('spinnerSensitivity', Number(e.target.value))} />
+          <span className="vs-value">{s.spinnerSensitivity ?? 18}</span>
+        </div>
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label">Auto-rotate</label>
+        <label className="vs-toggle">
+          <input type="checkbox" checked={s.spinnerAutoRotate ?? false}
+            onChange={(e) => set('spinnerAutoRotate', e.target.checked)} />
+          <span className="vs-toggle-track" />
+        </label>
+      </div>
+
+      {s.spinnerAutoRotate && (
+        <div className="vs-row">
+          <label className="vs-label">Speed (fps)</label>
+          <div className="vs-slider-wrap">
+            <input type="range" min="0.5" max="15" step="0.5"
+              value={s.spinnerAutoRotateSpeed ?? 3}
+              onChange={(e) => set('spinnerAutoRotateSpeed', Number(e.target.value))} />
+            <span className="vs-value">{s.spinnerAutoRotateSpeed ?? 3}</span>
+          </div>
+        </div>
+      )}
+
+      {/* ── 3D model ── */}
+      <p className="vs-group-label" style={{ marginTop: 16 }}>3D model</p>
+
+      <div className="vs-row">
+        <label className="vs-label">Auto-rotate</label>
+        <label className="vs-toggle">
+          <input type="checkbox" checked={s.glbAutoRotate ?? false}
+            onChange={(e) => set('glbAutoRotate', e.target.checked)} />
+          <span className="vs-toggle-track" />
+        </label>
+      </div>
+
+      {s.glbAutoRotate && (
+        <div className="vs-row">
+          <label className="vs-label">Rotate speed</label>
+          <div className="vs-slider-wrap">
+            <input type="range" min="0.2" max="5" step="0.2"
+              value={s.glbAutoRotateSpeed ?? 1}
+              onChange={(e) => set('glbAutoRotateSpeed', Number(e.target.value))} />
+            <span className="vs-value">{s.glbAutoRotateSpeed ?? 1}</span>
+          </div>
+        </div>
+      )}
+
+      <div className="vs-row">
+        <label className="vs-label">Allow zoom</label>
+        <label className="vs-toggle">
+          <input type="checkbox" checked={s.glbAllowZoom ?? true}
+            onChange={(e) => set('glbAllowZoom', e.target.checked)} />
+          <span className="vs-toggle-track" />
+        </label>
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label">Camera FOV</label>
+        <div className="vs-slider-wrap">
+          <input type="range" min="20" max="90" step="1"
+            value={s.glbFov ?? 42}
+            onChange={(e) => set('glbFov', Number(e.target.value))} />
+          <span className="vs-value">{s.glbFov ?? 42}°</span>
+        </div>
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label">Lighting</label>
+        <select className="vs-select"
+          value={s.glbEnvironment ?? 'city'}
+          onChange={(e) => set('glbEnvironment', e.target.value)}>
+          {ENV_PRESETS.map((p) => (
+            <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+  )
+}
+
 // ── Main builder ───────────────────────────────────────────────────
 
 export default function Builder() {
@@ -306,11 +417,12 @@ export default function Builder() {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
 
-  const [name, setName]           = useState('')
-  const [variants, setVariants]   = useState([])
-  const [interiors, setInteriors] = useState([])
-  const [background, setBackground] = useState(DEFAULT_BG)
-  const [published, setPublished] = useState(false)
+  const [name, setName]                       = useState('')
+  const [variants, setVariants]               = useState([])
+  const [interiors, setInteriors]             = useState([])
+  const [background, setBackground]           = useState(DEFAULT_BG)
+  const [viewerSettings, setViewerSettings]   = useState(DEFAULT_VIEWER_SETTINGS)
+  const [published, setPublished]             = useState(false)
   const [saving, setSaving]       = useState(false)
   const [saved, setSaved]         = useState(false)
   const [dirty, setDirty]         = useState(false)
@@ -326,15 +438,16 @@ export default function Builder() {
       setVariants(cfg.variants ?? [])
       setInteriors(cfg.interiors ?? [])
       setBackground(cfg.background ?? DEFAULT_BG)
+      setViewerSettings({ ...DEFAULT_VIEWER_SETTINGS, ...(cfg.viewerSettings ?? {}) })
       setPublished(cfg.published ?? false)
       setLoading(false)
     })
   }, [id])
 
-  const doSave = useCallback(async (n, v, i, bg) => {
+  const doSave = useCallback(async (n, v, i, bg, vs) => {
     setSaving(true); setSaveError(null)
     try {
-      await saveConfigurator(id, { name: n, variants: v, interiors: i, background: bg })
+      await saveConfigurator(id, { name: n, variants: v, interiors: i, background: bg, viewerSettings: vs })
       setSaved(true); setDirty(false)
       setTimeout(() => setSaved(false), 2000)
     } catch (err) {
@@ -348,13 +461,13 @@ export default function Builder() {
     if (initialLoad.current) { initialLoad.current = false; return }
     setDirty(true)
     clearTimeout(autoSaveTimer.current)
-    autoSaveTimer.current = setTimeout(() => doSave(name, variants, interiors, background), 1500)
+    autoSaveTimer.current = setTimeout(() => doSave(name, variants, interiors, background, viewerSettings), 1500)
     return () => clearTimeout(autoSaveTimer.current)
-  }, [name, variants, interiors, background])
+  }, [name, variants, interiors, background, viewerSettings])
 
   async function handleSave() {
     clearTimeout(autoSaveTimer.current)
-    await doSave(name, variants, interiors, background)
+    await doSave(name, variants, interiors, background, viewerSettings)
   }
 
   async function handlePublish() {
@@ -365,14 +478,14 @@ export default function Builder() {
       const count = await getPublishedCount(user.uid)
       if (count >= limit) { navigate('/billing'); return }
     }
-    await saveConfigurator(id, { name, variants, interiors, background })
+    await saveConfigurator(id, { name, variants, interiors, background, viewerSettings })
     await publishConfigurator(id, !published)
     setPublished((v) => !v)
   }
 
   if (loading) return <div className="page-loading">Loading builder…</div>
 
-  const config = { variants, interiors, background }
+  const config = { variants, interiors, background, viewerSettings }
 
   return (
     <div className="builder">
@@ -436,6 +549,14 @@ export default function Builder() {
               <h3>Background</h3>
             </div>
             <BackgroundEditor bg={background} uid={user.uid} onChange={setBackground} />
+          </section>
+
+          {/* Viewer settings */}
+          <section className="builder-section">
+            <div className="builder-section-header">
+              <h3>Viewer settings</h3>
+            </div>
+            <ViewerSettingsEditor settings={viewerSettings} onChange={setViewerSettings} />
           </section>
 
           {/* Embed code */}

@@ -4,10 +4,10 @@ import { SaunaViewer3D } from './SaunaViewer3D.jsx'
 
 /**
  * Generic configurator renderer.
- * config = { variants, interiors, background }
+ * config = { variants, interiors, background, viewerSettings }
  */
 export function ConfiguratorRenderer({ config }) {
-  const { variants = [], interiors = [], background } = config
+  const { variants = [], interiors = [], background, viewerSettings = {} } = config
 
   const [view, setView]             = useState(variants.length ? 'exterior' : 'interior')
   const [variantId, setVariantId]   = useState(variants[0]?.id ?? null)
@@ -39,6 +39,8 @@ export function ConfiguratorRenderer({ config }) {
     return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n)
   }
 
+  const vs = viewerSettings
+
   // ── Viewer ──────────────────────────────────────────────────────
   function renderViewer() {
     if (view === 'interior' && interior?.panoramaUrl) {
@@ -46,7 +48,10 @@ export function ConfiguratorRenderer({ config }) {
     }
     if (view === 'exterior' && variant) {
       if (show3D && variant.glbUrl) {
-        return <SaunaViewer3D key={variant.id + '3d'} glb={variant.glbUrl} />
+        return <SaunaViewer3D key={variant.id + '3d'} glb={variant.glbUrl}
+          autoRotate={vs.glbAutoRotate} autoRotateSpeed={vs.glbAutoRotateSpeed ?? 1}
+          environment={vs.glbEnvironment ?? 'city'} allowZoom={vs.glbAllowZoom ?? true}
+          fov={vs.glbFov ?? 42} />
       }
       if (variant.type === 'spinner' && variant.frames?.length) {
         return (
@@ -54,11 +59,17 @@ export function ConfiguratorRenderer({ config }) {
             frames={variant.frames.map((f) => f.url)}
             frameIndex={frameIndex}
             onFrameChange={setFrameIndex}
+            sensitivity={vs.spinnerSensitivity ?? 18}
+            autoRotate={vs.spinnerAutoRotate ?? false}
+            autoRotateSpeed={vs.spinnerAutoRotateSpeed ?? 3}
           />
         )
       }
       if (variant.type === 'glb' && variant.glbUrl) {
-        return <SaunaViewer3D key={variant.id} glb={variant.glbUrl} />
+        return <SaunaViewer3D key={variant.id} glb={variant.glbUrl}
+          autoRotate={vs.glbAutoRotate} autoRotateSpeed={vs.glbAutoRotateSpeed ?? 1}
+          environment={vs.glbEnvironment ?? 'city'} allowZoom={vs.glbAllowZoom ?? true}
+          fov={vs.glbFov ?? 42} />
       }
     }
     return <div className="preview-empty">No preview available</div>
@@ -160,7 +171,7 @@ function SwatchDot({ variant }) {
 
 // ── Frame spinner ───────────────────────────────────────────────────
 
-function FrameSpinner({ frames, frameIndex, onFrameChange }) {
+function FrameSpinner({ frames, frameIndex, onFrameChange, sensitivity = 18, autoRotate = false, autoRotateSpeed = 3 }) {
   const [dragging, setDragging]   = useState(false)
   const [ready, setReady]         = useState(false)
   const prevX    = useRef(null)
@@ -184,7 +195,16 @@ function FrameSpinner({ frames, frameIndex, onFrameChange }) {
     return () => imgs.forEach((img) => { img.onload = img.onerror = null })
   }, [frames])
 
-  const SENSITIVITY = 18
+  // Auto-rotate: advance one frame at `autoRotateSpeed` fps, paused while dragging
+  useEffect(() => {
+    if (!autoRotate || dragging || !ready) return
+    const id = setInterval(() => {
+      const next = (frameRef.current + 1) % frames.length
+      frameRef.current = next
+      onFrameChange(next)
+    }, 1000 / Math.max(0.5, autoRotateSpeed))
+    return () => clearInterval(id)
+  }, [autoRotate, autoRotateSpeed, dragging, ready, frames.length])
 
   function handlePointerDown(e) {
     setDragging(true)
@@ -199,9 +219,9 @@ function FrameSpinner({ frames, frameIndex, onFrameChange }) {
     if (prev == null) return
     acc.current += e.clientX - prev
     prevX.current = e.clientX
-    const steps = Math.trunc(acc.current / SENSITIVITY)
+    const steps = Math.trunc(acc.current / sensitivity)
     if (steps !== 0) {
-      acc.current -= steps * SENSITIVITY
+      acc.current -= steps * sensitivity
       const next = ((frameRef.current - steps) % frames.length + frames.length) % frames.length
       frameRef.current = next
       onFrameChange(next)
@@ -216,7 +236,7 @@ function FrameSpinner({ frames, frameIndex, onFrameChange }) {
       onPointerCancel={() => setDragging(false)}>
       <img src={frames[frameIndex] ?? frames[0]} alt="" draggable={false} />
       {ready
-        ? <div className="spinner-hint">Drag to rotate</div>
+        ? <div className="spinner-hint">{autoRotate ? 'Drag to rotate' : 'Drag to rotate'}</div>
         : <div className="spinner-hint">Loading…</div>
       }
     </div>

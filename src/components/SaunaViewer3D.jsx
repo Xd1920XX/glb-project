@@ -17,16 +17,26 @@ function CameraFit() {
   return null
 }
 
-export function SaunaViewer3D({ glb }) {
+const ENV_PRESETS = ['city', 'sunset', 'dawn', 'night', 'warehouse', 'forest', 'apartment', 'studio', 'park', 'lobby']
+export { ENV_PRESETS }
+
+export function SaunaViewer3D({
+  glb,
+  autoRotate      = false,
+  autoRotateSpeed = 1,
+  environment     = 'city',
+  allowZoom       = true,
+  fov             = 42,
+}) {
   return (
     <Canvas
       shadows
       dpr={[1, 2]}
-      camera={{ fov: 42, position: [8, 4, 12] }}
+      camera={{ fov, position: [8, 4, 12] }}
       style={{ width: '100%', height: '100%' }}
     >
       <Suspense fallback={null}>
-        <Environment preset="city" />
+        <Environment preset={ENV_PRESETS.includes(environment) ? environment : 'city'} />
         <ambientLight intensity={0.5} />
         <directionalLight position={[6, 10, 8]} intensity={1.2} castShadow shadow-mapSize={[1024, 1024]} />
         <directionalLight position={[-6, 4, -4]} intensity={0.3} />
@@ -39,8 +49,11 @@ export function SaunaViewer3D({ glb }) {
         <OrbitControls
           makeDefault
           enablePan={false}
+          enableZoom={allowZoom}
           enableDamping
           dampingFactor={0.07}
+          autoRotate={autoRotate}
+          autoRotateSpeed={autoRotateSpeed}
           minPolarAngle={Math.PI / 8}
           maxPolarAngle={Math.PI / 2.2}
           minDistance={2}
