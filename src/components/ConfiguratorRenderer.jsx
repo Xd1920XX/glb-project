@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { InteriorViewer } from './InteriorViewer.jsx'
 import { SaunaViewer3D } from './SaunaViewer3D.jsx'
 
@@ -161,11 +161,28 @@ function SwatchDot({ variant }) {
 // ── Frame spinner ───────────────────────────────────────────────────
 
 function FrameSpinner({ frames, frameIndex, onFrameChange }) {
-  const [dragging, setDragging] = useState(false)
+  const [dragging, setDragging]   = useState(false)
+  const [ready, setReady]         = useState(false)
   const prevX    = useRef(null)
   const acc      = useRef(0)
   const frameRef = useRef(frameIndex)
   frameRef.current = frameIndex
+
+  // Preload all frames into browser cache before allowing interaction
+  useEffect(() => {
+    setReady(false)
+    let loaded = 0
+    const imgs = frames.map((src) => {
+      const img = new Image()
+      img.onload = img.onerror = () => {
+        loaded++
+        if (loaded === frames.length) setReady(true)
+      }
+      img.src = src
+      return img
+    })
+    return () => imgs.forEach((img) => { img.onload = img.onerror = null })
+  }, [frames])
 
   const SENSITIVITY = 18
 
@@ -193,12 +210,15 @@ function FrameSpinner({ frames, frameIndex, onFrameChange }) {
 
   return (
     <div className={`image-spinner${dragging ? ' dragging' : ''}`}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
+      onPointerDown={ready ? handlePointerDown : undefined}
+      onPointerMove={ready ? handlePointerMove : undefined}
       onPointerUp={() => setDragging(false)}
       onPointerCancel={() => setDragging(false)}>
       <img src={frames[frameIndex] ?? frames[0]} alt="" draggable={false} />
-      <div className="spinner-hint">Drag to rotate</div>
+      {ready
+        ? <div className="spinner-hint">Drag to rotate</div>
+        : <div className="spinner-hint">Loading…</div>
+      }
     </div>
   )
 }
