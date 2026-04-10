@@ -1,4 +1,4 @@
-const encode = (p) => p.split('/').map((s) => (s ? encodeURIComponent(s) : s)).join('/')
+const encode = (p) => encodeURI(p)
 
 export const FRAME_COUNT = 16
 
