@@ -1,51 +1,42 @@
 import { useState } from 'react'
-import { Viewer3D } from './components/Viewer3D.jsx'
-import { ConfigPanel } from './components/ConfigPanel.jsx'
-import { OrderModal } from './components/OrderModal.jsx'
-import { FRONT_PANELS } from './config/models.js'
-import { useConfigurator } from './hooks/useConfigurator.js'
+import { ImageSpinner } from './components/ImageSpinner.jsx'
+import { InteriorViewer } from './components/InteriorViewer.jsx'
+import { SaunaPanel } from './components/SaunaPanel.jsx'
+import { COLORS, FRAME_COUNT, INTERIORS } from './config/sauna.js'
 
 export default function App() {
-  const cfg = useConfigurator()
-  const [modalOpen, setModalOpen] = useState(false)
+  const [colorId, setColorId] = useState(COLORS[0].id)
+  const [frameIndex, setFrameIndex] = useState(0)
+  const [view, setView] = useState('exterior')
+  const [interiorId, setInteriorId] = useState(INTERIORS[0].id)
 
-  const panelsUrl = cfg.showPanels ? FRONT_PANELS.path : null
+  const color = COLORS.find((c) => c.id === colorId)
+  const interior = INTERIORS.find((i) => i.id === interiorId)
 
   return (
     <div className="app">
       <div className="viewer-pane">
-        <Viewer3D
-          frameUrl={cfg.frame?.path}
-          frameId={cfg.frameId}
-          lids={cfg.lids}
-          panelsUrl={panelsUrl}
-          slots={cfg.slots}
-        />
+        {view === 'exterior' ? (
+          <ImageSpinner
+            folder={color.folder}
+            frameCount={FRAME_COUNT}
+            frameIndex={frameIndex}
+            onFrameChange={setFrameIndex}
+          />
+        ) : (
+          <InteriorViewer key={interior.id} src={interior.path} />
+        )}
       </div>
       <div className="config-pane">
-        <ConfigPanel
-          frameId={cfg.frameId}
-          lids={cfg.lids}
-          showPanels={cfg.showPanels}
-          price={cfg.price}
-          onFrameChange={cfg.setFrame}
-          onLidChange={cfg.setLidType}
-          onVariantChange={cfg.setLidVariant}
-          onPanelsChange={cfg.setShowPanels}
-          onOrder={() => setModalOpen(true)}
+        <SaunaPanel
+          colorId={colorId}
+          view={view}
+          interiorId={interiorId}
+          onColorChange={(id) => { setColorId(id) }}
+          onViewChange={setView}
+          onInteriorChange={setInteriorId}
         />
       </div>
-
-      {modalOpen && (
-        <OrderModal
-          frameId={cfg.frameId}
-          lids={cfg.lids}
-          showPanels={cfg.showPanels}
-          price={cfg.price}
-          onClose={() => setModalOpen(false)}
-        />
-      )}
-
     </div>
   )
 }
