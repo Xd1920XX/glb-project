@@ -1,8 +1,25 @@
 import { useRef, useState, useEffect } from 'react'
-import { COLORS } from '../config/sauna.js'
+import { COLORS, FRAME_COUNT } from '../config/sauna.js'
 
 const SENSITIVITY = 18 // px per frame step
 const FALLBACK_FOLDER = COLORS[0].folder
+
+// Module-level cache so Image objects are never GC'd and preloading runs once
+const preloadCache = new Map()
+
+function preloadFolder(folder, count) {
+  if (preloadCache.has(folder)) return
+  const imgs = []
+  for (let i = 1; i <= count; i++) {
+    const img = new Image()
+    img.src = `${folder}/${i}.jpg`
+    imgs.push(img)
+  }
+  preloadCache.set(folder, imgs)
+}
+
+// Eagerly preload all color folders as soon as the module loads
+COLORS.forEach((c) => { if (c.folder) preloadFolder(c.folder, FRAME_COUNT) })
 
 export function ImageSpinner({ folder, frameCount, frameIndex, onFrameChange }) {
   const [dragging, setDragging] = useState(false)
