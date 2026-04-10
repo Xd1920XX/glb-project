@@ -1,16 +1,24 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
+import { getFunctions, httpsCallable } from 'firebase/functions'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { updateUser } from '../firebase/db.js'
 import { PLANS, getPlan } from '../config/plans.js'
 
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID
 
-const PLAN_IDS = {
+const PAYPAL_PLAN_IDS = {
   starter:    import.meta.env.VITE_PAYPAL_PLAN_ID_STARTER,
   pro:        import.meta.env.VITE_PAYPAL_PLAN_ID_PRO,
   business:   import.meta.env.VITE_PAYPAL_PLAN_ID_BUSINESS,
   enterprise: import.meta.env.VITE_PAYPAL_PLAN_ID_ENTERPRISE,
+}
+
+const STRIPE_PRICE_IDS = {
+  starter:    import.meta.env.VITE_STRIPE_PRICE_ID_STARTER,
+  pro:        import.meta.env.VITE_STRIPE_PRICE_ID_PRO,
+  business:   import.meta.env.VITE_STRIPE_PRICE_ID_BUSINESS,
+  enterprise: import.meta.env.VITE_STRIPE_PRICE_ID_ENTERPRISE,
 }
 
 const STATUS_CONFIG = {
@@ -29,6 +37,9 @@ const COUNTRIES = [
 
 export default function Billing() {
   const { user, profile, setProfile } = useAuth()
+  const [searchParams] = useSearchParams()
+  const stripeResult   = searchParams.get('stripe') // 'success' | 'cancel'
+
   const sub         = profile?.subscriptionStatus ?? 'trial'
   const status      = STATUS_CONFIG[sub] ?? STATUS_CONFIG.trial
   const currentPlan = sub === 'active' ? getPlan(profile?.planId) : null
@@ -47,6 +58,17 @@ export default function Billing() {
         </div>
 
         <h1 className="billing-title">Billing</h1>
+
+        {stripeResult === 'success' && (
+          <div className="billing-stripe-notice success">
+            ✓ Payment successful! Your subscription is being activated — this may take a moment.
+          </div>
+        )}
+        {stripeResult === 'cancel' && (
+          <div className="billing-stripe-notice cancel">
+            Payment cancelled. Choose a plan below to subscribe.
+          </div>
+        )}
 
         {/* ── Status card ── */}
         <div className="billing-status-card" style={{ borderColor: status.border, background: status.bg }}>
@@ -242,9 +264,17 @@ function ActiveSection({ user, profile, setProfile, currentPlan }) {
 // ── Plan selector ───────────────────────────────────────────────────
 
 function PlanSelector({ user, setProfile, defaultPlan }) {
-  const [selected, setSelected] = useState(defaultPlan ?? 'pro')
-  const plan        = PLANS.find((p) => p.id === selected)
-  const planPaypalId = PLAN_IDS[selected]
+  const [selected,      setSelected]     = useState(defaultPlan ?? 'pro')
+  const [paymentMethod, setPaymentMethod] = useState('stripe')
+  const plan          = PLANS.find((p) => p.id === selected)
+  const planPaypalId  = PAYPAL_PLAN_IDS[selected]
+  const stripePriceId = STRIPE_PRICE_IDS[selected]
+
+  const hasStripe = !!stripePriceId
+  const hasPayPal = !!(PAYPAL_CLIENT_ID && planPaypalId)
+
+  // Default to demo if neither is configured
+  const effectiveMethod = (!hasStripe && !hasPayPal) ? 'demo' : paymentMethod
 
   return (
     <div className="billing-section">
@@ -269,12 +299,43 @@ function PlanSelector({ user, setProfile, defaultPlan }) {
         <div className="billing-subscribe-summary">
           <strong>{plan.label}</strong> — €{plan.price}/month · {plan.embeds} active embeds · 7-day free trial
         </div>
-        {PAYPAL_CLIENT_ID && planPaypalId
-          ? <PayPalButton key={selected} planPaypalId={planPaypalId} planId={selected} user={user} setProfile={setProfile} />
-          : <div className="billing-unconfigured">
-              PayPal not configured. Set <code>VITE_PAYPAL_CLIENT_ID</code> and <code>VITE_PAYPAL_PLAN_ID_{selected.toUpperCase()}</code> in your <code>.env</code> file.
-            </div>
-        }
+
+        {/* Payment method selector */}
+        <div className="billing-pay-method-row">
+          <span className="billing-pay-method-label">Pay with</span>
+          <div className="billing-pay-method-btns">
+            {hasStripe && (
+              <button
+                className={`billing-pay-method-btn${effectiveMethod === 'stripe' ? ' active' : ''}`}
+                onClick={() => setPaymentMethod('stripe')}>
+                <StripeIcon /> Card (Stripe)
+              </button>
+            )}
+            {hasPayPal && (
+              <button
+                className={`billing-pay-method-btn${effectiveMethod === 'paypal' ? ' active' : ''}`}
+                onClick={() => setPaymentMethod('paypal')}>
+                <PayPalIcon /> PayPal
+              </button>
+            )}
+            <button
+              className={`billing-pay-method-btn${effectiveMethod === 'demo' ? ' active' : ''}`}
+              onClick={() => setPaymentMethod('demo')}>
+              Demo
+            </button>
+          </div>
+        </div>
+
+        {/* Payment UI */}
+        {effectiveMethod === 'stripe' && (
+          <StripeButton key={selected} planId={selected} priceId={stripePriceId} user={user} />
+        )}
+        {effectiveMethod === 'paypal' && (
+          <PayPalButton key={selected} planPaypalId={planPaypalId} planId={selected} user={user} setProfile={setProfile} />
+        )}
+        {effectiveMethod === 'demo' && (
+          <DemoButton key={selected} planId={selected} plan={plan} user={user} setProfile={setProfile} />
+        )}
       </div>
     </div>
   )
@@ -324,6 +385,98 @@ function InvoiceHistory({ profile }) {
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Icons ───────────────────────────────────────────────────────────
+
+function StripeIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 60 25" aria-hidden="true" fill="none">
+      {/* Stripe wordmark */}
+      <path fill="#635BFF" d="M59.64 14.28h-8.06c.19 1.93 1.6 2.55 3.2 2.55 1.64 0 2.96-.37 4.05-.95v3.32a8.33 8.33 0 0 1-4.56 1.1c-4.01 0-6.83-2.39-6.83-7.21 0-4.23 2.37-7.27 6.29-7.27 3.74 0 5.96 2.86 5.96 7.17 0 .42-.04 1.17-.05 1.29zm-5.92-5.62c-1.03 0-2.17.73-2.17 2.58h4.25c0-1.85-1.07-2.58-2.08-2.58zM40.95 20.3c-1.44 0-2.32-.6-2.9-1.04l-.02 4.63-3.84.82V6.74h3.4l.16 1.02c.55-.62 1.55-1.22 3.03-1.22 2.99 0 5.9 2.97 5.9 7.28 0 4.78-2.98 7.48-5.73 7.48zM40 10.25c-.92 0-1.64.33-2.08.84l.03 6.27c.43.5 1.12.86 2.05.86 1.6 0 2.7-1.75 2.7-3.99 0-2.18-1.11-3.98-2.7-3.98zM27.28 6.74h3.87v13.36h-3.87zm0-3.89l3.87-.82V5.4l-3.87.83zm-6.07 17.25c-1.24 0-2-.48-2.5-1.04l-.14 1.02H15.2V.32l3.84-.82.01 5.66c.54-.54 1.3-1.16 2.68-1.16 2.77 0 5.52 2.75 5.52 7.28 0 4.78-2.68 7.49-5.04 7.49zm-.6-10.07c-.9 0-1.56.35-2.02.86l.02 6.21c.43.5 1.1.84 2 .84 1.53 0 2.64-1.77 2.64-3.94 0-2.24-1.14-3.97-2.64-3.97zm-10.6 2.57l-1.55-.5c-.89-.27-1.07-.56-1.07-.9 0-.55.54-.92 1.46-.92 1.08 0 2.12.37 2.89.85V8.5c-.66-.43-1.83-.88-3.27-.88C5.7 7.62 3.6 9.1 3.6 11.85c0 1.97.97 3.12 3.3 3.84l1.46.5c.9.3 1.23.6 1.23 1.03 0 .58-.52 1-1.62 1-1.3 0-2.67-.55-3.58-1.1v3.53c.83.44 2.16.88 3.65.88 2.82 0 5.01-1.4 5.01-4.14 0-2.05-1.1-3.13-3.34-3.89z"/>
+    </svg>
+  )
+}
+
+function PayPalIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+      {/* Dark blue P */}
+      <path fill="#003087" d="M7.266 19.191H4.548a.425.425 0 0 1-.421-.492L6.61.597A.533.533 0 0 1 7.136.2h4.966c1.71 0 3.048.361 3.787 1.203.671.765.868 1.614.673 2.852l-.05.301c-.654 3.364-2.9 4.53-5.759 4.53H9.28a.626.626 0 0 0-.618.527l-.744 4.717-.1.638a.425.425 0 0 1-.42.362l-.132-.139z"/>
+      {/* Light blue P */}
+      <path fill="#009CDE" d="M19.657 7.563a4.4 4.4 0 0 0-.404-.36c-.673 3.454-2.87 5.21-6.082 5.21H11.66a.627.627 0 0 0-.618.528l-.79 5.01-.224 1.42a.422.422 0 0 0 .418.487h2.934a.55.55 0 0 0 .544-.465l.022-.117.432-2.741.028-.152a.55.55 0 0 1 .543-.465h.343c2.217 0 3.953-.9 4.462-3.503.212-1.092.102-2.005-.465-2.646a2.193 2.193 0 0 0-.632-.406z"/>
+      {/* Mid blue detail */}
+      <path fill="#012169" d="M19.005 7.3a4.604 4.604 0 0 0-.567-.126 7.22 7.22 0 0 0-1.147-.089h-3.476a.55.55 0 0 0-.543.465l-.739 4.689-.021.137a.627.627 0 0 1 .618-.528h1.511c2.513 0 4.481-1.021 5.056-3.975.017-.087.032-.172.045-.254a3.34 3.34 0 0 0-.737-.32z"/>
+    </svg>
+  )
+}
+
+// ── Demo button ─────────────────────────────────────────────────────
+
+function DemoButton({ planId, plan, user, setProfile }) {
+  const [loading, setLoading] = useState(false)
+  const [done,    setDone]    = useState(false)
+
+  async function handleClick() {
+    if (!confirm(`Activate "${plan.label}" in demo mode? No real payment will be taken.`)) return
+    setLoading(true)
+    const update = {
+      subscriptionStatus: 'active',
+      planId,
+      subscribedAt:       new Date(),
+      paymentProvider:    'demo',
+    }
+    await updateUser(user.uid, update)
+    setProfile((p) => ({ ...p, ...update }))
+    setDone(true)
+    setLoading(false)
+  }
+
+  return (
+    <div className="billing-stripe-btn-wrap">
+      <div className="billing-demo-notice">
+        Demo mode — no real payment. Use this to test the subscription flow.
+      </div>
+      <button className="btn-primary btn-block" onClick={handleClick} disabled={loading || done}>
+        {done ? '✓ Demo subscription activated' : loading ? 'Activating…' : `Activate ${plan.label} (Demo)`}
+      </button>
+    </div>
+  )
+}
+
+// ── Stripe button ───────────────────────────────────────────────────
+
+function StripeButton({ planId, priceId, user }) {
+  const [loading, setLoading] = useState(false)
+  const [error,   setError]   = useState(null)
+
+  async function handleClick() {
+    setLoading(true); setError(null)
+    try {
+      const fn = httpsCallable(getFunctions(), 'createStripeCheckout')
+      const { data } = await fn({
+        planId,
+        priceId,
+        appUrl: window.location.origin,
+      })
+      window.location.href = data.url
+    } catch (err) {
+      setError(err.message ?? 'Something went wrong. Please try again.')
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="billing-stripe-btn-wrap">
+      <button className="btn-primary btn-block" onClick={handleClick} disabled={loading}>
+        {loading ? 'Redirecting to Stripe…' : 'Subscribe with Card →'}
+      </button>
+      {error && <div className="billing-stripe-error">{error}</div>}
+      <p className="billing-stripe-note">
+        Secured by Stripe · 7-day free trial · Cancel any time
+      </p>
     </div>
   )
 }

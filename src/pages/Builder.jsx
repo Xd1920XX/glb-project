@@ -311,6 +311,49 @@ function BackgroundEditor({ bg, uid: userUid, onChange }) {
   )
 }
 
+// ── Embed section ──────────────────────────────────────────────────
+
+function EmbedSection({ id, origin }) {
+  const [mode, setMode] = useState('iframe')
+
+  const iframeCode = `<iframe\n  src="${origin}/embed/${id}"\n  width="100%"\n  height="600"\n  frameborder="0"\n  allowfullscreen\n></iframe>`
+
+  const widgetCode = `<!-- Place where you want the configurator -->\n<div\n  data-configurator="${id}"\n  data-height="600px"\n></div>\n\n<!-- Add once per page, before </body> -->\n<script src="${origin}/widget.js" async></script>`
+
+  function copy(text) {
+    navigator.clipboard.writeText(text)
+  }
+
+  return (
+    <section className="builder-section">
+      <div className="builder-section-header"><h3>Embed code</h3></div>
+
+      <div className="embed-mode-tabs">
+        <button className={`embed-mode-tab${mode === 'iframe' ? ' active' : ''}`}
+          onClick={() => setMode('iframe')}>iFrame</button>
+        <button className={`embed-mode-tab${mode === 'widget' ? ' active' : ''}`}
+          onClick={() => setMode('widget')}>JS Widget</button>
+      </div>
+
+      <div className="embed-code-box">
+        <code>{mode === 'iframe' ? iframeCode : widgetCode}</code>
+        <button className="btn-ghost btn-sm"
+          onClick={() => copy(mode === 'iframe' ? iframeCode : widgetCode)}>
+          Copy
+        </button>
+      </div>
+
+      {mode === 'widget' && (
+        <p className="embed-widget-note">
+          The widget script auto-resizes and avoids iframe cross-origin restrictions.
+          Add <code>data-width</code> and <code>data-height</code> attributes to control size,
+          and <code>data-radius</code> for rounded corners.
+        </p>
+      )}
+    </section>
+  )
+}
+
 // ── Viewer settings editor ─────────────────────────────────────────
 
 function ViewerSettingsEditor({ settings, onChange }) {
@@ -560,17 +603,7 @@ export default function Builder() {
           </section>
 
           {/* Embed code */}
-          {published && (
-            <section className="builder-section">
-              <div className="builder-section-header"><h3>Embed code</h3></div>
-              <div className="embed-code-box">
-                <code>{`<iframe src="${window.location.origin}/embed/${id}" width="100%" height="600" frameborder="0" allowfullscreen></iframe>`}</code>
-                <button className="btn-ghost btn-sm" onClick={() => navigator.clipboard.writeText(
-                  `<iframe src="${window.location.origin}/embed/${id}" width="100%" height="600" frameborder="0" allowfullscreen></iframe>`
-                )}>Copy</button>
-              </div>
-            </section>
-          )}
+          {published && <EmbedSection id={id} origin={window.location.origin} />}
         </aside>
 
         <div className="builder-preview">
