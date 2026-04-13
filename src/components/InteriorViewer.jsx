@@ -8,10 +8,13 @@ function PanoSphere({ url }) {
   texture.colorSpace = THREE.SRGBColorSpace
   texture.minFilter = THREE.LinearFilter
   texture.generateMipmaps = false
+  texture.wrapS = THREE.RepeatWrapping
+  texture.repeat.set(-1, 1)
+  texture.offset.set(1, 0)
   return (
-    <mesh scale={[-1, 1, 1]}>
+    <mesh>
       <sphereGeometry args={[5, 64, 32]} />
-      <meshBasicMaterial map={texture} side={THREE.FrontSide} />
+      <meshBasicMaterial map={texture} side={THREE.BackSide} />
     </mesh>
   )
 }
