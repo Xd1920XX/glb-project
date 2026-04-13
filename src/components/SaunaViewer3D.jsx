@@ -20,16 +20,13 @@ function CameraFit() {
 export function SaunaViewer3D({ glb }) {
   return (
     <Canvas
-      shadows
       dpr={[1, 2]}
       camera={{ fov: 42, position: [8, 4, 12] }}
       style={{ width: '100%', height: '100%' }}
     >
       <Suspense fallback={null}>
-        <Environment preset="city" />
-        <ambientLight intensity={0.5} />
-        <directionalLight position={[6, 10, 8]} intensity={1.2} castShadow shadow-mapSize={[1024, 1024]} />
-        <directionalLight position={[-6, 4, -4]} intensity={0.3} />
+        <Environment preset="apartment" background={false} />
+        <ambientLight intensity={1.2} />
 
         <Bounds fit clip margin={1.2}>
           <CameraFit />

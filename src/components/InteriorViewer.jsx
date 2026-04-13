@@ -6,10 +6,12 @@ import * as THREE from 'three'
 function PanoSphere({ url }) {
   const texture = useTexture(url)
   texture.colorSpace = THREE.SRGBColorSpace
+  texture.minFilter = THREE.LinearFilter
+  texture.generateMipmaps = false
   return (
-    <mesh>
+    <mesh scale={[-1, 1, 1]}>
       <sphereGeometry args={[5, 64, 32]} />
-      <meshBasicMaterial map={texture} side={THREE.BackSide} />
+      <meshBasicMaterial map={texture} side={THREE.FrontSide} />
     </mesh>
   )
 }
