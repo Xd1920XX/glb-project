@@ -7,13 +7,14 @@ function PanoSphere({ url }) {
   const texture = useTexture(url)
   texture.colorSpace = THREE.SRGBColorSpace
   texture.minFilter = THREE.LinearFilter
+  texture.magFilter = THREE.LinearFilter
   texture.generateMipmaps = false
   texture.wrapS = THREE.RepeatWrapping
   texture.repeat.set(-1, 1)
   texture.offset.set(1, 0)
   return (
     <mesh>
-      <sphereGeometry args={[5, 64, 32]} />
+      <sphereGeometry args={[5, 128, 64]} />
       <meshBasicMaterial map={texture} side={THREE.BackSide} />
     </mesh>
   )
@@ -22,6 +23,7 @@ function PanoSphere({ url }) {
 export function InteriorViewer({ src }) {
   return (
     <Canvas
+      dpr={[1, 2]}
       camera={{ fov: 80, position: [0, 0, 0.01] }}
       style={{ width: '100%', height: '100%' }}
     >
