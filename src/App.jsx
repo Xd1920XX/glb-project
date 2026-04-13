@@ -30,6 +30,7 @@ export default function App() {
     return (
       <ImageSpinner
         folder={color.folder}
+        fileSuffix={color.fileSuffix || ''}
         frameCount={FRAME_COUNT}
         frameIndex={frameIndex}
         onFrameChange={setFrameIndex}
