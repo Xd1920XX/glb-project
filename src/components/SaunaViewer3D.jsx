@@ -25,8 +25,9 @@ export function SaunaViewer3D({ glb }) {
       style={{ width: '100%', height: '100%' }}
     >
       <Suspense fallback={null}>
-        <Environment preset="apartment" background={false} />
-        <ambientLight intensity={1.2} />
+        <Environment preset="apartment" background={false} environmentIntensity={2} />
+        <ambientLight intensity={1.8} />
+        <directionalLight position={[5, 8, 5]} intensity={1.5} />
 
         <Bounds fit clip margin={1.2}>
           <CameraFit />
