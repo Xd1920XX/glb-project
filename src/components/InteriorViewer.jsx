@@ -4,7 +4,8 @@ import { Suspense, useEffect, useRef } from 'react'
 import * as THREE from 'three'
 
 const MIN_FOV = 20
-const MAX_FOV = 80
+const MAX_FOV = 110
+const DEFAULT_FOV = 80
 
 function PanoSphere({ url }) {
   const texture = useTexture(url)
@@ -25,7 +26,7 @@ function PanoSphere({ url }) {
 
 function PanoZoom() {
   const { camera, gl } = useThree()
-  const fovRef = useRef(MAX_FOV)
+  const fovRef = useRef(DEFAULT_FOV)
   const pointersRef = useRef(new Map())
   const prevPinchRef = useRef(null)
 
@@ -88,7 +89,7 @@ export function InteriorViewer({ src }) {
   return (
     <Canvas
       dpr={[1, 2]}
-      camera={{ fov: MAX_FOV, position: [0, 0, 0.01] }}
+      camera={{ fov: DEFAULT_FOV, position: [0, 0, 0.01] }}
       style={{ width: '100%', height: '100%' }}
     >
       <Suspense fallback={null}>
