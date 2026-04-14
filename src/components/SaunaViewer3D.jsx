@@ -59,9 +59,9 @@ export function SaunaViewer3D({ glb, textureUrl, envIntensity = 3 }) {
 
         <OrbitControls
           makeDefault
+          autoRotate={false}
           enablePan={false}
-          enableDamping
-          dampingFactor={0.07}
+          enableDamping={false}
           minPolarAngle={Math.PI / 8}
           maxPolarAngle={Math.PI / 2.2}
           minDistance={2}
