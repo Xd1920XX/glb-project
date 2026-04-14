@@ -1,12 +1,37 @@
 import { Canvas } from '@react-three/fiber'
-import { useGLTF, OrbitControls, Bounds, useBounds, Environment } from '@react-three/drei'
-import { Suspense, useLayoutEffect } from 'react'
+import { useGLTF, useTexture, OrbitControls, Bounds, useBounds, Environment } from '@react-three/drei'
+import { Suspense, useLayoutEffect, useMemo } from 'react'
+import * as THREE from 'three'
 
 useGLTF.preload('/new/' + encodeURIComponent('Sauna City XS.glb'))
 
 function Model({ url }) {
   const { scene } = useGLTF(url)
   return <primitive object={scene} />
+}
+
+function TexturedModel({ url, textureUrl }) {
+  const { scene } = useGLTF(url)
+  const texture = useTexture(textureUrl)
+
+  const clonedScene = useMemo(() => {
+    texture.colorSpace = THREE.SRGBColorSpace
+    texture.wrapS = THREE.RepeatWrapping
+    texture.wrapT = THREE.RepeatWrapping
+    const clone = scene.clone(true)
+    const PANEL_MATERIALS = new Set(['black_walls'])
+    clone.traverse((child) => {
+      if (child.isMesh && PANEL_MATERIALS.has(child.material?.name)) {
+        child.material = child.material.clone()
+        child.material.color.set(0xffffff)
+        child.material.map = texture
+        child.material.needsUpdate = true
+      }
+    })
+    return clone
+  }, [scene, texture])
+
+  return <primitive object={clonedScene} />
 }
 
 function CameraFit() {
@@ -17,7 +42,7 @@ function CameraFit() {
   return null
 }
 
-export function SaunaViewer3D({ glb }) {
+export function SaunaViewer3D({ glb, textureUrl }) {
   return (
     <Canvas
       dpr={[1, 2]}
@@ -26,14 +51,10 @@ export function SaunaViewer3D({ glb }) {
     >
       <Suspense fallback={null}>
         <Environment preset="apartment" background={false} environmentIntensity={3} />
-        <ambientLight intensity={2.5} />
-        <directionalLight position={[5, 8, 5]} intensity={2.5} />
-        <directionalLight position={[-5, 6, -4]} intensity={2} />
-        <directionalLight position={[0, -4, 6]} intensity={1} />
 
         <Bounds fit clip margin={1.2}>
           <CameraFit />
-          <Model url={glb} />
+          {textureUrl ? <TexturedModel url={glb} textureUrl={textureUrl} /> : <Model url={glb} />}
         </Bounds>
 
         <OrbitControls

@@ -25,7 +25,7 @@ export default function App() {
       return <InteriorViewer key={interior.id} src={interior.path} />
     }
     if (show3D && color.glb) {
-      return <SaunaViewer3D key={color.id} glb={color.glb} />
+      return <SaunaViewer3D key={color.id} glb={color.glb} textureUrl={color.texture} />
     }
     return (
       <ImageSpinner
