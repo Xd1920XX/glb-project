@@ -83,6 +83,7 @@ export function ImageSpinner({ folder, fileSuffix = '', frameCount, frameIndex, 
   }
 
   function handlePointerMove(e) {
+    if (activePointers.current.size === 0) return
     activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
 
     if (activePointers.current.size >= 2) {

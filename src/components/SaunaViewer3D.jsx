@@ -51,6 +51,10 @@ export function SaunaViewer3D({ glb, textureUrl, envIntensity = 3 }) {
     >
       <Suspense fallback={null}>
         <Environment preset="apartment" background={false} environmentIntensity={envIntensity} />
+        {textureUrl && <>
+          <directionalLight position={[0, 2, 10]}  intensity={1.5} />
+          <directionalLight position={[0, 2, -10]} intensity={1.5} />
+        </>}
 
         <Bounds fit clip margin={1.2}>
           <CameraFit />
