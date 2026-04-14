@@ -42,7 +42,7 @@ function CameraFit() {
   return null
 }
 
-export function SaunaViewer3D({ glb, textureUrl }) {
+export function SaunaViewer3D({ glb, textureUrl, envIntensity = 3 }) {
   return (
     <Canvas
       dpr={[1, 2]}
@@ -50,7 +50,7 @@ export function SaunaViewer3D({ glb, textureUrl }) {
       style={{ width: '100%', height: '100%' }}
     >
       <Suspense fallback={null}>
-        <Environment preset="apartment" background={false} environmentIntensity={3} />
+        <Environment preset="apartment" background={false} environmentIntensity={envIntensity} />
 
         <Bounds fit clip margin={1.2}>
           <CameraFit />
