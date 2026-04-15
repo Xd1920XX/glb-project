@@ -3,7 +3,7 @@ import { useGLTF, useTexture, OrbitControls, Bounds, useBounds, Environment } fr
 import { Suspense, useLayoutEffect, useMemo } from 'react'
 import * as THREE from 'three'
 
-useGLTF.preload('/new/' + encodeURIComponent('Sauna City XS.glb'))
+useGLTF.preload(encodeURI('/updated_images/Exterior/Sauna City XS (1).glb'))
 
 function Model({ url }) {
   const { scene } = useGLTF(url)

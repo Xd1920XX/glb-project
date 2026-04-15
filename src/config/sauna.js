@@ -2,14 +2,16 @@ const encode = (p) => encodeURI(p)
 
 export const FRAME_COUNT = 16
 
+const GLB = encode('/updated_images/Exterior/Sauna City XS (1).glb')
+
 export const COLORS = [
-  { id: 'natural', label: 'Black', swatch: '#1A1A1A', folder: encode('/new/wetransfer_black-rotatable-eti-box_2026-04-13_0936'), fileSuffix: '_2', glb: encode('/new/Sauna City XS.glb') },
-  { id: 'brown',   label: 'Brown',   swatch: '#6B4226', folder: encode('/new/wetransfer_brown-rotatable-eti-box_2026-04-13_0931'), fileSuffix: '_2', glb: encode('/new/Sauna City XS.glb'), texture: encode('/new/texture.jpeg') },
+  { id: 'natural', label: 'Black', swatch: '#1A1A1A', folder: '/updated_images/Exterior/Black', glb: GLB },
+  { id: 'brown',   label: 'Brown', swatch: '#6B4226', folder: '/updated_images/Exterior/Brown', glb: GLB, texture: encode('/updated_images/Exterior/wood-43_d 1,8x2,4m 2 nat 2 33333_wood dark_4.jpg') },
 ]
 
 export const INTERIORS = [
-  { id: 'harvia',    label: 'Harvia',            path: encode('/new/interjor/CIty XS_6k_Harvia.jpg') },
-  { id: 'harvia-ir', label: 'Harvia + Infrared', path: encode('/new/interjor/CIty XS_6k_Harvia+infrared Harvia.jpg') },
-  { id: 'huum',      label: 'Huum',              path: encode('/new/interjor/CIty XS_6k_Huum.jpg') },
-  { id: 'huum-eos',  label: 'Huum + Eos',        path: encode('/new/interjor/CIty XS_6k_Huum+Eos.jpg') },
+  { id: 'harvia',    label: 'Harvia',            path: encode('/updated_images/Interior/CIty XS_6k_Harvia.jpg') },
+  { id: 'harvia-ir', label: 'Harvia + Infrared', path: encode('/updated_images/Interior/CIty XS_6k_Harvia+infrared Harvia.jpg') },
+  { id: 'huum',      label: 'Huum',              path: encode('/updated_images/Interior/CIty XS_6k_Huum.jpg') },
+  { id: 'huum-eos',  label: 'Huum + Eos',        path: encode('/updated_images/Interior/CIty XS_6k_Huum+Eos.jpg') },
 ]
