@@ -71,6 +71,30 @@ export async function deleteConfigurator(id) {
   await deleteDoc(doc(db, 'configurators', id))
 }
 
+// ── Media library ──────────────────────────────────────────────────
+
+export async function addMediaFile(uid, { name, url, storagePath, size, contentType }) {
+  const ref = await addDoc(collection(db, 'media'), {
+    ownerId: uid, name, url, storagePath, size, contentType,
+    createdAt: serverTimestamp(),
+  })
+  return ref.id
+}
+
+export async function getUserMedia(uid) {
+  const q = query(
+    collection(db, 'media'),
+    where('ownerId', '==', uid),
+    orderBy('createdAt', 'desc'),
+  )
+  const snaps = await getDocs(q)
+  return snaps.docs.map((d) => ({ id: d.id, ...d.data() }))
+}
+
+export async function deleteMediaFile(id) {
+  await deleteDoc(doc(db, 'media', id))
+}
+
 // ── Public embed — reads config + checks owner subscription ────────
 
 export async function getPublishedConfigurator(id) {

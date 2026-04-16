@@ -7,6 +7,7 @@ import { uploadFile, deleteFile } from '../firebase/storage.js'
 import { ConfiguratorRenderer } from '../components/ConfiguratorRenderer.jsx'
 import { ENV_PRESETS } from '../components/SaunaViewer3D.jsx'
 import { extractGLBMaterials } from '../utils/glbMaterials.js'
+import { MediaPickerModal } from '../components/MediaPickerModal.jsx'
 
 const DEFAULT_BG = { type: 'none', color: '#ffffff', imageUrl: null, imagePath: null }
 
@@ -67,6 +68,8 @@ function VariantEditor({ variant, uid: userUid, onChange, onDelete, onDuplicate 
   const [progress, setProgress]       = useState(0)
   const [uploadLabel, setUploadLabel] = useState('')
   const [uploadError, setUploadError] = useState('')
+  const [showGlbPicker, setShowGlbPicker]     = useState(false)
+  const [showSwatchPicker, setShowSwatchPicker] = useState(false)
 
   const swatchType = variant.swatchType ?? 'color'
 
@@ -92,25 +95,12 @@ function VariantEditor({ variant, uid: userUid, onChange, onDelete, onDuplicate 
     finally { setUploading(false); setUploadLabel(''); setProgress(0) }
   }
 
-  async function handleGlbUpload(files) {
-    setUploading(true); setUploadError(''); setProgress(0)
-    try {
-      const result = await uploadFile(userUid, files[0], (p) => { setProgress(p); setUploadLabel(`Uploading… ${p}%`) })
-      setUploadLabel('Scanning materials…')
-      let glbMaterials = []
-      try { glbMaterials = await extractGLBMaterials(result.url) } catch { /* non-fatal */ }
-      onChange({ ...variant, glbUrl: result.url, glbStoragePath: result.storagePath, glbMaterials, materialOverrides: {} })
-    } catch (err) { setUploadError(errMsg(err)) }
-    finally { setUploading(false); setUploadLabel(''); setProgress(0) }
-  }
-
-  async function handleSwatchImageUpload(files) {
-    setUploading(true); setUploadError(''); setProgress(0)
-    try {
-      const result = await uploadFile(userUid, files[0], (p) => { setProgress(p); setUploadLabel(`Uploading… ${p}%`) })
-      onChange({ ...variant, swatchImageUrl: result.url, swatchImagePath: result.storagePath })
-    } catch (err) { setUploadError(errMsg(err)) }
-    finally { setUploading(false); setUploadLabel(''); setProgress(0) }
+  async function handleGlbSelect({ url, storagePath }) {
+    setUploadLabel('Scanning materials…'); setUploading(true)
+    let glbMaterials = []
+    try { glbMaterials = await extractGLBMaterials(url) } catch { /* non-fatal */ }
+    onChange({ ...variant, glbUrl: url, glbStoragePath: storagePath, glbMaterials, materialOverrides: {} })
+    setUploading(false); setUploadLabel('')
   }
 
   async function handleDeleteFrames() {
@@ -128,8 +118,10 @@ function VariantEditor({ variant, uid: userUid, onChange, onDelete, onDuplicate 
             ? <input type="color" className="color-picker" value={variant.swatch ?? '#888888'}
                 onChange={(e) => onChange({ ...variant, swatch: e.target.value })} />
             : variant.swatchImageUrl
-              ? <img src={variant.swatchImageUrl} className="swatch-image-preview" alt="" />
-              : <div className="swatch-image-placeholder">img</div>
+              ? <img src={variant.swatchImageUrl} className="swatch-image-preview" alt=""
+                  onClick={() => setShowSwatchPicker(true)} style={{ cursor: 'pointer' }} />
+              : <div className="swatch-image-placeholder" style={{ cursor: 'pointer' }}
+                  onClick={() => setShowSwatchPicker(true)}>img</div>
           }
         </div>
         <input className="field-input inline" placeholder="Variant name"
@@ -157,11 +149,15 @@ function VariantEditor({ variant, uid: userUid, onChange, onDelete, onDuplicate 
         </div>
         {swatchType === 'image' && (
           variant.swatchImageUrl
-            ? <button className="btn-text-danger" onClick={async () => {
-                if (variant.swatchImagePath) await deleteFile(variant.swatchImagePath)
-                onChange({ ...variant, swatchImageUrl: null, swatchImagePath: null })
-              }}>Remove</button>
-            : <UploadBtn label="Upload" accept="image/*" onFiles={handleSwatchImageUpload} uploading={uploading} />
+            ? <>
+                <button className="btn-text-danger" onClick={() => setShowSwatchPicker(true)}>Change</button>
+                <button className="btn-text-danger" onClick={async () => {
+                  if (variant.swatchImagePath) await deleteFile(variant.swatchImagePath)
+                  onChange({ ...variant, swatchImageUrl: null, swatchImagePath: null })
+                }}>Remove</button>
+              </>
+            : <button className="btn-upload" style={{ flex: 'none', padding: '4px 10px', fontSize: 12 }}
+                onClick={() => setShowSwatchPicker(true)}>Choose image</button>
         )}
       </div>
 
@@ -177,7 +173,7 @@ function VariantEditor({ variant, uid: userUid, onChange, onDelete, onDuplicate 
         </label>
       </div>
 
-      {/* Spinner upload */}
+      {/* Spinner upload — multiple sequential files, keep direct upload */}
       {variant.type === 'spinner' && (
         <div className="upload-section">
           {(variant.frames?.length ?? 0) > 0 && !uploading ? (
@@ -193,28 +189,44 @@ function VariantEditor({ variant, uid: userUid, onChange, onDelete, onDuplicate 
         </div>
       )}
 
-      {/* GLB upload */}
+      {/* GLB — media picker */}
       {variant.type === 'glb' && (
         <div className="upload-section">
-          {variant.glbUrl && !uploading ? (
-            <div className="upload-done">✓ GLB uploaded
-              <button className="btn-text-danger" onClick={async () => {
-                await deleteFile(variant.glbStoragePath)
-                onChange({ ...variant, glbUrl: null, glbStoragePath: null, glbMaterials: [], materialOverrides: {} })
-              }}>Remove</button>
-            </div>
-          ) : (
-            <UploadBtn label={uploading ? uploadLabel || 'Uploading…' : 'Upload GLB file'}
-              accept=".glb" onFiles={handleGlbUpload} uploading={uploading} />
-          )}
-          {uploading && <UploadProgress progress={progress} label={uploadLabel} />}
-          {uploadError && <div className="upload-error">{uploadError}</div>}
+          {uploading
+            ? <UploadProgress progress={progress} label={uploadLabel || 'Processing…'} />
+            : variant.glbUrl
+              ? <div className="upload-done">✓ GLB uploaded
+                  <button className="btn-text-danger" onClick={() => setShowGlbPicker(true)}>Replace</button>
+                  <button className="btn-text-danger" onClick={async () => {
+                    await deleteFile(variant.glbStoragePath)
+                    onChange({ ...variant, glbUrl: null, glbStoragePath: null, glbMaterials: [], materialOverrides: {} })
+                  }}>Remove</button>
+                </div>
+              : <button className="btn-upload" onClick={() => setShowGlbPicker(true)}>
+                  Choose GLB from media library
+                </button>
+          }
         </div>
       )}
 
       {/* Material overrides accordion (GLB only) */}
       {variant.type === 'glb' && variant.glbUrl && (
         <MaterialsAccordion variant={variant} uid={userUid} onChange={onChange} />
+      )}
+
+      {/* Media pickers */}
+      {showGlbPicker && (
+        <MediaPickerModal uid={userUid} accept=".glb"
+          onSelect={(f) => { setShowGlbPicker(false); handleGlbSelect(f) }}
+          onClose={() => setShowGlbPicker(false)} />
+      )}
+      {showSwatchPicker && (
+        <MediaPickerModal uid={userUid} accept="image/*"
+          onSelect={({ url, storagePath }) => {
+            setShowSwatchPicker(false)
+            onChange({ ...variant, swatchImageUrl: url, swatchImagePath: storagePath })
+          }}
+          onClose={() => setShowSwatchPicker(false)} />
       )}
     </div>
   )
@@ -223,20 +235,10 @@ function VariantEditor({ variant, uid: userUid, onChange, onDelete, onDuplicate 
 // ── Material override accordion ────────────────────────────────────
 
 function MaterialOverrideRow({ mat, override = {}, uid: userUid, onChange, onRename, onDelete }) {
-  const [open, setOpen]           = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [progress, setProgress]   = useState(0)
+  const [open, setOpen]               = useState(false)
+  const [showTexturePicker, setShowTexturePicker] = useState(false)
 
   const type = override.type ?? 'none'
-
-  async function handleTextureUpload(files) {
-    setUploading(true)
-    try {
-      const result = await uploadFile(userUid, files[0], (p) => setProgress(p))
-      onChange({ ...override, type: 'texture', textureUrl: result.url, texturePath: result.storagePath })
-    } catch { /* ignore */ }
-    finally { setUploading(false); setProgress(0) }
-  }
 
   const dot = type === 'color' && override.color
     ? <span className="mat-dot" style={{ background: override.color }} />
@@ -296,22 +298,29 @@ function MaterialOverrideRow({ mat, override = {}, uid: userUid, onChange, onRen
 
           {type === 'texture' && (
             <div className="mat-texture-row">
-              {override.textureUrl && !uploading ? (
+              {override.textureUrl ? (
                 <div className="mat-texture-preview">
                   <img src={override.textureUrl} alt="" />
+                  <button className="btn-text-danger" onClick={() => setShowTexturePicker(true)}>Change</button>
                   <button className="btn-text-danger" onClick={async () => {
                     if (override.texturePath) await deleteFile(override.texturePath)
                     onChange({ ...override, textureUrl: null, texturePath: null })
                   }}>Remove</button>
                 </div>
               ) : (
-                <UploadBtn
-                  label={uploading ? `Uploading… ${progress}%` : 'Upload texture (JPG/PNG)'}
-                  accept="image/*"
-                  onFiles={handleTextureUpload}
-                  uploading={uploading} />
+                <button className="btn-upload" onClick={() => setShowTexturePicker(true)}>
+                  Choose texture image
+                </button>
               )}
             </div>
+          )}
+          {showTexturePicker && (
+            <MediaPickerModal uid={userUid} accept="image/*"
+              onSelect={({ url, storagePath }) => {
+                setShowTexturePicker(false)
+                onChange({ ...override, type: 'texture', textureUrl: url, texturePath: storagePath })
+              }}
+              onClose={() => setShowTexturePicker(false)} />
           )}
         </div>
       )}
@@ -400,22 +409,7 @@ function MaterialsAccordion({ variant, uid: userUid, onChange }) {
 // ── Interior editor ────────────────────────────────────────────────
 
 function InteriorEditor({ interior, uid: userUid, onChange, onDelete, onDuplicate }) {
-  const [uploading, setUploading]     = useState(false)
-  const [progress, setProgress]       = useState(0)
-  const [uploadLabel, setUploadLabel] = useState('')
-  const [uploadError, setUploadError] = useState('')
-
-  async function handleUpload(files) {
-    setUploading(true); setUploadError(''); setProgress(0)
-    try {
-      const result = await uploadFile(userUid, files[0], (p) => { setProgress(p); setUploadLabel(`Uploading… ${p}%`) })
-      onChange({ ...interior, panoramaUrl: result.url, panoramaStoragePath: result.storagePath })
-    } catch (err) {
-      setUploadError(err.code === 'storage/unauthorized'
-        ? 'Upload failed: Storage rules not deployed. See Firebase Console → Storage → Rules.'
-        : `Upload failed: ${err.code ?? err.message}`)
-    } finally { setUploading(false); setUploadLabel(''); setProgress(0) }
-  }
+  const [showPicker, setShowPicker] = useState(false)
 
   return (
     <div className="variant-block">
@@ -427,20 +421,28 @@ function InteriorEditor({ interior, uid: userUid, onChange, onDelete, onDuplicat
         <button className="btn-icon-delete" onClick={onDelete}>✕</button>
       </div>
       <div className="upload-section">
-        {interior.panoramaUrl && !uploading ? (
+        {interior.panoramaUrl ? (
           <div className="upload-done">✓ Panorama uploaded
+            <button className="btn-text-danger" onClick={() => setShowPicker(true)}>Replace</button>
             <button className="btn-text-danger" onClick={async () => {
               await deleteFile(interior.panoramaStoragePath)
               onChange({ ...interior, panoramaUrl: null, panoramaStoragePath: null })
             }}>Remove</button>
           </div>
         ) : (
-          <UploadBtn label={uploading ? uploadLabel || 'Uploading…' : 'Upload 360° panorama image'}
-            accept="image/*" onFiles={handleUpload} uploading={uploading} />
+          <button className="btn-upload" onClick={() => setShowPicker(true)}>
+            Choose 360° panorama image
+          </button>
         )}
-        {uploading && <UploadProgress progress={progress} label={uploadLabel} />}
-        {uploadError && <div className="upload-error">{uploadError}</div>}
       </div>
+      {showPicker && (
+        <MediaPickerModal uid={userUid} accept="image/*"
+          onSelect={({ url, storagePath }) => {
+            setShowPicker(false)
+            onChange({ ...interior, panoramaUrl: url, panoramaStoragePath: storagePath })
+          }}
+          onClose={() => setShowPicker(false)} />
+      )}
     </div>
   )
 }
@@ -448,37 +450,16 @@ function InteriorEditor({ interior, uid: userUid, onChange, onDelete, onDuplicat
 // ── Background editor ──────────────────────────────────────────────
 
 function BackgroundEditor({ bg, uid: userUid, onChange }) {
-  const [uploading, setUploading]     = useState(false)
-  const [progress, setProgress]       = useState(0)
-  const [uploadLabel, setUploadLabel] = useState('')
-  const [uploadError, setUploadError] = useState('')
-
-  async function handleImageUpload(files) {
-    setUploading(true); setUploadError(''); setProgress(0)
-    try {
-      const result = await uploadFile(userUid, files[0], (p) => { setProgress(p); setUploadLabel(`Uploading… ${p}%`) })
-      onChange({ ...bg, imageUrl: result.url, imagePath: result.storagePath })
-    } catch (err) {
-      setUploadError(err.code === 'storage/unauthorized'
-        ? 'Upload failed: Storage rules not deployed.'
-        : `Upload failed: ${err.code ?? err.message}`)
-    } finally { setUploading(false); setUploadLabel(''); setProgress(0) }
-  }
+  const [showPicker, setShowPicker] = useState(false)
 
   return (
     <div className="bg-editor">
       <div className="bg-type-row">
-        {[
-          { val: 'none',  label: 'None' },
-          { val: 'color', label: 'Color' },
-          { val: 'image', label: 'Image' },
-        ].map(({ val, label }) => (
-          <button key={val}
-            className={`bg-type-btn${bg.type === val ? ' active' : ''}`}
-            onClick={() => onChange({ ...bg, type: val })}>
-            {label}
-          </button>
-        ))}
+        {[{ val: 'none', label: 'None' }, { val: 'color', label: 'Color' }, { val: 'image', label: 'Image' }]
+          .map(({ val, label }) => (
+            <button key={val} className={`bg-type-btn${bg.type === val ? ' active' : ''}`}
+              onClick={() => onChange({ ...bg, type: val })}>{label}</button>
+          ))}
       </div>
 
       {bg.type === 'color' && (
@@ -491,21 +472,30 @@ function BackgroundEditor({ bg, uid: userUid, onChange }) {
 
       {bg.type === 'image' && (
         <div className="upload-section">
-          {bg.imageUrl && !uploading ? (
+          {bg.imageUrl ? (
             <div className="bg-image-preview-row">
               <img src={bg.imageUrl} className="bg-image-thumb" alt="" />
+              <button className="btn-text-danger" onClick={() => setShowPicker(true)}>Change</button>
               <button className="btn-text-danger" onClick={async () => {
                 if (bg.imagePath) await deleteFile(bg.imagePath)
                 onChange({ ...bg, imageUrl: null, imagePath: null })
               }}>Remove</button>
             </div>
           ) : (
-            <UploadBtn label={uploading ? uploadLabel || 'Uploading…' : 'Upload background image'}
-              accept="image/*" onFiles={handleImageUpload} uploading={uploading} />
+            <button className="btn-upload" onClick={() => setShowPicker(true)}>
+              Choose background image
+            </button>
           )}
-          {uploading && <UploadProgress progress={progress} label={uploadLabel} />}
-          {uploadError && <div className="upload-error">{uploadError}</div>}
         </div>
+      )}
+
+      {showPicker && (
+        <MediaPickerModal uid={userUid} accept="image/*"
+          onSelect={({ url, storagePath }) => {
+            setShowPicker(false)
+            onChange({ ...bg, imageUrl: url, imagePath: storagePath })
+          }}
+          onClose={() => setShowPicker(false)} />
       )}
     </div>
   )

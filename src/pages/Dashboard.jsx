@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+
 import { useAuth } from '../hooks/useAuth.jsx'
 import { getUserConfigurators, createConfigurator, deleteConfigurator } from '../firebase/db.js'
 import { logOut } from '../firebase/auth.js'
@@ -45,6 +46,10 @@ export default function Dashboard() {
     <div className="dashboard">
       <header className="dash-header">
         <span className="dash-logo">Configurator</span>
+        <nav className="dash-nav">
+          <Link to="/dashboard" className="dash-nav-link active">Configurators</Link>
+          <Link to="/media" className="dash-nav-link">Media</Link>
+        </nav>
         <div className="dash-header-right">
           <Link to="/billing" className="dash-billing-link">
             <span className="sub-badge" style={{ background: statusColor[sub] }}>
