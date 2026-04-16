@@ -20,6 +20,18 @@ const DEFAULT_VIEWER_SETTINGS = {
   glbFov:                42,
 }
 
+const DEFAULT_ORDER_FORM = {
+  enabled: false,
+  submitLabel: 'Submit order',
+  successMessage: 'Thank you! We will be in touch.',
+  fields: [
+    { id: 'of1', label: 'Name',    type: 'text',     required: true,  enabled: true },
+    { id: 'of2', label: 'Email',   type: 'email',    required: true,  enabled: true },
+    { id: 'of3', label: 'Phone',   type: 'tel',      required: false, enabled: true },
+    { id: 'of4', label: 'Message', type: 'textarea', required: false, enabled: true },
+  ],
+}
+
 function uid() { return Math.random().toString(36).slice(2) }
 
 // ── Upload button ──────────────────────────────────────────────────
@@ -453,6 +465,67 @@ function ViewerSettingsEditor({ settings, onChange }) {
   )
 }
 
+// ── Order form editor ──────────────────────────────────────────────
+
+function OrderFormEditor({ orderForm, onChange }) {
+  const fields = orderForm.fields ?? []
+
+  function setField(id, updated) {
+    onChange({ ...orderForm, fields: fields.map((f) => f.id === id ? updated : f) })
+  }
+
+  return (
+    <div className="order-form-editor">
+      <div className="vs-row">
+        <label className="vs-label">Submit button label</label>
+        <input className="field-input inline" value={orderForm.submitLabel ?? ''}
+          placeholder="Submit order"
+          onChange={(e) => onChange({ ...orderForm, submitLabel: e.target.value })} />
+      </div>
+      <div className="vs-row">
+        <label className="vs-label">Success message</label>
+        <input className="field-input inline" value={orderForm.successMessage ?? ''}
+          placeholder="Thank you! We will be in touch."
+          onChange={(e) => onChange({ ...orderForm, successMessage: e.target.value })} />
+      </div>
+
+      <div className="order-fields-header">
+        <span className="vs-group-label">Form fields</span>
+        <button className="btn-add" onClick={() =>
+          onChange({ ...orderForm, fields: [...fields, { id: uid(), label: 'New field', type: 'text', required: false, enabled: true }] })
+        }>+ Add</button>
+      </div>
+
+      {fields.map((field) => (
+        <div key={field.id} className="order-field-row">
+          <label className="vs-toggle" title="Show/hide field">
+            <input type="checkbox" checked={field.enabled ?? true}
+              onChange={(e) => setField(field.id, { ...field, enabled: e.target.checked })} />
+            <span className="vs-toggle-track" />
+          </label>
+          <input className="field-input inline order-field-label-input" placeholder="Label" value={field.label}
+            onChange={(e) => setField(field.id, { ...field, label: e.target.value })} />
+          <select className="vs-select order-field-type-select" value={field.type}
+            onChange={(e) => setField(field.id, { ...field, type: e.target.value })}>
+            <option value="text">Text</option>
+            <option value="email">Email</option>
+            <option value="tel">Phone</option>
+            <option value="textarea">Textarea</option>
+          </select>
+          <label className="radio-label order-field-req" title="Required">
+            <input type="checkbox" checked={field.required ?? false}
+              onChange={(e) => setField(field.id, { ...field, required: e.target.checked })} />
+            Req
+          </label>
+          <button className="btn-icon-delete" onClick={() =>
+            onChange({ ...orderForm, fields: fields.filter((f) => f.id !== field.id) })
+          }>✕</button>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ── Main builder ───────────────────────────────────────────────────
 
 export default function Builder() {
@@ -465,6 +538,9 @@ export default function Builder() {
   const [interiors, setInteriors]             = useState([])
   const [background, setBackground]           = useState(DEFAULT_BG)
   const [viewerSettings, setViewerSettings]   = useState(DEFAULT_VIEWER_SETTINGS)
+  const [exteriorLabel, setExteriorLabel]     = useState('Exterior')
+  const [interiorLabel, setInteriorLabel]     = useState('Interior')
+  const [orderForm, setOrderForm]             = useState(DEFAULT_ORDER_FORM)
   const [published, setPublished]             = useState(false)
   const [saving, setSaving]       = useState(false)
   const [saved, setSaved]         = useState(false)
@@ -482,15 +558,18 @@ export default function Builder() {
       setInteriors(cfg.interiors ?? [])
       setBackground(cfg.background ?? DEFAULT_BG)
       setViewerSettings({ ...DEFAULT_VIEWER_SETTINGS, ...(cfg.viewerSettings ?? {}) })
+      setExteriorLabel(cfg.exteriorLabel ?? 'Exterior')
+      setInteriorLabel(cfg.interiorLabel ?? 'Interior')
+      setOrderForm({ ...DEFAULT_ORDER_FORM, ...(cfg.orderForm ?? {}), fields: cfg.orderForm?.fields ?? DEFAULT_ORDER_FORM.fields })
       setPublished(cfg.published ?? false)
       setLoading(false)
     })
   }, [id])
 
-  const doSave = useCallback(async (n, v, i, bg, vs) => {
+  const doSave = useCallback(async (n, v, i, bg, vs, el, il, of_) => {
     setSaving(true); setSaveError(null)
     try {
-      await saveConfigurator(id, { name: n, variants: v, interiors: i, background: bg, viewerSettings: vs })
+      await saveConfigurator(id, { name: n, variants: v, interiors: i, background: bg, viewerSettings: vs, exteriorLabel: el, interiorLabel: il, orderForm: of_ })
       setSaved(true); setDirty(false)
       setTimeout(() => setSaved(false), 2000)
     } catch (err) {
@@ -504,13 +583,13 @@ export default function Builder() {
     if (initialLoad.current) { initialLoad.current = false; return }
     setDirty(true)
     clearTimeout(autoSaveTimer.current)
-    autoSaveTimer.current = setTimeout(() => doSave(name, variants, interiors, background, viewerSettings), 1500)
+    autoSaveTimer.current = setTimeout(() => doSave(name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm), 1500)
     return () => clearTimeout(autoSaveTimer.current)
-  }, [name, variants, interiors, background, viewerSettings])
+  }, [name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm])
 
   async function handleSave() {
     clearTimeout(autoSaveTimer.current)
-    await doSave(name, variants, interiors, background, viewerSettings)
+    await doSave(name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm)
   }
 
   async function handlePublish() {
@@ -521,14 +600,14 @@ export default function Builder() {
       const count = await getPublishedCount(user.uid)
       if (count >= limit) { navigate('/billing'); return }
     }
-    await saveConfigurator(id, { name, variants, interiors, background, viewerSettings })
+    await saveConfigurator(id, { name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm })
     await publishConfigurator(id, !published)
     setPublished((v) => !v)
   }
 
   if (loading) return <div className="page-loading">Loading builder…</div>
 
-  const config = { variants, interiors, background, viewerSettings }
+  const config = { variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm }
 
   return (
     <div className="builder">
@@ -553,7 +632,11 @@ export default function Builder() {
           {/* Exterior variants */}
           <section className="builder-section">
             <div className="builder-section-header">
-              <h3>Exterior variants</h3>
+              <div className="section-label-wrap">
+                <input className="field-input section-tab-label" value={exteriorLabel}
+                  title="Tab label shown in configurator"
+                  onChange={(e) => setExteriorLabel(e.target.value)} />
+              </div>
               <button className="btn-add" onClick={() =>
                 setVariants((v) => [...v, { id: uid(), label: 'New Variant', swatch: '#888888', swatchType: 'color', price: null, type: 'spinner', frames: [], frameCount: 0 }])
               }>+ Add</button>
@@ -571,7 +654,11 @@ export default function Builder() {
           {/* Interior views */}
           <section className="builder-section">
             <div className="builder-section-header">
-              <h3>Interior views</h3>
+              <div className="section-label-wrap">
+                <input className="field-input section-tab-label" value={interiorLabel}
+                  title="Tab label shown in configurator"
+                  onChange={(e) => setInteriorLabel(e.target.value)} />
+              </div>
               <button className="btn-add" onClick={() =>
                 setInteriors((v) => [...v, { id: uid(), label: 'New Interior', panoramaUrl: null }])
               }>+ Add</button>
@@ -600,6 +687,22 @@ export default function Builder() {
               <h3>Viewer settings</h3>
             </div>
             <ViewerSettingsEditor settings={viewerSettings} onChange={setViewerSettings} />
+          </section>
+
+          {/* Order form */}
+          <section className="builder-section">
+            <div className="builder-section-header">
+              <h3>Order form</h3>
+              <label className="vs-toggle">
+                <input type="checkbox" checked={orderForm.enabled}
+                  onChange={(e) => setOrderForm({ ...orderForm, enabled: e.target.checked })} />
+                <span className="vs-toggle-track" />
+              </label>
+            </div>
+            {orderForm.enabled
+              ? <OrderFormEditor orderForm={orderForm} onChange={setOrderForm} />
+              : <p className="builder-hint">Enable to add a submission form tab to the configurator.</p>
+            }
           </section>
 
           {/* Embed code */}

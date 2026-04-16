@@ -824,3 +824,117 @@ body {
   .tab-body    { padding: 16px 16px calc(20px + env(safe-area-inset-bottom, 0px)); }
   .color-card  { padding: 10px 12px; }
 }
+
+/* ── Order form (configurator) ──────────────────────────────────── */
+
+.order-form-section { display: flex; flex-direction: column; gap: 16px; }
+
+.order-summary {
+  background: var(--surface, #f5f5f5);
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+.order-summary-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted, #888);
+  margin: 0 0 8px;
+}
+.order-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.order-summary-variant { font-size: 14px; font-weight: 500; flex: 1; }
+.order-summary-price   { font-size: 14px; font-weight: 700; color: var(--accent, #111); }
+
+.order-form { display: flex; flex-direction: column; gap: 12px; }
+
+.order-field { display: flex; flex-direction: column; gap: 4px; }
+.order-field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted, #666);
+}
+.order-required { color: var(--danger, #e33); }
+.order-field-input {
+  all: unset;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--text, #111);
+  background: var(--bg, #fff);
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+  width: 100%;
+}
+.order-field-input:focus { border-color: var(--accent, #111); }
+.order-field-textarea { resize: vertical; min-height: 80px; font-family: inherit; }
+
+.order-submit-btn {
+  margin-top: 4px;
+  width: 100%;
+  justify-content: center;
+}
+
+.order-success {
+  text-align: center;
+  padding: 24px 16px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text, #111);
+  background: var(--surface, #f5f5f5);
+  border-radius: 8px;
+}
+
+/* ── Order form editor (builder) ────────────────────────────────── */
+
+.order-form-editor { display: flex; flex-direction: column; gap: 10px; }
+
+.order-fields-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+.order-fields-header .vs-group-label { margin: 0; }
+
+.order-field-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border, #eee);
+}
+.order-field-row:last-child { border-bottom: none; }
+
+.order-field-label-input  { flex: 1; min-width: 0; }
+.order-field-type-select  { width: 100px; flex-shrink: 0; }
+.order-field-req          { flex-shrink: 0; font-size: 11px; gap: 4px; }
+
+/* ── Section tab label input (builder) ──────────────────────────── */
+
+.section-label-wrap { display: flex; align-items: center; gap: 6px; }
+
+.section-tab-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 3px 6px;
+  background: transparent;
+  color: var(--text, #111);
+  width: 130px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.section-tab-label:hover,
+.section-tab-label:focus {
+  border-color: var(--border, #ddd);
+  background: var(--surface, #f5f5f5);
+  outline: none;
+}

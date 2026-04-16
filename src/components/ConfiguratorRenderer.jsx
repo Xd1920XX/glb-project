@@ -7,13 +7,18 @@ import { SaunaViewer3D } from './SaunaViewer3D.jsx'
  * config = { variants, interiors, background, viewerSettings }
  */
 export function ConfiguratorRenderer({ config }) {
-  const { variants = [], interiors = [], background, viewerSettings = {} } = config
+  const { variants = [], interiors = [], background, viewerSettings = {}, exteriorLabel, interiorLabel, orderForm } = config
 
-  const [view, setView]             = useState(variants.length ? 'exterior' : 'interior')
-  const [variantId, setVariantId]   = useState(variants[0]?.id ?? null)
-  const [frameIndex, setFrameIndex] = useState(0)
-  const [show3D, setShow3D]         = useState(false)
-  const [interiorId, setInteriorId] = useState(interiors[0]?.id ?? null)
+  const extLabel = exteriorLabel || 'Exterior'
+  const intLabel = interiorLabel || 'Interior'
+
+  const [view, setView]               = useState(variants.length ? 'exterior' : 'interior')
+  const [variantId, setVariantId]     = useState(variants[0]?.id ?? null)
+  const [frameIndex, setFrameIndex]   = useState(0)
+  const [show3D, setShow3D]           = useState(false)
+  const [interiorId, setInteriorId]   = useState(interiors[0]?.id ?? null)
+  const [orderData, setOrderData]     = useState({})
+  const [orderSubmitted, setOrderSubmitted] = useState(false)
 
   const variant  = variants.find((v) => v.id === variantId)
   const interior = interiors.find((i) => i.id === interiorId)
@@ -46,7 +51,7 @@ export function ConfiguratorRenderer({ config }) {
     if (view === 'interior' && interior?.panoramaUrl) {
       return <InteriorViewer key={interior.id} src={interior.panoramaUrl} />
     }
-    if (view === 'exterior' && variant) {
+    if ((view === 'exterior' || view === 'order') && variant) {
       if (show3D && variant.glbUrl) {
         return <SaunaViewer3D key={variant.id + '3d'} glb={variant.glbUrl}
           autoRotate={vs.glbAutoRotate} autoRotateSpeed={vs.glbAutoRotateSpeed ?? 1}
@@ -75,7 +80,7 @@ export function ConfiguratorRenderer({ config }) {
     return <div className="preview-empty">No preview available</div>
   }
 
-  const can3D = view === 'exterior' && variant?.glbUrl
+  const can3D = (view === 'exterior' || view === 'order') && variant?.glbUrl
 
   // ── Panel ────────────────────────────────────────────────────────
   return (
@@ -96,11 +101,17 @@ export function ConfiguratorRenderer({ config }) {
           <div className="view-tabs">
             {variants.length > 0 && (
               <button className={`view-tab${view === 'exterior' ? ' active' : ''}`}
-                onClick={() => setView('exterior')}>Exterior</button>
+                onClick={() => setView('exterior')}>{extLabel}</button>
             )}
             {interiors.length > 0 && (
               <button className={`view-tab${view === 'interior' ? ' active' : ''}`}
-                onClick={() => setView('interior')}>Interior</button>
+                onClick={() => setView('interior')}>{intLabel}</button>
+            )}
+            {orderForm?.enabled && (
+              <button className={`view-tab${view === 'order' ? ' active' : ''}`}
+                onClick={() => { setView('order'); setOrderSubmitted(false) }}>
+                {orderForm.submitLabel ? 'Order' : 'Order'}
+              </button>
             )}
           </div>
 
@@ -153,6 +164,52 @@ export function ConfiguratorRenderer({ config }) {
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+            {/* Order panel */}
+            {view === 'order' && orderForm?.enabled && (
+              <div className="tab-section order-form-section">
+                {/* Selection summary */}
+                {variant && (
+                  <div className="order-summary">
+                    <p className="order-summary-label">Your selection</p>
+                    <div className="order-summary-item">
+                      <SwatchDot variant={variant} />
+                      <span className="order-summary-variant">{variant.label}</span>
+                      {variant.price != null && (
+                        <span className="order-summary-price">{fmt(variant.price)}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {orderSubmitted ? (
+                  <div className="order-success">{orderForm.successMessage || 'Thank you!'}</div>
+                ) : (
+                  <form className="order-form" onSubmit={(e) => { e.preventDefault(); setOrderSubmitted(true) }}>
+                    {(orderForm.fields ?? []).filter((f) => f.enabled !== false).map((field) => (
+                      <div key={field.id} className="order-field">
+                        <label className="order-field-label">
+                          {field.label}{field.required && <span className="order-required"> *</span>}
+                        </label>
+                        {field.type === 'textarea' ? (
+                          <textarea className="order-field-input order-field-textarea"
+                            required={field.required}
+                            value={orderData[field.id] ?? ''}
+                            onChange={(e) => setOrderData({ ...orderData, [field.id]: e.target.value })} />
+                        ) : (
+                          <input className="order-field-input" type={field.type}
+                            required={field.required}
+                            value={orderData[field.id] ?? ''}
+                            onChange={(e) => setOrderData({ ...orderData, [field.id]: e.target.value })} />
+                        )}
+                      </div>
+                    ))}
+                    <button type="submit" className="btn-primary order-submit-btn">
+                      {orderForm.submitLabel || 'Submit order'}
+                    </button>
+                  </form>
+                )}
               </div>
             )}
           </div>
