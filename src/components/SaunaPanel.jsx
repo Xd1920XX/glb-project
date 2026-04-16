@@ -3,6 +3,8 @@ import { COLORS, INTERIORS } from '../config/sauna.js'
 export function SaunaPanel({
   colorId, view, interiorId,
   onColorChange, onViewChange, onInteriorChange,
+  showNextBtn = false,
+  nextBtnLabel = 'Next →',
 }) {
   return (
     <div className="config-panel">
@@ -44,6 +46,11 @@ export function SaunaPanel({
                 </button>
               ))}
             </div>
+            {showNextBtn && (
+              <button className="next-btn" onClick={() => onViewChange('interior')}>
+                {nextBtnLabel}
+              </button>
+            )}
           </div>
         )}
 
@@ -64,6 +71,11 @@ export function SaunaPanel({
                 </button>
               ))}
             </div>
+            {showNextBtn && (
+              <button className="next-btn" onClick={() => onViewChange('exterior')}>
+                ← Back
+              </button>
+            )}
           </div>
         )}
       </div>
