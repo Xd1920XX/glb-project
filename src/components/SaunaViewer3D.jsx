@@ -3,11 +3,32 @@ import { useGLTF, useTexture, OrbitControls, Bounds, useBounds, Environment } fr
 import { Suspense, useLayoutEffect, useMemo } from 'react'
 import * as THREE from 'three'
 
-useGLTF.preload(encodeURI('/updated_images/Exterior/Sauna City XS (1).glb'))
+useGLTF.preload(encodeURI('/latest/Sauna City.glb'))
+
+function deglassScene(scene) {
+  scene.traverse((child) => {
+    if (child.isMesh) {
+      const mats = Array.isArray(child.material) ? child.material : [child.material]
+      mats.forEach((mat) => {
+        if (!mat) return
+        const name = (mat.name || '').toLowerCase()
+        if (name.includes('glass') || name.includes('window') || name.includes('glazing')) {
+          mat.envMapIntensity = 0
+          mat.needsUpdate = true
+        }
+      })
+    }
+  })
+}
 
 function Model({ url }) {
   const { scene } = useGLTF(url)
-  return <primitive object={scene} />
+  const cloned = useMemo(() => {
+    const c = scene.clone(true)
+    deglassScene(c)
+    return c
+  }, [scene])
+  return <primitive object={cloned} />
 }
 
 function TexturedModel({ url, textureUrl }) {
@@ -28,6 +49,7 @@ function TexturedModel({ url, textureUrl }) {
         child.material.needsUpdate = true
       }
     })
+    deglassScene(clone)
     return clone
   }, [scene, texture])
 
