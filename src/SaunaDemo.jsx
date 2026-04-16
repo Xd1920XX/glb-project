@@ -12,6 +12,7 @@ export default function SaunaDemo() {
   const [view, setView] = useState('exterior')
   const [show3D, setShow3D] = useState(false)
   const [interiorId, setInteriorId] = useState(INTERIORS[0].id)
+  const [showNextBtn, setShowNextBtn] = useState(true)
 
   const color    = COLORS.find((c) => c.id === colorId)
   const interior = INTERIORS.find((i) => i.id === interiorId)
@@ -31,7 +32,7 @@ export default function SaunaDemo() {
     )
   }
 
-  const can3D = view === 'exterior' && color.glb
+  const can3D = (view === 'exterior' || view === 'summary') && color.glb
   return (
     <div className="app">
       <div className="viewer-pane">
@@ -45,7 +46,8 @@ export default function SaunaDemo() {
       </div>
       <div className="config-pane">
         <SaunaPanel colorId={colorId} view={view} interiorId={interiorId}
-          onColorChange={handleColorChange} onViewChange={setView} onInteriorChange={setInteriorId} />
+          onColorChange={handleColorChange} onViewChange={setView} onInteriorChange={setInteriorId}
+          showNextBtn={showNextBtn} />
       </div>
     </div>
   )

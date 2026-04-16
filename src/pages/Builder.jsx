@@ -6,6 +6,7 @@ import { getEmbedLimit } from '../config/plans.js'
 import { uploadFile, deleteFile } from '../firebase/storage.js'
 import { ConfiguratorRenderer } from '../components/ConfiguratorRenderer.jsx'
 import { ENV_PRESETS } from '../components/SaunaViewer3D.jsx'
+import { extractGLBMaterials } from '../utils/glbMaterials.js'
 
 const DEFAULT_BG = { type: 'none', color: '#ffffff', imageUrl: null, imagePath: null }
 
@@ -61,7 +62,7 @@ function UploadProgress({ progress, label }) {
 
 // ── Variant editor ─────────────────────────────────────────────────
 
-function VariantEditor({ variant, uid: userUid, onChange, onDelete }) {
+function VariantEditor({ variant, uid: userUid, onChange, onDelete, onDuplicate }) {
   const [uploading, setUploading]     = useState(false)
   const [progress, setProgress]       = useState(0)
   const [uploadLabel, setUploadLabel] = useState('')
@@ -95,7 +96,10 @@ function VariantEditor({ variant, uid: userUid, onChange, onDelete }) {
     setUploading(true); setUploadError(''); setProgress(0)
     try {
       const result = await uploadFile(userUid, files[0], (p) => { setProgress(p); setUploadLabel(`Uploading… ${p}%`) })
-      onChange({ ...variant, glbUrl: result.url, glbStoragePath: result.storagePath })
+      setUploadLabel('Scanning materials…')
+      let glbMaterials = []
+      try { glbMaterials = await extractGLBMaterials(result.url) } catch { /* non-fatal */ }
+      onChange({ ...variant, glbUrl: result.url, glbStoragePath: result.storagePath, glbMaterials, materialOverrides: {} })
     } catch (err) { setUploadError(errMsg(err)) }
     finally { setUploading(false); setUploadLabel(''); setProgress(0) }
   }
@@ -138,6 +142,7 @@ function VariantEditor({ variant, uid: userUid, onChange, onDelete }) {
             value={variant.price ?? ''}
             onChange={(e) => onChange({ ...variant, price: e.target.value === '' ? null : parseFloat(e.target.value) })} />
         </div>
+        <button className="btn-icon-dupe" title="Duplicate" onClick={onDuplicate}>⧉</button>
         <button className="btn-icon-delete" onClick={onDelete}>✕</button>
       </div>
 
@@ -195,7 +200,7 @@ function VariantEditor({ variant, uid: userUid, onChange, onDelete }) {
             <div className="upload-done">✓ GLB uploaded
               <button className="btn-text-danger" onClick={async () => {
                 await deleteFile(variant.glbStoragePath)
-                onChange({ ...variant, glbUrl: null, glbStoragePath: null })
+                onChange({ ...variant, glbUrl: null, glbStoragePath: null, glbMaterials: [], materialOverrides: {} })
               }}>Remove</button>
             </div>
           ) : (
@@ -206,13 +211,195 @@ function VariantEditor({ variant, uid: userUid, onChange, onDelete }) {
           {uploadError && <div className="upload-error">{uploadError}</div>}
         </div>
       )}
+
+      {/* Material overrides accordion (GLB only) */}
+      {variant.type === 'glb' && variant.glbUrl && (
+        <MaterialsAccordion variant={variant} uid={userUid} onChange={onChange} />
+      )}
+    </div>
+  )
+}
+
+// ── Material override accordion ────────────────────────────────────
+
+function MaterialOverrideRow({ mat, override = {}, uid: userUid, onChange, onRename, onDelete }) {
+  const [open, setOpen]           = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [progress, setProgress]   = useState(0)
+
+  const type = override.type ?? 'none'
+
+  async function handleTextureUpload(files) {
+    setUploading(true)
+    try {
+      const result = await uploadFile(userUid, files[0], (p) => setProgress(p))
+      onChange({ ...override, type: 'texture', textureUrl: result.url, texturePath: result.storagePath })
+    } catch { /* ignore */ }
+    finally { setUploading(false); setProgress(0) }
+  }
+
+  const dot = type === 'color' && override.color
+    ? <span className="mat-dot" style={{ background: override.color }} />
+    : type === 'texture' && override.textureUrl
+      ? <img src={override.textureUrl} className="mat-dot mat-dot-img" alt="" />
+      : <span className="mat-dot mat-dot-empty" />
+
+  return (
+    <div className={`mat-row${open ? ' open' : ''}`}>
+      <div className="mat-row-header-wrap">
+        <button className="mat-row-header" onClick={() => setOpen((v) => !v)}>
+          {dot}
+          <span className="mat-row-name">{mat.name || <em style={{ opacity: 0.5 }}>unnamed</em>}</span>
+          {type !== 'none' && <span className="mat-row-badge">{type}</span>}
+          <span className="mat-row-chevron">{open ? '▲' : '▼'}</span>
+        </button>
+        <button className="btn-icon-delete mat-row-delete" onClick={onDelete}>✕</button>
+      </div>
+
+      {open && (
+        <div className="mat-row-body">
+          {/* Material name (must match exact name in GLB file) */}
+          {onRename && (
+            <div className="mat-name-row">
+              <span className="mat-name-label">Layer name</span>
+              <input
+                className="field-input mat-name-input"
+                placeholder="Exact material name in GLB"
+                value={mat.name}
+                onChange={(e) => onRename(e.target.value)} />
+            </div>
+          )}
+
+          {/* Override type selector */}
+          <div className="mat-type-tabs">
+            {['none', 'color', 'texture'].map((t) => (
+              <button key={t}
+                className={`mat-type-tab${type === t ? ' active' : ''}`}
+                onClick={() => onChange({ ...override, type: t })}>
+                {t === 'none' ? 'Default' : t.charAt(0).toUpperCase() + t.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {type === 'color' && (
+            <div className="mat-color-row">
+              <input type="color"
+                className="color-picker"
+                value={override.color ?? mat.baseColor}
+                onChange={(e) => onChange({ ...override, type: 'color', color: e.target.value })} />
+              <span className="mat-color-hex">{override.color ?? mat.baseColor}</span>
+              <button className="btn-text-danger" onClick={() => onChange({ ...override, color: mat.baseColor })}>
+                Reset
+              </button>
+            </div>
+          )}
+
+          {type === 'texture' && (
+            <div className="mat-texture-row">
+              {override.textureUrl && !uploading ? (
+                <div className="mat-texture-preview">
+                  <img src={override.textureUrl} alt="" />
+                  <button className="btn-text-danger" onClick={async () => {
+                    if (override.texturePath) await deleteFile(override.texturePath)
+                    onChange({ ...override, textureUrl: null, texturePath: null })
+                  }}>Remove</button>
+                </div>
+              ) : (
+                <UploadBtn
+                  label={uploading ? `Uploading… ${progress}%` : 'Upload texture (JPG/PNG)'}
+                  accept="image/*"
+                  onFiles={handleTextureUpload}
+                  uploading={uploading} />
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function MaterialsAccordion({ variant, uid: userUid, onChange }) {
+  const materials = variant.glbMaterials ?? []
+  const [scanning, setScanning] = useState(false)
+  const [scanError, setScanError] = useState('')
+
+  function setOverride(matId, ov) {
+    onChange({ ...variant, materialOverrides: { ...(variant.materialOverrides ?? {}), [matId]: ov } })
+  }
+
+  function addMat() {
+    const newId = uid()
+    onChange({ ...variant, glbMaterials: [...materials, { id: newId, name: '', baseColor: '#888888', hasMap: false }] })
+  }
+
+  function deleteMat(matId) {
+    const newMats = materials.filter((m) => m.id !== matId)
+    const { [matId]: _removed, ...rest } = variant.materialOverrides ?? {}
+    onChange({ ...variant, glbMaterials: newMats, materialOverrides: rest })
+  }
+
+  function renameMat(oldId, newName) {
+    const newMats = materials.map((m) => m.id === oldId ? { ...m, id: newName, name: newName } : m)
+    const overrides = variant.materialOverrides ?? {}
+    const newOverrides = Object.fromEntries(
+      Object.entries(overrides).map(([k, v]) => [k === oldId ? newName : k, v])
+    )
+    onChange({ ...variant, glbMaterials: newMats, materialOverrides: newOverrides })
+  }
+
+  async function handleScan() {
+    if (!variant.glbUrl) return
+    setScanning(true); setScanError('')
+    try {
+      const found = await extractGLBMaterials(variant.glbUrl)
+      // Merge: keep existing overrides, add newly discovered materials
+      const existingIds = new Set(materials.map((m) => m.id))
+      const merged = [
+        ...materials,
+        ...found.filter((m) => !existingIds.has(m.id)),
+      ]
+      onChange({ ...variant, glbMaterials: merged })
+    } catch {
+      setScanError('Could not read materials from GLB.')
+    } finally {
+      setScanning(false)
+    }
+  }
+
+  return (
+    <div className="mat-accordion">
+      <div className="mat-accordion-header">
+        <span className="mat-accordion-label">Material layers ({materials.length})</span>
+        <div className="mat-accordion-actions">
+          <button className="btn-add" disabled={scanning} onClick={handleScan}>
+            {scanning ? 'Scanning…' : 'Scan GLB'}
+          </button>
+          <button className="btn-add" onClick={addMat}>+ Add</button>
+        </div>
+      </div>
+      {scanError && <p className="mat-scan-error">{scanError}</p>}
+      {materials.map((mat) => (
+        <MaterialOverrideRow
+          key={mat.id}
+          mat={mat}
+          override={(variant.materialOverrides ?? {})[mat.id]}
+          uid={userUid}
+          onChange={(ov) => setOverride(mat.id, ov)}
+          onRename={(newName) => renameMat(mat.id, newName)}
+          onDelete={() => deleteMat(mat.id)}
+        />
+      ))}
+      {materials.length === 0 && !scanning && (
+        <p className="mat-empty-hint">Click "Scan GLB" to detect materials, or add manually.</p>
+      )}
     </div>
   )
 }
 
 // ── Interior editor ────────────────────────────────────────────────
 
-function InteriorEditor({ interior, uid: userUid, onChange, onDelete }) {
+function InteriorEditor({ interior, uid: userUid, onChange, onDelete, onDuplicate }) {
   const [uploading, setUploading]     = useState(false)
   const [progress, setProgress]       = useState(0)
   const [uploadLabel, setUploadLabel] = useState('')
@@ -236,6 +423,7 @@ function InteriorEditor({ interior, uid: userUid, onChange, onDelete }) {
         <input className="field-input inline" placeholder="Option name (e.g. Harvia)"
           value={interior.label}
           onChange={(e) => onChange({ ...interior, label: e.target.value })} />
+        <button className="btn-icon-dupe" title="Duplicate" onClick={onDuplicate}>⧉</button>
         <button className="btn-icon-delete" onClick={onDelete}>✕</button>
       </div>
       <div className="upload-section">
@@ -526,6 +714,28 @@ function OrderFormEditor({ orderForm, onChange }) {
   )
 }
 
+// ── Sidebar accordion ──────────────────────────────────────────────
+
+function BuilderAccordion({ title, onTitleChange, badge, right, defaultOpen = true, children }) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div className="bacc">
+      <div className="bacc-header">
+        <button className="bacc-toggle" onClick={() => setOpen((v) => !v)} aria-label={open ? 'Collapse' : 'Expand'}>
+          <span className={`bacc-chevron${open ? ' open' : ''}`} />
+        </button>
+        {onTitleChange
+          ? <input className="bacc-title-input" value={title} onChange={(e) => onTitleChange(e.target.value)} />
+          : <span className="bacc-title">{title}</span>
+        }
+        {badge > 0 && <span className="bacc-badge">{badge}</span>}
+        {right && <div className="bacc-right">{right}</div>}
+      </div>
+      {open && <div className="bacc-body">{children}</div>}
+    </div>
+  )
+}
+
 // ── Main builder ───────────────────────────────────────────────────
 
 export default function Builder() {
@@ -620,6 +830,9 @@ export default function Builder() {
           <button className="btn-ghost btn-sm" onClick={handleSave} disabled={saving}>
             {saved ? '✓' : saving ? '…' : dirty ? 'Save*' : 'Save'}
           </button>
+          <button className="btn-ghost btn-sm" onClick={() => window.open(`/embed/${id}`, '_blank')}>
+            Preview
+          </button>
           <button className={published ? 'btn-danger' : 'btn-primary'} onClick={handlePublish}>
             {published ? 'Unpublish' : 'Publish'}
           </button>
@@ -630,80 +843,84 @@ export default function Builder() {
         <aside className="builder-settings">
 
           {/* Exterior variants */}
-          <section className="builder-section">
-            <div className="builder-section-header">
-              <div className="section-label-wrap">
-                <input className="field-input section-tab-label" value={exteriorLabel}
-                  title="Tab label shown in configurator"
-                  onChange={(e) => setExteriorLabel(e.target.value)} />
-              </div>
+          <BuilderAccordion
+            title={exteriorLabel}
+            onTitleChange={setExteriorLabel}
+            badge={variants.length}
+            right={
               <button className="btn-add" onClick={() =>
                 setVariants((v) => [...v, { id: uid(), label: 'New Variant', swatch: '#888888', swatchType: 'color', price: null, type: 'spinner', frames: [], frameCount: 0 }])
               }>+ Add</button>
-            </div>
+            }
+          >
             {variants.length === 0
               ? <p className="builder-hint">Add a variant with rotation images or a 3D model.</p>
               : variants.map((v) => (
                 <VariantEditor key={v.id} variant={v} uid={user.uid}
                   onChange={(u) => setVariants((vs) => vs.map((x) => x.id === v.id ? u : x))}
-                  onDelete={() => setVariants((vs) => vs.filter((x) => x.id !== v.id))} />
+                  onDelete={() => setVariants((vs) => vs.filter((x) => x.id !== v.id))}
+                  onDuplicate={() => setVariants((vs) => {
+                    const idx = vs.findIndex((x) => x.id === v.id)
+                    const copy = { ...v, id: uid(), label: v.label + ' Copy', frames: [], frameCount: 0, glbUrl: null, glbStoragePath: null }
+                    return [...vs.slice(0, idx + 1), copy, ...vs.slice(idx + 1)]
+                  })} />
               ))
             }
-          </section>
+          </BuilderAccordion>
 
           {/* Interior views */}
-          <section className="builder-section">
-            <div className="builder-section-header">
-              <div className="section-label-wrap">
-                <input className="field-input section-tab-label" value={interiorLabel}
-                  title="Tab label shown in configurator"
-                  onChange={(e) => setInteriorLabel(e.target.value)} />
-              </div>
+          <BuilderAccordion
+            title={interiorLabel}
+            onTitleChange={setInteriorLabel}
+            badge={interiors.length}
+            right={
               <button className="btn-add" onClick={() =>
                 setInteriors((v) => [...v, { id: uid(), label: 'New Interior', panoramaUrl: null }])
               }>+ Add</button>
-            </div>
+            }
+          >
             {interiors.length === 0
               ? <p className="builder-hint">Add 360° panorama images for interior views.</p>
               : interiors.map((interior) => (
                 <InteriorEditor key={interior.id} interior={interior} uid={user.uid}
                   onChange={(u) => setInteriors((vs) => vs.map((x) => x.id === interior.id ? u : x))}
-                  onDelete={() => setInteriors((vs) => vs.filter((x) => x.id !== interior.id))} />
+                  onDelete={() => setInteriors((vs) => vs.filter((x) => x.id !== interior.id))}
+                  onDuplicate={() => setInteriors((vs) => {
+                    const idx = vs.findIndex((x) => x.id === interior.id)
+                    const copy = { ...interior, id: uid(), label: interior.label + ' Copy', panoramaUrl: null, panoramaStoragePath: null }
+                    return [...vs.slice(0, idx + 1), copy, ...vs.slice(idx + 1)]
+                  })} />
               ))
             }
-          </section>
+          </BuilderAccordion>
 
           {/* Background */}
-          <section className="builder-section">
-            <div className="builder-section-header">
-              <h3>Background</h3>
-            </div>
+          <BuilderAccordion title="Background" defaultOpen={false}>
             <BackgroundEditor bg={background} uid={user.uid} onChange={setBackground} />
-          </section>
+          </BuilderAccordion>
 
           {/* Viewer settings */}
-          <section className="builder-section">
-            <div className="builder-section-header">
-              <h3>Viewer settings</h3>
-            </div>
+          <BuilderAccordion title="Viewer settings" defaultOpen={false}>
             <ViewerSettingsEditor settings={viewerSettings} onChange={setViewerSettings} />
-          </section>
+          </BuilderAccordion>
 
           {/* Order form */}
-          <section className="builder-section">
-            <div className="builder-section-header">
-              <h3>Order form</h3>
+          <BuilderAccordion
+            title="Order form"
+            defaultOpen={false}
+            right={
               <label className="vs-toggle">
                 <input type="checkbox" checked={orderForm.enabled}
                   onChange={(e) => setOrderForm({ ...orderForm, enabled: e.target.checked })} />
                 <span className="vs-toggle-track" />
               </label>
-            </div>
+            }
+          >
             {orderForm.enabled
               ? <OrderFormEditor orderForm={orderForm} onChange={setOrderForm} />
               : <p className="builder-hint">Enable to add a submission form tab to the configurator.</p>
             }
-          </section>
+          </BuilderAccordion>
 
           {/* Embed code */}
           {published && <EmbedSection id={id} origin={window.location.origin} />}

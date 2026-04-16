@@ -12,7 +12,14 @@ export function ConfiguratorRenderer({ config }) {
   const extLabel = exteriorLabel || 'Exterior'
   const intLabel = interiorLabel || 'Interior'
 
-  const [view, setView]               = useState(variants.length ? 'exterior' : 'interior')
+  // Build ordered tab list for prev/next navigation
+  const tabs = [
+    ...(variants.length > 0  ? ['exterior'] : []),
+    ...(interiors.length > 0 ? ['interior'] : []),
+    ...(orderForm?.enabled   ? ['order']    : []),
+  ]
+
+  const [view, setView]               = useState(tabs[0] ?? 'exterior')
   const [variantId, setVariantId]     = useState(variants[0]?.id ?? null)
   const [frameIndex, setFrameIndex]   = useState(0)
   const [show3D, setShow3D]           = useState(false)
@@ -52,8 +59,17 @@ export function ConfiguratorRenderer({ config }) {
       return <InteriorViewer key={interior.id} src={interior.panoramaUrl} />
     }
     if ((view === 'exterior' || view === 'order') && variant) {
+      const overrides = variant.materialOverrides ?? {}
       if (show3D && variant.glbUrl) {
         return <SaunaViewer3D key={variant.id + '3d'} glb={variant.glbUrl}
+          materialOverrides={overrides}
+          autoRotate={vs.glbAutoRotate} autoRotateSpeed={vs.glbAutoRotateSpeed ?? 1}
+          environment={vs.glbEnvironment ?? 'city'} allowZoom={vs.glbAllowZoom ?? true}
+          fov={vs.glbFov ?? 42} />
+      }
+      if (variant.type === 'glb' && variant.glbUrl) {
+        return <SaunaViewer3D key={variant.id} glb={variant.glbUrl}
+          materialOverrides={overrides}
           autoRotate={vs.glbAutoRotate} autoRotateSpeed={vs.glbAutoRotateSpeed ?? 1}
           environment={vs.glbEnvironment ?? 'city'} allowZoom={vs.glbAllowZoom ?? true}
           fov={vs.glbFov ?? 42} />
@@ -69,12 +85,6 @@ export function ConfiguratorRenderer({ config }) {
             autoRotateSpeed={vs.spinnerAutoRotateSpeed ?? 3}
           />
         )
-      }
-      if (variant.type === 'glb' && variant.glbUrl) {
-        return <SaunaViewer3D key={variant.id} glb={variant.glbUrl}
-          autoRotate={vs.glbAutoRotate} autoRotateSpeed={vs.glbAutoRotateSpeed ?? 1}
-          environment={vs.glbEnvironment ?? 'city'} allowZoom={vs.glbAllowZoom ?? true}
-          fov={vs.glbFov ?? 42} />
       }
     }
     return <div className="preview-empty">No preview available</div>
@@ -143,6 +153,7 @@ export function ConfiguratorRenderer({ config }) {
                     </button>
                   ))}
                 </div>
+                <TabNav tabs={tabs} view={view} setView={setView} />
               </div>
             )}
 
@@ -164,22 +175,33 @@ export function ConfiguratorRenderer({ config }) {
                     </button>
                   ))}
                 </div>
+                <TabNav tabs={tabs} view={view} setView={setView} />
               </div>
             )}
+
             {/* Order panel */}
             {view === 'order' && orderForm?.enabled && (
               <div className="tab-section order-form-section">
                 {/* Selection summary */}
-                {variant && (
+                {(variant || interior) && (
                   <div className="order-summary">
                     <p className="order-summary-label">Your selection</p>
-                    <div className="order-summary-item">
-                      <SwatchDot variant={variant} />
-                      <span className="order-summary-variant">{variant.label}</span>
-                      {variant.price != null && (
-                        <span className="order-summary-price">{fmt(variant.price)}</span>
-                      )}
-                    </div>
+                    {variant && (
+                      <div className="order-summary-row">
+                        <span>Exterior</span>
+                        <span>
+                          <SwatchDot variant={variant} />
+                          {' '}{variant.label}
+                          {variant.price != null && ` — ${fmt(variant.price)}`}
+                        </span>
+                      </div>
+                    )}
+                    {interior && (
+                      <div className="order-summary-row">
+                        <span>Interior</span>
+                        <span>{interior.label}</span>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -215,6 +237,24 @@ export function ConfiguratorRenderer({ config }) {
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+function TabNav({ tabs, view, setView }) {
+  const idx  = tabs.indexOf(view)
+  const prev = tabs[idx - 1]
+  const next = tabs[idx + 1]
+  if (!prev && !next) return null
+  return (
+    <div className="tab-nav">
+      {prev
+        ? <button className="tab-nav-btn" onClick={() => setView(prev)}>← Back</button>
+        : <span />
+      }
+      {next && (
+        <button className="tab-nav-btn tab-nav-btn--next" onClick={() => setView(next)}>Next →</button>
+      )}
     </div>
   )
 }
