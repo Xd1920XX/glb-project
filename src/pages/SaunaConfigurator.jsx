@@ -21,6 +21,10 @@ export default function SaunaConfigurator() {
     if (view === 'interior') {
       return <InteriorViewer key={interior.id} src={interior.path} />
     }
+    if (view === 'order') {
+      const src = `${color.folder}/1${color.fileSuffix || ''}.jpg`
+      return <img key={color.id} src={src} alt={color.label} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+    }
     if (show3D && color.glb) {
       return <SaunaViewer3D key={color.id} glb={color.glb} textureUrl={color.texture} envIntensity={color.texture ? 1 : 3} />
     }
