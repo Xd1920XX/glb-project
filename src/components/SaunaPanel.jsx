@@ -144,6 +144,7 @@ export function SaunaPanel({
                 </button>
               ))}
             </div>
+            <button className="next-btn" onClick={() => onViewChange('interior')}>Next →</button>
           </div>
         )}
 
@@ -164,6 +165,7 @@ export function SaunaPanel({
                 </button>
               ))}
             </div>
+            <button className="next-btn" onClick={() => onViewChange('order')}>Next →</button>
           </div>
         )}
 
