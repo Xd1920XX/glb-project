@@ -119,7 +119,7 @@ export function SaunaPanel({
           Interior
         </button>
         <button className={`view-tab${view === 'order' ? ' active' : ''}`} onClick={() => onViewChange('order')}>
-          Order
+          Summary
         </button>
       </div>
 
