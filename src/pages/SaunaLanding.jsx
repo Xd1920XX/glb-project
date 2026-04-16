@@ -20,7 +20,9 @@ export default function SaunaLanding() {
 
       {/* ── Header ── */}
       <header className="sl-header">
-        <span className="sl-logo">SAUNA</span>
+        <span className="sl-logo">
+          <img src="https://minisaun.ee/wp-content/uploads/2022/08/Minisaunlogo2-valge-1024x289.png"></img>
+        </span>
         {/* <nav className="sl-nav">
           <a href="#models">Models</a>
           <a href="#contact">Contact</a>
@@ -31,7 +33,7 @@ export default function SaunaLanding() {
       </header>
 
       {/* ── Hero ── */}
-      <section className="sl-hero">
+      {/* <section className="sl-hero">
         <div className="sl-hero-content">
           <p className="sl-hero-eyebrow">Handcrafted in Estonia</p>
           <h1 className="sl-hero-title">Your perfect<br />sauna awaits</h1>
@@ -46,7 +48,7 @@ export default function SaunaLanding() {
         <div className="sl-hero-image-wrap">
           <img src={MODELS[0].image} alt="Sauna City XS" className="sl-hero-img" />
         </div>
-      </section>
+      </section> */}
 
       {/* ── Models grid ── */}
       <section className="sl-models" id="models">
@@ -74,7 +76,7 @@ export default function SaunaLanding() {
         </div>
       </section>
 
-      {/* ── Features ── */}
+      {/* ── Features ──
       <section className="sl-features">
         {[
           { icon: '⬡', title: 'Premium Materials', desc: 'Nordic spruce and thermowood selected for beauty and durability.' },
@@ -87,20 +89,22 @@ export default function SaunaLanding() {
             <p className="sl-feature-desc">{f.desc}</p>
           </div>
         ))}
-      </section>
+      </section> */}
 
       {/* ── CTA banner ── */}
-      <section className="sl-cta">
+      {/* <section className="sl-cta">
         <h2 className="sl-cta-title">Ready to build yours?</h2>
         <p className="sl-cta-sub">Use our 3D configurator to design your ideal sauna.</p>
         <button className="sl-cta-btn" onClick={() => navigate('/configure')}>
           Open configurator
         </button>
-      </section>
+      </section> */}
 
       {/* ── Footer ── */}
       <footer className="sl-footer" id="contact">
-        <span className="sl-logo">SAUNA</span>
+        <span className="sl-logo">
+                    <img src="https://minisaun.ee/wp-content/uploads/2022/08/Minisaunlogo2-valge-1024x289.png"></img>
+        </span>
         <p className="sl-footer-copy">© {new Date().getFullYear()} All rights reserved.</p>
       </footer>
     </div>

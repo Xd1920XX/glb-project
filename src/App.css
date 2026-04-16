@@ -915,6 +915,10 @@ body {
   font-weight: 800;
   letter-spacing: 4px;
   color: #f0ede8;
+
+  img {
+    max-width: 100px;
+  }
 }
 
 .sl-nav {
