@@ -638,11 +638,13 @@ html, body, #root { min-height: 100%; }
 .contact-success p  { font-size: 14px; color: var(--text-muted); line-height: 1.6; max-width: 280px; }
 
 /* ══════════════════════════════════════════════════════════════════
-   CMS DARK MODE  — applied via data-cms-dark="true" on <html>
-   (set by useCmsTheme hook, stored in localStorage)
+   CMS DARK MODE  — scoped to .cms-layout and .builder only.
+   The attribute is on <html> but variable overrides are applied
+   only to CMS/Builder roots so landing/login/signup are unaffected.
    ══════════════════════════════════════════════════════════════════ */
 
-[data-cms-dark="true"] {
+[data-cms-dark="true"] .cms-layout,
+[data-cms-dark="true"] .builder {
   --surface:      #141414;
   --bg:           #0d0d0d;
   --border:       #272727;
@@ -657,18 +659,17 @@ html, body, #root { min-height: 100%; }
   --shadow-sm:    0 1px 4px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
   --shadow-md:    0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3);
   color-scheme: dark;
-}
-
-/* Make sure text color is applied on CMS layout root */
-[data-cms-dark="true"] body,
-[data-cms-dark="true"] .cms-layout {
   color: var(--text);
+  background: var(--bg);
 }
 
 /* Fix inputs / selects in dark mode */
-[data-cms-dark="true"] input,
-[data-cms-dark="true"] select,
-[data-cms-dark="true"] textarea {
+[data-cms-dark="true"] .cms-layout input,
+[data-cms-dark="true"] .cms-layout select,
+[data-cms-dark="true"] .cms-layout textarea,
+[data-cms-dark="true"] .builder input,
+[data-cms-dark="true"] .builder select,
+[data-cms-dark="true"] .builder textarea {
   color-scheme: dark;
   color: var(--text);
   background: var(--surface);
@@ -676,11 +677,12 @@ html, body, #root { min-height: 100%; }
 }
 
 /* Fix .btn-primary in dark mode — accent is white so text must be dark */
-[data-cms-dark="true"] .btn-primary {
+[data-cms-dark="true"] .cms-layout .btn-primary,
+[data-cms-dark="true"] .builder .btn-primary {
   color: #111111;
 }
 
-/* Fix active media filter tab in dark mode — white bg + white text */
+/* Fix active media filter tab in dark mode */
 [data-cms-dark="true"] .media-filter-tab.active {
   color: #111111;
 }
@@ -973,8 +975,36 @@ html, body, #root { min-height: 100%; }
 
 .config-card-name  { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; margin-top: 2px; }
 .config-card-meta  { font-size: 12px; color: var(--text-muted); }
-.config-card-embed { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.config-card-embed { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 .config-card-embed code { background: var(--hover-bg); padding: 2px 6px; border-radius: 4px; font-family: 'SF Mono', monospace; }
+
+.config-dupe {
+  all: unset;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-faint);
+  padding: 2px 5px;
+  line-height: 1;
+  border-radius: 4px;
+  transition: color 0.12s;
+}
+.config-dupe:hover { color: var(--text); }
+
+.config-copy-link {
+  all: unset;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  transition: background 0.12s;
+  margin-left: auto;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+.config-copy-link:hover { background: var(--hover-bg); }
 
 /* ── Builder ──────────────────────────────────────────────────────── */
 
@@ -1022,8 +1052,7 @@ html, body, #root { min-height: 100%; }
 .builder-save-error  { font-size: 12px; color: #dc2626; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
 
 .builder-body {
-  display: grid;
-  grid-template-columns: 340px 1fr;
+  display: flex;
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -1039,7 +1068,20 @@ html, body, #root { min-height: 100%; }
   display: flex;
   flex-direction: column;
   gap: 0;
+  flex-shrink: 0;
 }
+
+.builder-resize-handle {
+  width: 5px;
+  flex-shrink: 0;
+  background: var(--border);
+  cursor: col-resize;
+  transition: background 0.15s;
+  position: relative;
+  z-index: 1;
+}
+.builder-resize-handle:hover,
+.builder-resize-handle:active { background: var(--accent); }
 
 .builder-section { padding-bottom: 20px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
 .builder-section:last-child { border-bottom: none; margin-bottom: 0; }
@@ -1234,6 +1276,23 @@ html, body, #root { min-height: 100%; }
 }
 .btn-icon-dupe:hover { background: #e0f2fe; color: #0369a1; }
 
+.btn-icon-move {
+  all: unset;
+  width: 24px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-faint);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.12s, color 0.12s;
+}
+.btn-icon-move:hover:not(:disabled) { background: var(--hover-bg); color: var(--text); }
+.btn-icon-move:disabled { opacity: 0.25; cursor: default; }
+
 .variant-type-row { display: flex; gap: 16px; }
 .radio-label      { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
 .radio-label input { cursor: pointer; accent-color: var(--accent); }
@@ -1350,6 +1409,8 @@ html, body, #root { min-height: 100%; }
 }
 
 .builder-preview {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   position: relative;
   background: var(--bg);
@@ -2259,7 +2320,7 @@ html, body, #root { min-height: 100%; }
 }
 
 @media (max-width: 900px) {
-  .builder-body      { grid-template-columns: 280px 1fr; }
+  .builder-body      { /* flex layout, width controlled by inline style */ }
   .auth-split        { grid-template-columns: 1fr; }
   .auth-split-left   { display: none; }
   .auth-split-right  { padding: 40px 24px; min-height: 100vh; }
@@ -2321,10 +2382,10 @@ html, body, #root { min-height: 100%; }
   .builder-topbar     { padding: 0 12px; gap: 8px; height: 52px; }
   .builder-name-input { font-size: 14px; }
   .builder-body {
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr 45vh;
+    flex-direction: column;
     overflow: hidden;
   }
+  .builder-resize-handle { display: none; }
   .builder-settings {
     order: 2;
     border-right: none;
@@ -2371,7 +2432,7 @@ html, body, #root { min-height: 100%; }
 
   /* ── Builder ── */
   .builder-actions .btn-ghost { display: none; }
-  .builder-body { grid-template-rows: 1fr 48vh; }
+  .builder-body { flex-direction: column; }
   .builder-topbar { height: 48px; }
 
   /* ── Auth ── */
@@ -3016,3 +3077,121 @@ html, body, #root { min-height: 100%; }
   flex-shrink: 0;
 }
 .theme-color-reset:hover { color: var(--text-muted); }
+
+/* ══════════════════════════════════════════════════════════════════
+   ORDERS PAGE
+   ══════════════════════════════════════════════════════════════════ */
+
+.orders-main {
+  width: 100%;
+  margin: 0 auto;
+  padding: 32px 32px 64px;
+  box-sizing: border-box;
+}
+
+.orders-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.orders-toolbar-left { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+
+.orders-title {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+
+.orders-filter { min-width: 180px; }
+
+.orders-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.orders-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.orders-table thead th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.orders-table thead th:first-child { border-radius: 12px 0 0 0; }
+.orders-table thead th:last-child  { border-radius: 0 12px 0 0; }
+
+.orders-row td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  color: var(--text);
+}
+
+.orders-row:last-child td { border-bottom: none; }
+.orders-row.open td { background: var(--hover-bg); }
+
+.orders-row-detail td {
+  padding: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--hover-bg);
+}
+
+.orders-detail {
+  padding: 12px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.orders-detail-row {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+}
+
+.orders-detail-key {
+  font-weight: 600;
+  color: var(--text-muted);
+  min-width: 100px;
+  flex-shrink: 0;
+}
+
+.orders-detail-val { color: var(--text); flex: 1; }
+
+.orders-cell-date    { color: var(--text-muted); white-space: nowrap; }
+.orders-cell-cfg     { font-weight: 500; }
+.orders-cell-variant { color: var(--text-muted); }
+.orders-cell-fields  { max-width: 300px; }
+
+.orders-field-preview {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  color: var(--text-muted);
+}

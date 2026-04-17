@@ -14,5 +14,28 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.uid == resource.data.ownerId;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.ownerId;
     }
+
+    // Orders: anyone can create (submitted from public embed, no auth).
+    // Only the configurator owner can read their orders.
+    match /orders/{orderId} {
+      allow create: if request.resource.data.keys().hasAll(['configuratorId', 'ownerId']);
+      allow read, update, delete: if request.auth != null
+                                  && request.auth.uid == resource.data.ownerId;
+    }
+
+    // Analytics: anyone can write (tracked from public embed).
+    // Any authenticated user can read (owners check their own stats).
+    match /analytics/{configId} {
+      allow write: if true;
+      allow read:  if request.auth != null;
+    }
+
+    // Media metadata (Firestore side)
+    match /media/{mediaId} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == resource.data.ownerId;
+      allow create: if request.auth != null
+                    && request.auth.uid == request.resource.data.ownerId;
+    }
   }
 }

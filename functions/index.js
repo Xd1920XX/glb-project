@@ -1,7 +1,8 @@
-const functions = require('firebase-functions')
-const admin     = require('firebase-admin')
-const axios     = require('axios')
-const Stripe    = require('stripe')
+const functions   = require('firebase-functions')
+const admin       = require('firebase-admin')
+const axios       = require('axios')
+const Stripe      = require('stripe')
+const nodemailer  = require('nodemailer')
 
 admin.initializeApp()
 const db = admin.firestore()
@@ -166,3 +167,62 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
 
   res.sendStatus(200)
 })
+
+// ── Order notification email ────────────────────────────────────────
+// Triggers on every new order document. Sends an email to the
+// notificationEmail stored in the configurator's orderForm settings.
+//
+// Required Firebase Function env vars (set via Firebase CLI):
+//   firebase functions:config:set smtp.host="smtp.gmail.com" \
+//     smtp.port="587" smtp.user="you@gmail.com" smtp.pass="app-password" \
+//     smtp.from="Your App <noreply@example.com>"
+
+exports.onOrderCreated = functions.firestore
+  .document('orders/{orderId}')
+  .onCreate(async (snap) => {
+    const order = snap.data()
+    const { configuratorId, formData = {}, variantId, configuratorName } = order
+
+    if (!configuratorId) return
+
+    // Fetch configurator to get notification email
+    const cfgSnap = await db.collection('configurators').doc(configuratorId).get()
+    if (!cfgSnap.exists) return
+
+    const cfg = cfgSnap.data()
+    const notificationEmail = cfg.orderForm?.notificationEmail
+    if (!notificationEmail) return
+
+    const fieldRows = Object.entries(formData)
+      .map(([k, v]) => `  ${k}: ${v}`)
+      .join('\n')
+
+    const text = [
+      `New order received for "${configuratorName ?? cfg.name}"`,
+      '',
+      variantId ? `Variant: ${variantId}` : null,
+      fieldRows ? `Form data:\n${fieldRows}` : null,
+    ].filter((l) => l !== null).join('\n')
+
+    const smtpConfig = functions.config().smtp ?? {}
+    if (!smtpConfig.host || !smtpConfig.user || !smtpConfig.pass) {
+      functions.logger.warn('onOrderCreated: SMTP not configured.')
+      return
+    }
+
+    const transporter = nodemailer.createTransport({
+      host: smtpConfig.host,
+      port: parseInt(smtpConfig.port ?? '587'),
+      secure: smtpConfig.port === '465',
+      auth: { user: smtpConfig.user, pass: smtpConfig.pass },
+    })
+
+    await transporter.sendMail({
+      from:    smtpConfig.from ?? smtpConfig.user,
+      to:      notificationEmail,
+      subject: `New order — ${configuratorName ?? cfg.name}`,
+      text,
+    })
+
+    functions.logger.info(`Order notification sent to ${notificationEmail}`)
+  })

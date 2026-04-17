@@ -12,8 +12,16 @@
       "collectionGroup": "configurators",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "ownerId",    "order": "ASCENDING" },
-        { "fieldPath": "published",  "order": "ASCENDING" }
+        { "fieldPath": "ownerId",   "order": "ASCENDING" },
+        { "fieldPath": "published", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerId",   "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     }
   ],

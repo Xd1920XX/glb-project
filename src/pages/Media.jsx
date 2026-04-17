@@ -43,6 +43,33 @@ export default function Media() {
     listUserFiles(user.uid).then((list) => { setFiles(list); setLoading(false) })
   }, [user])
 
+  async function optimizeImage(file) {
+    // Only optimize images, and only if larger than 1.5MB
+    if (!file.type.startsWith('image/') || file.size < 1.5 * 1024 * 1024) return file
+    return new Promise((resolve) => {
+      const img = new Image()
+      const url = URL.createObjectURL(file)
+      img.onload = () => {
+        URL.revokeObjectURL(url)
+        const MAX = 2048
+        let { width, height } = img
+        if (width <= MAX && height <= MAX) { resolve(file); return }
+        const scale = MAX / Math.max(width, height)
+        width  = Math.round(width  * scale)
+        height = Math.round(height * scale)
+        const canvas = document.createElement('canvas')
+        canvas.width  = width
+        canvas.height = height
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height)
+        canvas.toBlob(
+          (blob) => resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() })),
+          'image/jpeg', 0.88
+        )
+      }
+      img.src = url
+    })
+  }
+
   async function handleFiles(fileList) {
     const toUpload = [...fileList]
     const batch = toUpload.map((f) => ({
@@ -52,7 +79,7 @@ export default function Media() {
     setUploads((u) => [...u, ...batch])
 
     for (let i = 0; i < toUpload.length; i++) {
-      const file = toUpload[i]
+      const file = await optimizeImage(toUpload[i])
       const uploadId = batch[i].id
       try {
         const result = await uploadFile(user.uid, file, (p) =>
@@ -195,6 +222,13 @@ export default function Media() {
               {allSelected ? 'Deselect all' : 'Select all'}
             </button>
             <button className="btn-ghost btn-sm" onClick={() => setSelected(new Set())}>Clear</button>
+            <button className="btn-ghost btn-sm" onClick={() => {
+              const urls = [...selected].map((path) => {
+                const f = files.find((x) => x.storagePath === path)
+                return f?.url ?? ''
+              }).filter(Boolean).join('\n')
+              navigator.clipboard.writeText(urls)
+            }}>Copy URLs</button>
             <button className="media-bulk-delete-btn" onClick={handleBulkDelete} disabled={deleting}>
               {deleting ? 'Deleting…' : `Delete ${selected.size} file${selected.size > 1 ? 's' : ''}`}
             </button>

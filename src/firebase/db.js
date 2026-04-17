@@ -1,7 +1,7 @@
 import {
   collection, doc,
   addDoc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
-  query, where, orderBy, serverTimestamp,
+  query, where, orderBy, serverTimestamp, increment,
 } from 'firebase/firestore'
 import { db } from './config.js'
 
@@ -93,6 +93,63 @@ export async function getUserMedia(uid) {
 
 export async function deleteMediaFile(id) {
   await deleteDoc(doc(db, 'media', id))
+}
+
+// Analytics — view tracking
+export async function trackView(id) {
+  const ref = doc(db, 'analytics', id)
+  try {
+    await updateDoc(ref, { views: increment(1) })
+  } catch {
+    await setDoc(ref, { views: 1 })
+  }
+}
+
+export async function getAnalyticsBatch(ids) {
+  if (!ids.length) return {}
+  const results = {}
+  await Promise.all(ids.map(async (id) => {
+    const snap = await getDoc(doc(db, 'analytics', id))
+    results[id] = snap.exists() ? snap.data() : { views: 0 }
+  }))
+  return results
+}
+
+// Duplicate a configurator
+export async function duplicateConfigurator(uid, source) {
+  const { id: _id, createdAt: _c, updatedAt: _u, ...data } = source
+  const ref = await addDoc(collection(db, 'configurators'), {
+    ...data,
+    ownerId: uid,
+    name: data.name + ' (Copy)',
+    published: false,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  })
+  return ref.id
+}
+
+// Orders
+export async function saveOrder(configuratorId, ownerId, { variantId, interiorId, formData, configuratorName }) {
+  await addDoc(collection(db, 'orders'), {
+    configuratorId,
+    ownerId,
+    variantId: variantId ?? null,
+    interiorId: interiorId ?? null,
+    formData: formData ?? {},
+    configuratorName: configuratorName ?? '',
+    createdAt: serverTimestamp(),
+  })
+}
+
+export async function getUserOrders(uid) {
+  const q = query(
+    collection(db, 'orders'),
+    where('ownerId', '==', uid),
+    orderBy('createdAt', 'desc'),
+  )
+  const snaps = await getDocs(q)
+  return snaps.docs.map((d) => ({ id: d.id, ...d.data() }))
 }
 
 // ── Public embed — reads config + checks owner subscription ────────

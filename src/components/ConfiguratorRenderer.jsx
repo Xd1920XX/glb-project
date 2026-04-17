@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { InteriorViewer } from './InteriorViewer.jsx'
 import { SaunaViewer3D } from './SaunaViewer3D.jsx'
+import { saveOrder } from '../firebase/db.js'
 
 /**
  * Generic configurator renderer.
@@ -91,6 +92,21 @@ export function ConfiguratorRenderer({ config }) {
   }
 
   const can3D = (view === 'exterior' || view === 'order') && variant?.glbUrl
+
+  async function handleOrderSubmit(e) {
+    e.preventDefault()
+    if (config.id && config.ownerId) {
+      try {
+        await saveOrder(config.id, config.ownerId, {
+          variantId: variant?.label ?? variantId,
+          interiorId: interior?.label ?? interiorId,
+          formData: orderData,
+          configuratorName: config.name ?? '',
+        })
+      } catch { /* non-fatal */ }
+    }
+    setOrderSubmitted(true)
+  }
 
   // ── Panel ────────────────────────────────────────────────────────
   return (
@@ -218,7 +234,7 @@ export function ConfiguratorRenderer({ config }) {
                 {orderSubmitted ? (
                   <div className="order-success">{orderForm.successMessage || 'Thank you!'}</div>
                 ) : (
-                  <form className="order-form" onSubmit={(e) => { e.preventDefault(); setOrderSubmitted(true) }}>
+                  <form className="order-form" onSubmit={handleOrderSubmit}>
                     {(orderForm.fields ?? []).filter((f) => f.enabled !== false).map((field) => (
                       <div key={field.id} className="order-field">
                         <label className="order-field-label">

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { getPublishedConfigurator } from '../firebase/db.js'
+import { getPublishedConfigurator, trackView } from '../firebase/db.js'
 import { ConfiguratorRenderer } from '../components/ConfiguratorRenderer.jsx'
 
 export default function EmbedView() {
@@ -8,7 +8,10 @@ export default function EmbedView() {
   const [config, setConfig] = useState(undefined) // undefined = loading
 
   useEffect(() => {
-    getPublishedConfigurator(id).then(setConfig)
+    getPublishedConfigurator(id).then((cfg) => {
+      setConfig(cfg)
+      if (cfg) trackView(id)
+    })
   }, [id])
 
   if (config === undefined) return <div className="embed-loading">Loading…</div>

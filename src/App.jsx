@@ -9,6 +9,7 @@ import Dashboard  from './pages/Dashboard.jsx'
 import Builder    from './pages/Builder.jsx'
 import Billing    from './pages/Billing.jsx'
 import Media      from './pages/Media.jsx'
+import Orders     from './pages/Orders.jsx'
 import EmbedView  from './pages/EmbedView.jsx'
 import Contact    from './pages/Contact.jsx'
 import SaunaDemo  from './SaunaDemo.jsx'
@@ -27,6 +28,7 @@ export default function App() {
         <Route path="/builder/:id"    element={<ProtectedRoute><Builder /></ProtectedRoute>} />
         <Route path="/billing"        element={<ProtectedRoute><Billing /></ProtectedRoute>} />
         <Route path="/media"          element={<ProtectedRoute><Media /></ProtectedRoute>} />
+        <Route path="/orders"         element={<ProtectedRoute><Orders /></ProtectedRoute>} />
         <Route path="*"               element={<Navigate to="/" replace />} />
       </Routes>
     </AuthProvider>

@@ -41,6 +41,14 @@ export function CmsSidebar({ active }) {
           Media
         </Link>
 
+        <Link to="/orders" className={`cms-nav-link${active === 'orders' ? ' active' : ''}`}>
+          <svg className="cms-nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <rect x="2" y="1" width="10" height="14" rx="1.5" stroke="currentColor" strokeWidth="1.4"/>
+            <path d="M5 5h5M5 8h5M5 11h3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+          </svg>
+          Orders
+        </Link>
+
         <Link to="/billing" className={`cms-nav-link${active === 'billing' ? ' active' : ''}`}>
           <svg className="cms-nav-icon" viewBox="0 0 16 16" fill="none">
             <rect x="1.5" y="3.5" width="13" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.4"/>

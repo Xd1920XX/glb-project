@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../hooks/useAuth.jsx'
-import { getUserConfigurators, createConfigurator, deleteConfigurator } from '../firebase/db.js'
+import { getUserConfigurators, createConfigurator, deleteConfigurator, duplicateConfigurator, getAnalyticsBatch } from '../firebase/db.js'
 import { getEmbedLimit } from '../config/plans.js'
 import { CmsSidebar } from '../components/CmsSidebar.jsx'
 
@@ -12,12 +12,15 @@ export default function Dashboard() {
   const [configs, setConfigs]   = useState([])
   const [loading, setLoading]   = useState(true)
   const [creating, setCreating] = useState(false)
+  const [analytics, setAnalytics] = useState({})
 
   useEffect(() => {
     if (!user) return
-    getUserConfigurators(user.uid).then((list) => {
+    getUserConfigurators(user.uid).then(async (list) => {
       setConfigs(list)
       setLoading(false)
+      const ids = list.map((c) => c.id)
+      if (ids.length) getAnalyticsBatch(ids).then(setAnalytics)
     })
   }, [user])
 
@@ -25,6 +28,13 @@ export default function Dashboard() {
     setCreating(true)
     const id = await createConfigurator(user.uid, 'Untitled Configurator')
     navigate(`/builder/${id}`)
+  }
+
+  async function handleDuplicate(cfg, e) {
+    e.stopPropagation()
+    const newId = await duplicateConfigurator(user.uid, cfg)
+    const newCfg = { ...cfg, id: newId, name: cfg.name + ' (Copy)', published: false }
+    setConfigs((c) => [newCfg, ...c])
   }
 
   async function handleDelete(id, e) {
@@ -84,15 +94,20 @@ export default function Dashboard() {
                   <span className={`config-status ${cfg.published ? 'published' : ''}`}>
                     {cfg.published ? 'Published' : 'Draft'}
                   </span>
+                  <button className="config-dupe" onClick={(e) => handleDuplicate(cfg, e)} title="Duplicate">⧉</button>
                   <button className="config-delete" onClick={(e) => handleDelete(cfg.id, e)} title="Delete">✕</button>
                 </div>
                 <div className="config-card-name">{cfg.name}</div>
                 <div className="config-card-meta">
-                  {cfg.variants?.length ?? 0} variants · {cfg.interiors?.length ?? 0} interiors
+                  {cfg.variants?.length ?? 0} variants · {cfg.interiors?.length ?? 0} interiors · {analytics[cfg.id]?.views ?? 0} views
                 </div>
                 {cfg.published && (
                   <div className="config-card-embed">
                     <code>/embed/{cfg.id}</code>
+                    <button className="config-copy-link" title="Copy embed URL"
+                      onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(`${window.location.origin}/embed/${cfg.id}`) }}>
+                      ⧉ Copy
+                    </button>
                   </div>
                 )}
               </div>

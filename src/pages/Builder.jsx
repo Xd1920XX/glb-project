@@ -81,7 +81,7 @@ function UploadProgress({ progress, label }) {
 
 // ── Variant editor ─────────────────────────────────────────────────
 
-function VariantEditor({ variant, uid: userUid, onChange, onDelete, onDuplicate }) {
+function VariantEditor({ variant, uid: userUid, onChange, onDelete, onDuplicate, onMoveUp, onMoveDown }) {
   const [uploading, setUploading]     = useState(false)
   const [progress, setProgress]       = useState(0)
   const [uploadLabel, setUploadLabel] = useState('')
@@ -152,6 +152,8 @@ function VariantEditor({ variant, uid: userUid, onChange, onDelete, onDuplicate 
             value={variant.price ?? ''}
             onChange={(e) => onChange({ ...variant, price: e.target.value === '' ? null : parseFloat(e.target.value) })} />
         </div>
+        <button className="btn-icon-move" title="Move up" onClick={onMoveUp} disabled={!onMoveUp}>↑</button>
+        <button className="btn-icon-move" title="Move down" onClick={onMoveDown} disabled={!onMoveDown}>↓</button>
         <button className="btn-icon-dupe" title="Duplicate" onClick={onDuplicate}>⧉</button>
         <button className="btn-icon-delete" onClick={onDelete}>✕</button>
       </div>
@@ -426,7 +428,7 @@ function MaterialsAccordion({ variant, uid: userUid, onChange }) {
 
 // ── Interior editor ────────────────────────────────────────────────
 
-function InteriorEditor({ interior, uid: userUid, onChange, onDelete, onDuplicate }) {
+function InteriorEditor({ interior, uid: userUid, onChange, onDelete, onDuplicate, onMoveUp, onMoveDown }) {
   const [showPicker, setShowPicker] = useState(false)
 
   return (
@@ -435,6 +437,8 @@ function InteriorEditor({ interior, uid: userUid, onChange, onDelete, onDuplicat
         <input className="field-input inline" placeholder="Option name (e.g. Harvia)"
           value={interior.label}
           onChange={(e) => onChange({ ...interior, label: e.target.value })} />
+        <button className="btn-icon-move" title="Move up" onClick={onMoveUp} disabled={!onMoveUp}>↑</button>
+        <button className="btn-icon-move" title="Move down" onClick={onMoveDown} disabled={!onMoveDown}>↓</button>
         <button className="btn-icon-dupe" title="Duplicate" onClick={onDuplicate}>⧉</button>
         <button className="btn-icon-delete" onClick={onDelete}>✕</button>
       </div>
@@ -673,6 +677,16 @@ function OrderFormEditor({ orderForm, onChange }) {
   return (
     <div className="order-form-editor">
       <div className="vs-row">
+        <label className="vs-label">Notification email</label>
+        <input className="field-input inline" type="email"
+          value={orderForm.notificationEmail ?? ''}
+          placeholder="you@example.com"
+          onChange={(e) => onChange({ ...orderForm, notificationEmail: e.target.value })} />
+      </div>
+      <p className="builder-hint" style={{ fontSize: 11, marginTop: -6, marginBottom: 8 }}>
+        Receive an email when someone submits this form. Requires email function deployed.
+      </p>
+      <div className="vs-row">
         <label className="vs-label">Submit button label</label>
         <input className="field-input inline" value={orderForm.submitLabel ?? ''}
           placeholder="Submit order"
@@ -856,6 +870,15 @@ export default function Builder() {
   const autoSaveTimer             = useRef(null)
   const initialLoad               = useRef(true)
 
+  const historyRef  = useRef([])
+  const historyIdx  = useRef(-1)
+  const skipHistory = useRef(false)
+  const [historyLen, setHistoryLen] = useState(0)
+
+  const [settingsWidth, setSettingsWidth] = useState(360)
+  const resizing    = useRef(false)
+  const resizeStart = useRef(null)
+
   useEffect(() => {
     getConfigurator(id).then((cfg) => {
       if (!cfg) { navigate('/dashboard'); return }
@@ -896,6 +919,67 @@ export default function Builder() {
     return () => clearTimeout(autoSaveTimer.current)
   }, [name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors])
 
+  function applySnapshot(snap) {
+    skipHistory.current = true
+    setVariants(snap.variants)
+    setInteriors(snap.interiors)
+    setBackground(snap.background)
+    setViewerSettings(snap.viewerSettings)
+    setExteriorLabel(snap.exteriorLabel)
+    setInteriorLabel(snap.interiorLabel)
+    setOrderForm(snap.orderForm)
+    setTheme(snap.theme)
+    setDarkMode(snap.darkMode)
+    setThemeColors(snap.themeColors)
+    setHistoryLen(historyRef.current.length)
+  }
+
+  useEffect(() => {
+    if (loading) return
+    if (skipHistory.current) { skipHistory.current = false; return }
+    const snapshot = { variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors }
+    historyRef.current = [...historyRef.current.slice(0, historyIdx.current + 1), snapshot].slice(-50)
+    historyIdx.current = historyRef.current.length - 1
+    setHistoryLen(historyRef.current.length)
+  }, [variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors])
+
+  useEffect(() => {
+    function onKey(e) {
+      if (!e.ctrlKey && !e.metaKey) return
+      if (e.key === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        if (historyIdx.current > 0) {
+          historyIdx.current -= 1
+          applySnapshot(historyRef.current[historyIdx.current])
+        }
+      }
+      if ((e.key === 'y') || (e.key === 'z' && e.shiftKey)) {
+        e.preventDefault()
+        if (historyIdx.current < historyRef.current.length - 1) {
+          historyIdx.current += 1
+          applySnapshot(historyRef.current[historyIdx.current])
+        }
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, []) // applySnapshot uses closures over setters which are stable
+
+  useEffect(() => {
+    function onMouseMove(e) {
+      if (!resizing.current) return
+      const delta = e.clientX - resizeStart.current.x
+      setSettingsWidth(Math.max(260, Math.min(560, resizeStart.current.w + delta)))
+    }
+    function onMouseUp() { resizing.current = false }
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+  }, [])
+
   async function handleSave() {
     clearTimeout(autoSaveTimer.current)
     await doSave(name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors)
@@ -927,6 +1011,12 @@ export default function Builder() {
             onChange={(e) => setName(e.target.value)} placeholder="Configurator name" />
           <div className="builder-actions">
             {saveError && <span className="builder-save-error">{saveError}</span>}
+            <button className="btn-ghost btn-sm" title="Undo (Ctrl+Z)"
+              onClick={() => { if (historyIdx.current > 0) { historyIdx.current -= 1; applySnapshot(historyRef.current[historyIdx.current]) } }}
+              disabled={historyIdx.current <= 0}>↩</button>
+            <button className="btn-ghost btn-sm" title="Redo (Ctrl+Y)"
+              onClick={() => { if (historyIdx.current < historyRef.current.length - 1) { historyIdx.current += 1; applySnapshot(historyRef.current[historyIdx.current]) } }}
+              disabled={historyIdx.current >= historyLen - 1}>↪</button>
             <button className="btn-ghost btn-sm" onClick={handleSave} disabled={saving}>
               {saved ? '✓' : saving ? '…' : dirty ? 'Save*' : 'Save'}
             </button>
@@ -940,7 +1030,7 @@ export default function Builder() {
         </div>
 
       <div className="builder-body">
-        <aside className="builder-settings">
+        <aside className="builder-settings" style={{ width: settingsWidth, minWidth: settingsWidth }}>
 
           {/* Exterior variants */}
           <BuilderAccordion
@@ -955,7 +1045,7 @@ export default function Builder() {
           >
             {variants.length === 0
               ? <p className="builder-hint">Add a variant with rotation images or a 3D model.</p>
-              : variants.map((v) => (
+              : variants.map((v, i) => (
                 <VariantEditor key={v.id} variant={v} uid={user.uid}
                   onChange={(u) => setVariants((vs) => vs.map((x) => x.id === v.id ? u : x))}
                   onDelete={() => setVariants((vs) => vs.filter((x) => x.id !== v.id))}
@@ -963,7 +1053,10 @@ export default function Builder() {
                     const idx = vs.findIndex((x) => x.id === v.id)
                     const copy = { ...v, id: uid(), label: v.label + ' Copy', frames: [], frameCount: 0, glbUrl: null, glbStoragePath: null }
                     return [...vs.slice(0, idx + 1), copy, ...vs.slice(idx + 1)]
-                  })} />
+                  })}
+                  onMoveUp={i > 0 ? () => setVariants((vs) => { const a = [...vs]; [a[i-1], a[i]] = [a[i], a[i-1]]; return a }) : null}
+                  onMoveDown={i < variants.length - 1 ? () => setVariants((vs) => { const a = [...vs]; [a[i], a[i+1]] = [a[i+1], a[i]]; return a }) : null}
+                />
               ))
             }
           </BuilderAccordion>
@@ -981,7 +1074,7 @@ export default function Builder() {
           >
             {interiors.length === 0
               ? <p className="builder-hint">Add 360° panorama images for interior views.</p>
-              : interiors.map((interior) => (
+              : interiors.map((interior, i) => (
                 <InteriorEditor key={interior.id} interior={interior} uid={user.uid}
                   onChange={(u) => setInteriors((vs) => vs.map((x) => x.id === interior.id ? u : x))}
                   onDelete={() => setInteriors((vs) => vs.filter((x) => x.id !== interior.id))}
@@ -989,7 +1082,10 @@ export default function Builder() {
                     const idx = vs.findIndex((x) => x.id === interior.id)
                     const copy = { ...interior, id: uid(), label: interior.label + ' Copy', panoramaUrl: null, panoramaStoragePath: null }
                     return [...vs.slice(0, idx + 1), copy, ...vs.slice(idx + 1)]
-                  })} />
+                  })}
+                  onMoveUp={i > 0 ? () => setInteriors((vs) => { const a = [...vs]; [a[i-1], a[i]] = [a[i], a[i-1]]; return a }) : null}
+                  onMoveDown={i < interiors.length - 1 ? () => setInteriors((vs) => { const a = [...vs]; [a[i], a[i+1]] = [a[i+1], a[i]]; return a }) : null}
+                />
               ))
             }
           </BuilderAccordion>
@@ -1037,6 +1133,14 @@ export default function Builder() {
           {published && <EmbedSection id={id} origin={window.location.origin} />}
         </aside>
 
+        <div
+          className="builder-resize-handle"
+          onMouseDown={(e) => {
+            resizing.current = true
+            resizeStart.current = { x: e.clientX, w: settingsWidth }
+            e.preventDefault()
+          }}
+        />
         <div className="builder-preview">
           {variants.length === 0 && interiors.length === 0
             ? <div className="preview-empty">Add variants or interiors to preview</div>
