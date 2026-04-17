@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { COLORS, INTERIORS } from '../config/sauna.js'
 
 function encodeForm(data) {
   return Object.entries(data)
@@ -102,11 +101,12 @@ function OrderForm({ color, interior }) {
 }
 
 export function SaunaPanel({
+  modelName, colors, interiors,
   colorId, view, interiorId,
   onColorChange, onViewChange, onInteriorChange,
 }) {
-  const color = COLORS.find((c) => c.id === colorId)
-  const interior = INTERIORS.find((i) => i.id === interiorId)
+  const color = colors.find((c) => c.id === colorId)
+  const interior = interiors.find((i) => i.id === interiorId)
 
   return (
     <div className="config-panel">
@@ -125,7 +125,7 @@ export function SaunaPanel({
 
       <div className="tab-body">
         <div className="config-header">
-          <h1 className="config-title">City XS</h1>
+          <h1 className="config-title">{modelName}</h1>
           <p className="config-subtitle">Configure your sauna</p>
         </div>
 
@@ -133,7 +133,7 @@ export function SaunaPanel({
           <div className="tab-section">
             <p className="section-label">Color</p>
             <div className="color-grid">
-              {COLORS.map((c) => (
+              {colors.map((c) => (
                 <button
                   key={c.id}
                   className={`color-card${colorId === c.id ? ' selected' : ''}`}
@@ -152,7 +152,7 @@ export function SaunaPanel({
           <div className="tab-section">
             <p className="section-label">Heater</p>
             <div className="interior-list">
-              {INTERIORS.map((item) => (
+              {interiors.map((item) => (
                 <button
                   key={item.id}
                   className={`interior-item${interiorId === item.id ? ' selected' : ''}`}

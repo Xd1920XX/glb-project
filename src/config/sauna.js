@@ -2,16 +2,36 @@ const encode = (p) => encodeURI(p)
 
 export const FRAME_COUNT = 16
 
-const GLB = encode('/latest/Sauna City.glb')
+export const MODELS = {
+  'city-xs': {
+    name: 'City XS',
+    colors: [
+      { id: 'black', label: 'Black', swatch: '#1A1A1A', folder: '/new/jpg',       glb: encode('/new/Sauna City XS.glb') },
+      { id: 'brown', label: 'Brown', swatch: '#6B4226', folder: '/new/jpg-brown', glb: encode('/new/Sauna City XS.glb') },
+    ],
+    interiors: [
+      { id: 'harvia',    label: 'Harvia',            path: encode('/new/interjor/CIty XS_6k_Harvia.jpg') },
+      { id: 'harvia-ir', label: 'Harvia + Infrared', path: encode('/new/interjor/CIty XS_6k_Harvia+infrared Harvia.jpg') },
+      { id: 'huum',      label: 'Huum',              path: encode('/new/interjor/CIty XS_6k_Huum.jpg') },
+      { id: 'huum-eos',  label: 'Huum + Eos',        path: encode('/new/interjor/CIty XS_6k_Huum+Eos.jpg') },
+    ],
+  },
+  'city': {
+    name: 'City',
+    colors: [
+      { id: 'black', label: 'Black', swatch: '#1A1A1A', folder: '/latest/black', glb: encode('/latest/Sauna City.glb') },
+      { id: 'brown', label: 'Brown', swatch: '#6B4226', folder: '/latest/brown', glb: encode('/latest/Sauna City.glb') },
+    ],
+    interiors: [
+      { id: 'harvia',    label: 'Harvia',            path: encode('/latest/CIty_6k_Harvia.jpg') },
+      { id: 'harvia-ir', label: 'Harvia + Infrared', path: encode('/latest/CIty_6k_Harvia+infrared Harvia.jpg') },
+      { id: 'huum',      label: 'Huum',              path: encode('/latest/CIty_6k_Huum.jpg') },
+      { id: 'huum-eos',  label: 'Huum + Eos',        path: encode('/latest/CIty_6k_Huum+infrared EOS.jpg') },
+    ],
+  },
+}
 
-export const COLORS = [
-  { id: 'natural', label: 'Black', swatch: '#1A1A1A', folder: '/latest/black', glb: GLB },
-  { id: 'brown',   label: 'Brown', swatch: '#6B4226', folder: '/latest/brown', glb: GLB },
-]
-
-export const INTERIORS = [
-  { id: 'harvia',    label: 'Harvia',            path: encode('/latest/CIty_6k_Harvia.jpg') },
-  { id: 'harvia-ir', label: 'Harvia + Infrared', path: encode('/latest/CIty_6k_Harvia+infrared Harvia.jpg') },
-  { id: 'huum',      label: 'Huum',              path: encode('/latest/CIty_6k_Huum.jpg') },
-  { id: 'huum-eos',  label: 'Huum + Eos',        path: encode('/latest/CIty_6k_Huum+infrared EOS.jpg') },
-]
+// Legacy exports for backward compatibility
+const DEFAULT = MODELS['city-xs']
+export const COLORS   = DEFAULT.colors
+export const INTERIORS = DEFAULT.interiors

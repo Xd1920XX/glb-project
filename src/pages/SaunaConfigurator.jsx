@@ -1,19 +1,23 @@
 import { useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { ImageSpinner } from '../components/ImageSpinner.jsx'
 import { InteriorViewer } from '../components/InteriorViewer.jsx'
 import { SaunaViewer3D } from '../components/SaunaViewer3D.jsx'
 import { SaunaPanel } from '../components/SaunaPanel.jsx'
-import { COLORS, FRAME_COUNT, INTERIORS } from '../config/sauna.js'
+import { MODELS, FRAME_COUNT } from '../config/sauna.js'
 
 export default function SaunaConfigurator() {
-  const [colorId, setColorId]     = useState(COLORS[0].id)
-  const [frameIndex, setFrameIndex] = useState(0)
-  const [view, setView]           = useState('exterior')
-  const [show3D, setShow3D]       = useState(false)
-  const [interiorId, setInteriorId] = useState(INTERIORS[0].id)
+  const { modelId } = useParams()
+  const model = MODELS[modelId] ?? MODELS['city-xs']
 
-  const color    = COLORS.find((c) => c.id === colorId)
-  const interior = INTERIORS.find((i) => i.id === interiorId)
+  const [colorId, setColorId]       = useState(model.colors[0].id)
+  const [frameIndex, setFrameIndex] = useState(0)
+  const [view, setView]             = useState('exterior')
+  const [show3D, setShow3D]         = useState(false)
+  const [interiorId, setInteriorId] = useState(model.interiors[0].id)
+
+  const color    = model.colors.find((c) => c.id === colorId)
+  const interior = model.interiors.find((i) => i.id === interiorId)
 
   function handleColorChange(id) { setColorId(id); setShow3D(false) }
 
@@ -22,7 +26,7 @@ export default function SaunaConfigurator() {
       return <InteriorViewer key={interior.id} src={interior.path} />
     }
     if (view === 'order') {
-      const src = `${color.folder}/1${color.fileSuffix || ''}.jpg`
+      const src = `${color.folder}/1.jpg`
       return <img key={color.id} src={src} alt={color.label} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
     }
     if (show3D && color.glb) {
@@ -54,6 +58,9 @@ export default function SaunaConfigurator() {
       </div>
       <div className="config-pane">
         <SaunaPanel
+          modelName={model.name}
+          colors={model.colors}
+          interiors={model.interiors}
           colorId={colorId}
           view={view}
           interiorId={interiorId}

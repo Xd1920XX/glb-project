@@ -6,8 +6,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/"          element={<SaunaLanding />} />
-        <Route path="/configure" element={<SaunaConfigurator />} />
+        <Route path="/"                    element={<SaunaLanding />} />
+        <Route path="/configure"           element={<SaunaConfigurator />} />
+        <Route path="/configure/:modelId"  element={<SaunaConfigurator />} />
       </Routes>
     </BrowserRouter>
   )

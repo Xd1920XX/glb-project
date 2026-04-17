@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 
 const MODELS = [
-  { id: '01', name: 'City XS',      image: '/Mudelid/01_City XS/1.jpg' },
-  { id: '02', name: 'City',         image: '/Mudelid/02_City/City_black.png' },
+  { id: '01', name: 'City XS',      image: '/Mudelid/01_City XS/1.jpg',              modelId: 'city-xs' },
+  { id: '02', name: 'City',         image: '/Mudelid/02_City/City_black.png',         modelId: 'city' },
   { id: '03', name: 'City LUX',     image: '/Mudelid/03_City LUX/City LUX_black.png' },
   { id: '04', name: 'City XL',      image: '/Mudelid/04_City XL/Saun XL.jpg' },
   { id: '05', name: 'City Elegant', image: '/Mudelid/05_City Elegant/1black.jpg' },
@@ -11,6 +11,7 @@ const MODELS = [
   { id: '08', name: 'Denmark',      image: '/Mudelid/08_Denmark/Saun-Denmark-nurga-alt-1024x1024.png' },
   { id: '09', name: 'Estonia',      image: '/Mudelid/09_Estonia/saun-city-lux-nurgalt-1024x1024.png' },
 ]
+
 
 export default function SaunaLanding() {
   const navigate = useNavigate()
@@ -60,7 +61,7 @@ export default function SaunaLanding() {
         <div className="sl-models-grid">
           {MODELS.map((model) => (
             <div key={model.id} className="sl-model-card"
-              onClick={() => navigate('/configure')}>
+              onClick={() => navigate(model.modelId ? `/configure/${model.modelId}` : '/configure')}>
               <div className="sl-model-img-wrap">
                 <img src={model.image} alt={model.name} loading="lazy" />
                 <div className="sl-model-overlay">
