@@ -7,7 +7,9 @@ export const MODELS = {
     name: 'City XS',
     colors: [
       { id: 'black', label: 'Black', swatch: '#1A1A1A', folder: '/new/jpg',       glb: encode('/new/Sauna City XS.glb') },
-      { id: 'brown', label: 'Brown', swatch: '#6B4226', folder: '/new/jpg-brown', glb: encode('/new/Sauna City XS.glb') },
+      { id: 'brown', label: 'Brown', swatch: '#6B4226', folder: '/new/jpg-brown', glb: encode('/new/Sauna City XS.glb'),
+        texture: encode('/new/texture.jpeg'),
+        textureMaterials: ['black_walls', 'dark_wood_walls'] },
     ],
     interiors: [
       { id: 'harvia',    label: 'Harvia',            path: encode('/new/interjor/CIty XS_6k_Harvia.jpg') },
@@ -20,7 +22,9 @@ export const MODELS = {
     name: 'City',
     colors: [
       { id: 'black', label: 'Black', swatch: '#1A1A1A', folder: '/latest/black', glb: encode('/latest/Sauna City.glb') },
-      { id: 'brown', label: 'Brown', swatch: '#6B4226', folder: '/latest/brown', glb: encode('/latest/Sauna City.glb') },
+      { id: 'brown', label: 'Brown', swatch: '#6B4226', folder: '/latest/brown', glb: encode('/latest/Sauna City.glb'),
+        texture: encode('/new/jpg-brown/wood-43_d 1,8x2,4m 2 nat 2 33333_wood dark_4.jpg'),
+        textureMaterials: ['black_walls'] },
     ],
     interiors: [
       { id: 'harvia',    label: 'Harvia',            path: encode('/latest/CIty_6k_Harvia.jpg') },

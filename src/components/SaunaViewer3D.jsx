@@ -1,5 +1,5 @@
 import { Canvas } from '@react-three/fiber'
-import { useGLTF, useTexture, OrbitControls, Bounds, useBounds, Environment } from '@react-three/drei'
+import { useGLTF, useTexture, OrbitControls, Bounds, useBounds } from '@react-three/drei'
 import { Suspense, useLayoutEffect, useMemo } from 'react'
 import * as THREE from 'three'
 
@@ -35,18 +35,18 @@ function Model({ url }) {
   return <primitive object={cloned} />
 }
 
-function TexturedModel({ url, textureUrl }) {
+function TexturedModel({ url, textureUrl, textureMaterials }) {
   const { scene } = useGLTF(url)
   const texture = useTexture(textureUrl)
+  const matSet = useMemo(() => new Set(textureMaterials ?? ['black_walls']), [textureMaterials])
 
   const clonedScene = useMemo(() => {
     texture.colorSpace = THREE.SRGBColorSpace
     texture.wrapS = THREE.RepeatWrapping
     texture.wrapT = THREE.RepeatWrapping
     const clone = scene.clone(true)
-    const PANEL_MATERIALS = new Set(['black_walls'])
     clone.traverse((child) => {
-      if (child.isMesh && PANEL_MATERIALS.has(child.material?.name)) {
+      if (child.isMesh && matSet.has(child.material?.name)) {
         child.material = child.material.clone()
         child.material.color.set(0xffffff)
         child.material.map = texture
@@ -55,7 +55,7 @@ function TexturedModel({ url, textureUrl }) {
     })
     deglassScene(clone)
     return clone
-  }, [scene, texture])
+  }, [scene, texture, matSet])
 
   return <primitive object={clonedScene} />
 }
@@ -90,7 +90,7 @@ function LoadingOverlay() {
   )
 }
 
-export function SaunaViewer3D({ glb, textureUrl, envIntensity = 3 }) {
+export function SaunaViewer3D({ glb, textureUrl, textureMaterials }) {
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <Canvas
@@ -99,15 +99,15 @@ export function SaunaViewer3D({ glb, textureUrl, envIntensity = 3 }) {
         style={{ width: '100%', height: '100%' }}
       >
         <Suspense fallback={null}>
-          <Environment preset="apartment" background={false} environmentIntensity={envIntensity} />
-          {textureUrl && <>
-            <directionalLight position={[0, 2, 10]}  intensity={1.5} />
-            <directionalLight position={[0, 2, -10]} intensity={1.5} />
-          </>}
+          <ambientLight intensity={2.5} />
+          <directionalLight position={[5, 10, 7]}  intensity={3} />
+          <directionalLight position={[-4, 3, -6]} intensity={2} />
 
           <Bounds fit clip margin={1.2}>
             <CameraFit />
-            {textureUrl ? <TexturedModel url={glb} textureUrl={textureUrl} /> : <Model url={glb} />}
+            {textureUrl
+              ? <TexturedModel url={glb} textureUrl={textureUrl} textureMaterials={textureMaterials} />
+              : <Model url={glb} />}
           </Bounds>
 
           <OrbitControls

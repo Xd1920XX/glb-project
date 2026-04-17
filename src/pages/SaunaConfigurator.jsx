@@ -30,7 +30,7 @@ export default function SaunaConfigurator() {
       return <img key={color.id} src={src} alt={color.label} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
     }
     if (show3D && color.glb) {
-      return <SaunaViewer3D key={color.id} glb={color.glb} textureUrl={color.texture} envIntensity={color.texture ? 1 : 3} />
+      return <SaunaViewer3D key={color.id} glb={color.glb} textureUrl={color.texture} textureMaterials={color.textureMaterials} />
     }
     return (
       <ImageSpinner
