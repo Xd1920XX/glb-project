@@ -1,5 +1,5 @@
 import { Canvas } from '@react-three/fiber'
-import { useGLTF, useTexture, OrbitControls, Bounds, useBounds } from '@react-three/drei'
+import { useGLTF, useTexture, OrbitControls, Bounds, useBounds, Environment } from '@react-three/drei'
 import { Suspense, useLayoutEffect, useMemo } from 'react'
 import * as THREE from 'three'
 
@@ -99,6 +99,7 @@ export function SaunaViewer3D({ glb, textureUrl, textureMaterials }) {
         style={{ width: '100%', height: '100%' }}
       >
         <Suspense fallback={null}>
+          <Environment preset="studio" background={false} />
           <ambientLight intensity={2.5} />
           <directionalLight position={[5, 10, 7]}  intensity={3} />
           <directionalLight position={[-4, 3, -6]} intensity={2} />
