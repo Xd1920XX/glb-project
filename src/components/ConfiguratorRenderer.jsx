@@ -7,7 +7,7 @@ import { SaunaViewer3D } from './SaunaViewer3D.jsx'
  * config = { variants, interiors, background, viewerSettings }
  */
 export function ConfiguratorRenderer({ config }) {
-  const { variants = [], interiors = [], background, viewerSettings = {}, exteriorLabel, interiorLabel, orderForm } = config
+  const { variants = [], interiors = [], background, viewerSettings = {}, exteriorLabel, interiorLabel, orderForm, theme = 'minimal', darkMode = false, themeColors = {} } = config
 
   const extLabel = exteriorLabel || 'Exterior'
   const intLabel = interiorLabel || 'Interior'
@@ -94,7 +94,17 @@ export function ConfiguratorRenderer({ config }) {
 
   // ── Panel ────────────────────────────────────────────────────────
   return (
-    <div className="configurator-view">
+    <div
+      className="configurator-view"
+      data-theme={theme}
+      data-dark={darkMode ? 'true' : undefined}
+      style={{
+        ...(themeColors.accent  && { '--accent':  themeColors.accent  }),
+        ...(themeColors.surface && { '--surface': themeColors.surface }),
+        ...(themeColors.bg      && { '--bg':      themeColors.bg      }),
+        ...(themeColors.border  && { '--border':  themeColors.border  }),
+      }}
+    >
       <div className="viewer-pane" style={viewerStyle}>
         {renderViewer()}
         {can3D && (

@@ -3,8 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../hooks/useAuth.jsx'
 import { getUserConfigurators, createConfigurator, deleteConfigurator } from '../firebase/db.js'
-import { logOut } from '../firebase/auth.js'
 import { getEmbedLimit } from '../config/plans.js'
+import { CmsSidebar } from '../components/CmsSidebar.jsx'
 
 export default function Dashboard() {
   const { user, profile } = useAuth()
@@ -43,25 +43,9 @@ export default function Dashboard() {
   const statusLabel = { trial: 'Trial', active: 'Active', cancelled: 'Cancelled', past_due: 'Overdue' }
 
   return (
-    <div className="dashboard">
-      <header className="dash-header">
-        <span className="dash-logo">Configurator</span>
-        <nav className="dash-nav">
-          <Link to="/dashboard" className="dash-nav-link active">Configurators</Link>
-          <Link to="/media" className="dash-nav-link">Media</Link>
-        </nav>
-        <div className="dash-header-right">
-          <Link to="/billing" className="dash-billing-link">
-            <span className="sub-badge" style={{ background: statusColor[sub] }}>
-              {statusLabel[sub] ?? sub}
-            </span>
-          </Link>
-          <span className="dash-username">{profile?.name || profile?.email}</span>
-          <button className="btn-ghost" onClick={() => { logOut(); navigate('/') }}>Sign out</button>
-        </div>
-      </header>
-
-      <main className="dash-main">
+    <div className="cms-layout dashboard">
+      <CmsSidebar active="configurators" />
+      <main className="cms-content dash-main">
         <div className="dash-title-row">
           <div>
             <h1>My Configurators</h1>
@@ -119,3 +103,4 @@ export default function Dashboard() {
     </div>
   )
 }
+

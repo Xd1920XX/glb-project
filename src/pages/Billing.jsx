@@ -4,6 +4,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { updateUser } from '../firebase/db.js'
 import { PLANS, getPlan } from '../config/plans.js'
+import { CmsSidebar } from '../components/CmsSidebar.jsx'
 
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID
 
@@ -50,12 +51,10 @@ export default function Billing() {
   const daysLeft = trialEnd ? Math.max(0, Math.ceil((trialEnd - Date.now()) / 86400000)) : null
 
   return (
-    <div className="billing-page">
+    <div className="cms-layout billing-page">
+      <CmsSidebar active="billing" />
+      <div className="cms-content">
       <div className="billing-container">
-
-        <div className="billing-back">
-          <Link to="/dashboard" className="btn-ghost btn-sm">← Dashboard</Link>
-        </div>
 
         <h1 className="billing-title">Billing</h1>
 
@@ -114,7 +113,8 @@ export default function Billing() {
         {/* ── Invoice history ── */}
         <InvoiceHistory profile={profile} />
 
-      </div>
+      </div>{/* billing-container */}
+      </div>{/* cms-content */}
     </div>
   )
 }

@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
-import { logOut } from '../firebase/auth.js'
 import { listUserFiles, uploadFile, deleteFile } from '../firebase/storage.js'
+import { CmsSidebar } from '../components/CmsSidebar.jsx'
 
 function fmtSize(bytes) {
   if (!bytes) return ''
@@ -23,8 +23,7 @@ export function mediaType(contentType = '', name = '') {
 }
 
 export default function Media() {
-  const { user, profile } = useAuth()
-  const navigate = useNavigate()
+  const { user } = useAuth()
 
   const [files, setFiles]       = useState([])
   const [loading, setLoading]   = useState(true)
@@ -126,25 +125,14 @@ export default function Media() {
   const allSelected = displayed.length > 0 && displayed.every((f) => selected.has(f.storagePath))
 
   return (
-    <div className="media-page"
+    <div className="cms-layout media-page"
       onDragEnter={onDragEnter}
       onDragOver={(e) => e.preventDefault()}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
     >
-      <header className="dash-header">
-        <span className="dash-logo">Configurator</span>
-        <nav className="dash-nav">
-          <Link to="/dashboard" className="dash-nav-link">Configurators</Link>
-          <Link to="/media" className="dash-nav-link active">Media</Link>
-        </nav>
-        <div className="dash-header-right">
-          <span className="dash-username">{profile?.name || profile?.email}</span>
-          <button className="btn-ghost btn-sm" onClick={() => { logOut(); navigate('/') }}>Sign out</button>
-        </div>
-      </header>
-
-      <main className="media-main">
+      <CmsSidebar active="media" />
+      <main className="cms-content media-main">
         {/* Toolbar */}
         <div className="media-toolbar">
           <div className="media-toolbar-left">

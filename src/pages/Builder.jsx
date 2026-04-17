@@ -36,6 +36,24 @@ const DEFAULT_ORDER_FORM = {
 
 function uid() { return Math.random().toString(36).slice(2) }
 
+// ── Style themes ───────────────────────────────────────────────────
+
+const THEMES = [
+  { id: 'minimal', label: 'Minimal', bg: '#ffffff', accent: '#111111' },
+  { id: 'slate',   label: 'Slate',   bg: '#edf0f6', accent: '#2a4080' },
+  { id: 'warm',    label: 'Warm',    bg: '#faf5ee', accent: '#c05020' },
+  { id: 'forest',  label: 'Forest',  bg: '#edf6ed', accent: '#2d7a2d' },
+  { id: 'bold',    label: 'Bold',    bg: '#f4f0ff', accent: '#6820e0' },
+]
+
+const THEME_DEFAULTS = {
+  minimal: { accent: '#111111', surface: '#ffffff', bg: '#f7f6f4', border: '#e8e6e3' },
+  slate:   { accent: '#2a4080', surface: '#f8f9fb', bg: '#edf0f6', border: '#ccd5e6' },
+  warm:    { accent: '#c05020', surface: '#fffdf9', bg: '#faf5ee', border: '#e8ddd0' },
+  forest:  { accent: '#2d7a2d', surface: '#f5faf5', bg: '#edf6ed', border: '#c8dfc8' },
+  bold:    { accent: '#6820e0', surface: '#ffffff',  bg: '#f4f0ff', border: '#ddd0ff' },
+}
+
 // ── Upload button ──────────────────────────────────────────────────
 
 function UploadBtn({ label, accept, multiple, onFiles, uploading }) {
@@ -726,6 +744,91 @@ function BuilderAccordion({ title, onTitleChange, badge, right, defaultOpen = tr
   )
 }
 
+// ── Style editor ───────────────────────────────────────────────────
+
+const COLOR_FIELDS = [
+  { key: 'accent',  label: 'Accent'  },
+  { key: 'surface', label: 'Panel'   },
+  { key: 'bg',      label: 'Secondary' },
+  { key: 'border',  label: 'Border'  },
+]
+
+function StyleEditor({ theme, darkMode, themeColors, onChange, onColorsChange }) {
+  const defaults = THEME_DEFAULTS[theme] ?? THEME_DEFAULTS.minimal
+
+  function setColor(key, value) {
+    onColorsChange({ ...themeColors, [key]: value })
+  }
+
+  function resetColor(key) {
+    const { [key]: _removed, ...rest } = themeColors
+    onColorsChange(rest)
+  }
+
+  const hasOverrides = Object.keys(themeColors).length > 0
+
+  return (
+    <div className="style-editor">
+      <div className="vs-row">
+        <label className="vs-label">Dark mode</label>
+        <label className="vs-toggle">
+          <input type="checkbox" checked={darkMode}
+            onChange={(e) => onChange({ theme, darkMode: e.target.checked })} />
+          <span className="vs-toggle-track" />
+        </label>
+      </div>
+
+      <p className="vs-group-label" style={{ marginTop: 12 }}>Theme</p>
+      <div className="theme-grid">
+        {THEMES.map((t) => (
+          <button
+            key={t.id}
+            className={`theme-card${theme === t.id ? ' selected' : ''}`}
+            onClick={() => { onChange({ theme: t.id, darkMode }); onColorsChange({}) }}
+          >
+            <span className="theme-card-preview" style={{ background: t.bg }}>
+              <span className="theme-card-accent" style={{ background: t.accent }} />
+            </span>
+            <span className="theme-card-label">{t.label}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="theme-colors-header">
+        <p className="vs-group-label" style={{ margin: 0 }}>Colors</p>
+        {hasOverrides && (
+          <button className="btn-text-danger" style={{ fontSize: 11 }}
+            onClick={() => onColorsChange({})}>Reset</button>
+        )}
+      </div>
+      <div className="theme-colors">
+        {COLOR_FIELDS.map(({ key, label }) => {
+          const value = themeColors[key] ?? defaults[key]
+          const isCustom = !!themeColors[key]
+          return (
+            <div key={key} className="theme-color-row">
+              <span className="theme-color-label">{label}</span>
+              <div className="theme-color-input-wrap">
+                <input
+                  type="color"
+                  className="theme-color-picker"
+                  value={value}
+                  onChange={(e) => setColor(key, e.target.value)}
+                />
+                <span className="theme-color-hex">{value}</span>
+                {isCustom && (
+                  <button className="theme-color-reset" title="Reset to default"
+                    onClick={() => resetColor(key)}>↺</button>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ── Main builder ───────────────────────────────────────────────────
 
 export default function Builder() {
@@ -741,6 +844,9 @@ export default function Builder() {
   const [exteriorLabel, setExteriorLabel]     = useState('Exterior')
   const [interiorLabel, setInteriorLabel]     = useState('Interior')
   const [orderForm, setOrderForm]             = useState(DEFAULT_ORDER_FORM)
+  const [theme, setTheme]                     = useState('minimal')
+  const [darkMode, setDarkMode]               = useState(false)
+  const [themeColors, setThemeColors]         = useState({})
   const [published, setPublished]             = useState(false)
   const [saving, setSaving]       = useState(false)
   const [saved, setSaved]         = useState(false)
@@ -761,15 +867,18 @@ export default function Builder() {
       setExteriorLabel(cfg.exteriorLabel ?? 'Exterior')
       setInteriorLabel(cfg.interiorLabel ?? 'Interior')
       setOrderForm({ ...DEFAULT_ORDER_FORM, ...(cfg.orderForm ?? {}), fields: cfg.orderForm?.fields ?? DEFAULT_ORDER_FORM.fields })
+      setTheme(cfg.theme ?? 'minimal')
+      setDarkMode(cfg.darkMode ?? false)
+      setThemeColors(cfg.themeColors ?? {})
       setPublished(cfg.published ?? false)
       setLoading(false)
     })
   }, [id])
 
-  const doSave = useCallback(async (n, v, i, bg, vs, el, il, of_) => {
+  const doSave = useCallback(async (n, v, i, bg, vs, el, il, of_, th, dm, tc) => {
     setSaving(true); setSaveError(null)
     try {
-      await saveConfigurator(id, { name: n, variants: v, interiors: i, background: bg, viewerSettings: vs, exteriorLabel: el, interiorLabel: il, orderForm: of_ })
+      await saveConfigurator(id, { name: n, variants: v, interiors: i, background: bg, viewerSettings: vs, exteriorLabel: el, interiorLabel: il, orderForm: of_, theme: th, darkMode: dm, themeColors: tc })
       setSaved(true); setDirty(false)
       setTimeout(() => setSaved(false), 2000)
     } catch (err) {
@@ -783,13 +892,13 @@ export default function Builder() {
     if (initialLoad.current) { initialLoad.current = false; return }
     setDirty(true)
     clearTimeout(autoSaveTimer.current)
-    autoSaveTimer.current = setTimeout(() => doSave(name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm), 1500)
+    autoSaveTimer.current = setTimeout(() => doSave(name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors), 1500)
     return () => clearTimeout(autoSaveTimer.current)
-  }, [name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm])
+  }, [name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors])
 
   async function handleSave() {
     clearTimeout(autoSaveTimer.current)
-    await doSave(name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm)
+    await doSave(name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors)
   }
 
   async function handlePublish() {
@@ -800,34 +909,35 @@ export default function Builder() {
       const count = await getPublishedCount(user.uid)
       if (count >= limit) { navigate('/billing'); return }
     }
-    await saveConfigurator(id, { name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm })
+    await saveConfigurator(id, { name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors })
     await publishConfigurator(id, !published)
     setPublished((v) => !v)
   }
 
   if (loading) return <div className="page-loading">Loading builder…</div>
 
-  const config = { variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm }
+  const config = { variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors }
 
   return (
     <div className="builder">
-      <header className="builder-header">
-        <Link to="/dashboard" className="btn-ghost btn-sm">← Back</Link>
-        <input className="builder-name-input" value={name}
-          onChange={(e) => setName(e.target.value)} placeholder="Configurator name" />
-        <div className="builder-actions">
-          {saveError && <span className="builder-save-error">{saveError}</span>}
-          <button className="btn-ghost btn-sm" onClick={handleSave} disabled={saving}>
-            {saved ? '✓' : saving ? '…' : dirty ? 'Save*' : 'Save'}
-          </button>
-          <button className="btn-ghost btn-sm" onClick={() => window.open(`/embed/${id}`, '_blank')}>
-            Preview
-          </button>
-          <button className={published ? 'btn-danger' : 'btn-primary'} onClick={handlePublish}>
-            {published ? 'Unpublish' : 'Publish'}
-          </button>
+      <div className="builder-inner">
+        <div className="builder-topbar">
+          <Link to="/dashboard" className="btn-ghost btn-sm builder-back-btn">← Back</Link>
+          <input className="builder-name-input" value={name}
+            onChange={(e) => setName(e.target.value)} placeholder="Configurator name" />
+          <div className="builder-actions">
+            {saveError && <span className="builder-save-error">{saveError}</span>}
+            <button className="btn-ghost btn-sm" onClick={handleSave} disabled={saving}>
+              {saved ? '✓' : saving ? '…' : dirty ? 'Save*' : 'Save'}
+            </button>
+            <button className="btn-ghost btn-sm" onClick={() => window.open(`/embed/${id}`, '_blank')}>
+              Preview
+            </button>
+            <button className={published ? 'btn-danger' : 'btn-primary'} onClick={handlePublish}>
+              {published ? 'Unpublish' : 'Publish'}
+            </button>
+          </div>
         </div>
-      </header>
 
       <div className="builder-body">
         <aside className="builder-settings">
@@ -912,6 +1022,17 @@ export default function Builder() {
             }
           </BuilderAccordion>
 
+          {/* Style */}
+          <BuilderAccordion title="Style" defaultOpen={false}>
+            <StyleEditor
+              theme={theme}
+              darkMode={darkMode}
+              themeColors={themeColors}
+              onChange={({ theme: t, darkMode: dm }) => { setTheme(t); setDarkMode(dm) }}
+              onColorsChange={setThemeColors}
+            />
+          </BuilderAccordion>
+
           {/* Embed code */}
           {published && <EmbedSection id={id} origin={window.location.origin} />}
         </aside>
@@ -922,6 +1043,7 @@ export default function Builder() {
             : <ConfiguratorRenderer config={config} />
           }
         </div>
+      </div>
       </div>
     </div>
   )

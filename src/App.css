@@ -84,14 +84,14 @@ body {
 /* ── Config header ───────────────────────────────────────────────── */
 
 .config-header {
-  padding: 28px 28px 0;
+  padding: 24px 24px 0;
   flex-shrink: 0;
 }
 
 .config-title {
-  font-size: 22px;
-  font-weight: 750;
-  letter-spacing: -0.6px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
   color: var(--text);
   line-height: 1.2;
 }
@@ -106,8 +106,8 @@ body {
 
 .view-tabs {
   display: flex;
-  padding: 16px 28px 0;
-  gap: 0;
+  padding: 14px 24px 0;
+  gap: 4px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   overflow-x: auto;
@@ -118,19 +118,21 @@ body {
 .view-tab {
   all: unset;
   flex-shrink: 0;
-  padding: 10px 16px;
+  padding: 8px 14px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   color: var(--text-muted);
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
   transition: color 0.15s, border-color 0.15s;
   white-space: nowrap;
+  border-radius: 6px 6px 0 0;
 }
-.view-tab:hover:not(.active) { color: var(--text); }
+.view-tab:hover:not(.active) { color: var(--text); background: var(--hover-bg); }
 .view-tab.active {
   color: var(--text);
+  font-weight: 600;
   border-bottom-color: var(--accent);
 }
 
@@ -140,7 +142,7 @@ body {
   flex: 1;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 24px 28px 32px;
+  padding: 20px 24px 28px;
   scrollbar-width: none;
 }
 .tab-body::-webkit-scrollbar { display: none; }
@@ -150,7 +152,7 @@ body {
 .section-label {
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-faint);
   margin-bottom: 10px;
@@ -158,17 +160,22 @@ body {
 
 /* ── Price display ───────────────────────────────────────────────── */
 
-.config-price-display { margin-bottom: 16px; }
+.config-price-display {
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
 
 .config-price-value {
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 800;
-  letter-spacing: -1px;
+  letter-spacing: -1.5px;
   color: var(--text);
+  line-height: 1;
 }
 
 .config-price-from {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text-muted);
 }
@@ -176,8 +183,8 @@ body {
 /* ── Color / variant cards ───────────────────────────────────────── */
 
 .color-grid {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
 
@@ -185,37 +192,38 @@ body {
   all: unset;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius);
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
   cursor: pointer;
   background: var(--surface);
-  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
   box-sizing: border-box;
   width: 100%;
+  min-width: 0;
 }
 .color-card:hover:not(.selected) {
   border-color: var(--border-hover);
-  background: var(--hover-bg);
+  box-shadow: var(--shadow-xs);
 }
 .color-card.selected {
   border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
   background: var(--hover-bg);
-  box-shadow: inset 0 0 0 1px var(--accent);
 }
 
 .color-dot {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   flex-shrink: 0;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
 }
 .color-dot-img {
-  width: 30px;
-  height: 30px;
-  border-radius: var(--radius-sm);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   object-fit: cover;
   flex-shrink: 0;
   display: block;
@@ -231,15 +239,16 @@ body {
 }
 
 .color-label {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--text);
 }
 
 .color-price {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-muted);
   font-weight: 500;
 }
@@ -247,11 +256,10 @@ body {
 /* Checkmark on selected card */
 .color-card.selected::after {
   content: '✓';
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--accent);
   flex-shrink: 0;
-  margin-left: auto;
 }
 
 /* ── Interior list ───────────────────────────────────────────────── */
@@ -267,30 +275,30 @@ body {
   display: flex;
   align-items: center;
   gap: 0;
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  border-radius: 10px;
   overflow: hidden;
   cursor: pointer;
   background: var(--surface);
-  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
   box-sizing: border-box;
   width: 100%;
 }
 .interior-item:hover:not(.selected) {
   border-color: var(--border-hover);
-  background: var(--hover-bg);
+  box-shadow: var(--shadow-xs);
 }
 .interior-item.selected {
   border-color: var(--accent);
-  box-shadow: inset 0 0 0 1px var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
 }
 
 .interior-item-thumb {
-  width: 80px;
-  height: 56px;
+  width: 76px;
+  height: 52px;
   flex-shrink: 0;
   overflow: hidden;
-  background: #e0dedd;
+  background: var(--hover-bg);
 }
 .interior-item-thumb img {
   width: 100%;
@@ -512,31 +520,33 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 24px;
-  gap: 10px;
+  margin-top: 20px;
+  gap: 8px;
 }
 
 .tab-nav-btn {
   all: unset;
   flex: 1;
   text-align: center;
-  padding: 11px 16px;
-  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  border-radius: 8px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
-  border: 1.5px solid var(--border);
-  color: var(--text);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
   background: transparent;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
   white-space: nowrap;
+  box-sizing: border-box;
 }
-.tab-nav-btn:hover { background: var(--hover-bg); border-color: var(--border-hover); }
+.tab-nav-btn:hover { background: var(--hover-bg); border-color: var(--border-hover); color: var(--text); }
 
 .tab-nav-btn--next {
   background: var(--accent);
   color: #fff;
   border-color: var(--accent);
+  font-weight: 600;
 }
 .tab-nav-btn--next:hover { opacity: 0.82; background: var(--accent); }
 
@@ -716,14 +726,16 @@ body {
     overflow: hidden;
   }
 
-  .config-header { padding: 20px 20px 0; }
+  .config-header { padding: 18px 18px 0; }
 
-  .view-tabs { padding: 12px 20px 0; }
-  .view-tab  { padding: 10px 14px; font-size: 13px; }
+  .view-tabs { padding: 12px 18px 0; }
+  .view-tab  { padding: 8px 12px; font-size: 13px; }
 
   .tab-body {
-    padding: 18px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+    padding: 16px 18px calc(20px + env(safe-area-inset-bottom, 0px));
   }
+
+  .color-grid { grid-template-columns: 1fr; }
 
   .interior-item-thumb { width: 72px; height: 50px; }
 
@@ -742,4 +754,137 @@ body {
   .tab-body    { padding: 14px 16px calc(16px + env(safe-area-inset-bottom, 0px)); }
   .color-card  { padding: 11px 14px; }
   .view-tab    { padding: 10px 10px; font-size: 12px; }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   THEME SYSTEM  — 5 style presets + dark mode
+   All variables are scoped to .configurator-view so they never
+   bleed into the builder sidebar or other platform pages.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Minimal (default) — no overrides needed, inherits :root ── */
+
+/* ── 2. Slate — cool blue-gray ─────────────────────────────────── */
+.configurator-view[data-theme="slate"] {
+  --surface:      #f8f9fb;
+  --bg:           #edf0f6;
+  --border:       #ccd5e6;
+  --border-hover: #9db0d0;
+  --text:         #1e2840;
+  --text-muted:   #506080;
+  --text-faint:   #8090aa;
+  --accent:       #2a4080;
+  --accent-hover: #1e3068;
+  --hover-bg:     #e2e8f4;
+}
+
+/* ── 3. Warm — earthy terracotta ───────────────────────────────── */
+.configurator-view[data-theme="warm"] {
+  --surface:      #fffdf9;
+  --bg:           #faf5ee;
+  --border:       #e8ddd0;
+  --border-hover: #c8b8a0;
+  --text:         #2d1f0e;
+  --text-muted:   #7a5c3a;
+  --text-faint:   #b09070;
+  --accent:       #c05020;
+  --accent-hover: #a04018;
+  --hover-bg:     #f4ede3;
+}
+
+/* ── 4. Forest — natural green ─────────────────────────────────── */
+.configurator-view[data-theme="forest"] {
+  --surface:      #f5faf5;
+  --bg:           #edf6ed;
+  --border:       #c8dfc8;
+  --border-hover: #96c096;
+  --text:         #1a2e1a;
+  --text-muted:   #4a6b4a;
+  --text-faint:   #80a080;
+  --accent:       #2d7a2d;
+  --accent-hover: #1f601f;
+  --hover-bg:     #e2f0e2;
+}
+
+/* ── 5. Bold — vivid violet ────────────────────────────────────── */
+.configurator-view[data-theme="bold"] {
+  --surface:      #ffffff;
+  --bg:           #f4f0ff;
+  --border:       #ddd0ff;
+  --border-hover: #b8a0f0;
+  --text:         #1a0a3d;
+  --text-muted:   #5a3f9a;
+  --text-faint:   #9070c8;
+  --accent:       #6820e0;
+  --accent-hover: #5010c0;
+  --hover-bg:     #ece4ff;
+}
+
+/* ── Dark mode base — applies to all themes ────────────────────── */
+.configurator-view[data-dark="true"] {
+  --surface:      #181818;
+  --bg:           #101010;
+  --border:       #2c2c2c;
+  --border-hover: #424242;
+  --text:         #ffffff;
+  --text-muted:   #a0a0a0;
+  --text-faint:   #555555;
+  --hover-bg:     #222222;
+  color: var(--text);
+  color-scheme: dark;
+}
+
+/* Dark mode accent overrides per theme */
+.configurator-view[data-theme="minimal"][data-dark="true"],
+.configurator-view:not([data-theme])[data-dark="true"] {
+  --accent:       #ffffff;
+  --accent-hover: #dddddd;
+}
+.configurator-view[data-theme="slate"][data-dark="true"] {
+  --surface:      #12161e;
+  --bg:           #0a0e18;
+  --border:       #1c2438;
+  --border-hover: #2c3858;
+  --accent:       #6a90e8;
+  --accent-hover: #8aaaf0;
+  --hover-bg:     #181e2e;
+}
+.configurator-view[data-theme="warm"][data-dark="true"] {
+  --surface:      #1c1510;
+  --bg:           #120d08;
+  --border:       #2c1e14;
+  --border-hover: #42301c;
+  --accent:       #e06830;
+  --accent-hover: #e88048;
+  --hover-bg:     #261810;
+}
+.configurator-view[data-theme="forest"][data-dark="true"] {
+  --surface:      #0e1810;
+  --bg:           #080e0a;
+  --border:       #162616;
+  --border-hover: #243a24;
+  --accent:       #3ab03a;
+  --accent-hover: #54cc54;
+  --hover-bg:     #121e14;
+}
+.configurator-view[data-theme="bold"][data-dark="true"] {
+  --surface:      #0e0820;
+  --bg:           #070412;
+  --border:       #1c1040;
+  --border-hover: #2c1860;
+  --accent:       #a060ff;
+  --accent-hover: #b880ff;
+  --hover-bg:     #160c30;
+}
+
+/* Input / select color-scheme fix in dark mode */
+.configurator-view[data-dark="true"] select,
+.configurator-view[data-dark="true"] input[type="text"],
+.configurator-view[data-dark="true"] input[type="email"],
+.configurator-view[data-dark="true"] input[type="tel"],
+.configurator-view[data-dark="true"] textarea {
+  color-scheme: dark;
+  color: var(--text);
+  background: var(--surface);
+  border-color: var(--border);
 }
