@@ -49,12 +49,6 @@ export default function SaunaConfigurator() {
     <div className="app">
       <div className="viewer-pane">
         {renderViewer()}
-        {can3D && (
-          <button className={`view-3d-btn${show3D ? ' active' : ''}`}
-            onClick={() => setShow3D((v) => !v)}>
-            {show3D ? 'Renders' : '3D'}
-          </button>
-        )}
       </div>
       <div className="config-pane">
         <SaunaPanel
