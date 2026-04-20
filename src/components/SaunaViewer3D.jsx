@@ -7,7 +7,7 @@ import * as THREE from 'three'
 useGLTF.setDecoderPath('/draco/')
 
 useGLTF.preload(encodeURI('/latest/Sauna City.glb'))
-useGLTF.preload(encodeURI('/new/Sauna City XS.glb'))
+useGLTF.preload(encodeURI('/xs-Exterior/Sauna City XS (1).glb'))
 
 function deglassScene(scene) {
   scene.traverse((child) => {

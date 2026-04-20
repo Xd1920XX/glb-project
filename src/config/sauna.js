@@ -6,9 +6,9 @@ export const MODELS = {
   'city-xs': {
     name: 'City XS',
     colors: [
-      { id: 'black', label: 'Black', swatch: '#1A1A1A', folder: '/new/jpg',       glb: encode('/new/Sauna City XS.glb') },
-      { id: 'brown', label: 'Brown', swatch: '#6B4226', folder: '/new/jpg-brown', glb: encode('/new/Sauna City XS.glb'),
-        texture: encode('/new/texture.jpeg'),
+      { id: 'black', label: 'Black', swatch: '#1A1A1A', folder: '/xs-Exterior/Black', glb: encode('/xs-Exterior/Sauna City XS (1).glb') },
+      { id: 'brown', label: 'Brown', swatch: '#6B4226', folder: '/xs-Exterior/Brown', glb: encode('/xs-Exterior/Sauna City XS (1).glb'),
+        texture: encode('/xs-Exterior/wood-43_d 1,8x2,4m 2 nat 2 33333_wood dark_4.jpg'),
         textureMaterials: ['black_walls', 'dark_wood_walls'] },
     ],
     interiors: [
