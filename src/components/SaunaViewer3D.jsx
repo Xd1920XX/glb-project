@@ -6,9 +6,19 @@ import * as THREE from 'three'
 useGLTF.preload('/new/' + encodeURIComponent('Sauna City XS.glb'))
 
 export const ENV_PRESETS = [
-  'city', 'sunset', 'dawn', 'night', 'warehouse',
-  'forest', 'apartment', 'studio', 'park', 'lobby',
+  'apartment', 'city', 'dawn', 'forest', 'lobby',
+  'night', 'park', 'studio', 'sunset', 'warehouse',
 ]
+
+// Named lighting presets — each overrides the individual light props
+export const LIGHT_PRESETS = {
+  default:  { environment: 'studio',    envIntensity: 1,   ambientIntensity: 0.5, keyIntensity: 1.2, fillIntensity: 0.3, shadows: true,  exposure: 1   },
+  bright:   { environment: 'warehouse', envIntensity: 1.5, ambientIntensity: 1.2, keyIntensity: 1.0, fillIntensity: 0.6, shadows: false, exposure: 1.2 },
+  outdoor:  { environment: 'sunset',    envIntensity: 1.2, ambientIntensity: 0.4, keyIntensity: 2.2, fillIntensity: 0.3, shadows: true,  exposure: 1   },
+  dramatic: { environment: 'night',     envIntensity: 0.6, ambientIntensity: 0.1, keyIntensity: 3.0, fillIntensity: 0.1, shadows: true,  exposure: 0.9 },
+  soft:     { environment: 'apartment', envIntensity: 1,   ambientIntensity: 1.0, keyIntensity: 0.6, fillIntensity: 0.5, shadows: false, exposure: 1.1 },
+  natural:  { environment: 'forest',    envIntensity: 1,   ambientIntensity: 0.5, keyIntensity: 1.5, fillIntensity: 0.4, shadows: true,  exposure: 1   },
+}
 
 // ── Model with optional material overrides ────────────────────────
 
@@ -94,24 +104,35 @@ export function SaunaViewer3D({
   materialOverrides  = {},
   autoRotate         = false,
   autoRotateSpeed    = 1,
-  environment        = 'city',
   allowZoom          = true,
   fov                = 42,
+  // lighting
+  environment        = 'studio',
+  envIntensity       = 1,
+  ambientIntensity   = 0.5,
+  keyIntensity       = 1.2,
+  fillIntensity      = 0.3,
+  keyPosition        = [6, 10, 8],
+  fillPosition       = [-6, 4, -4],
+  shadows            = true,
+  background         = false,
+  exposure           = 1,
 }) {
-  const env = ENV_PRESETS.includes(environment) ? environment : 'city'
+  const env = ENV_PRESETS.includes(environment) ? environment : 'studio'
 
   return (
     <Canvas
-      shadows
+      shadows={shadows}
       dpr={[1, 2]}
       camera={{ fov, position: [8, 4, 12] }}
       style={{ width: '100%', height: '100%' }}
+      gl={{ toneMappingExposure: exposure }}
     >
       <Suspense fallback={null}>
-        <Environment preset={env} />
-        <ambientLight intensity={0.5} />
-        <directionalLight position={[6, 10, 8]}  intensity={1.2} castShadow shadow-mapSize={[1024, 1024]} />
-        <directionalLight position={[-6, 4, -4]} intensity={0.3} />
+        <Environment preset={env} background={background} environmentIntensity={envIntensity} />
+        <ambientLight intensity={ambientIntensity} />
+        <directionalLight position={keyPosition}  intensity={keyIntensity}  castShadow={shadows} shadow-mapSize={[1024, 1024]} />
+        <directionalLight position={fillPosition} intensity={fillIntensity} />
 
         <Bounds fit clip margin={1.2}>
           <CameraFit />
