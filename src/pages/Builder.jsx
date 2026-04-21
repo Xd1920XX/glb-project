@@ -24,6 +24,7 @@ const DEFAULT_VIEWER_SETTINGS = {
   glbKeyIntensity:       40,
   glbFillIntensity:      20,
   glbEnvIntensity:       50,
+  glbSurroundLighting:   false,
 }
 
 const DEFAULT_ORDER_FORM = {
@@ -666,7 +667,19 @@ function ViewerSettingsEditor({ settings, onChange }) {
         </select>
       </div>
 
-      <p className="vs-group-label" style={{ marginTop: 16 }}>Light strength</p>
+      <div className="vs-row" style={{ marginTop: 12 }}>
+        <label className="vs-label">Surround lighting</label>
+        <label className="vs-toggle">
+          <input type="checkbox" checked={s.glbSurroundLighting ?? false}
+            onChange={(e) => set('glbSurroundLighting', e.target.checked)} />
+          <span className="vs-toggle-track" />
+        </label>
+      </div>
+      <p className="builder-hint" style={{ fontSize: 11, marginBottom: 8 }}>
+        Places lights at all 4 corners — eliminates shadows.
+      </p>
+
+      <p className="vs-group-label" style={{ marginTop: 8 }}>Light strength</p>
 
       <div className="vs-row">
         <label className="vs-label">Ambient</label>

@@ -117,12 +117,13 @@ export function SaunaViewer3D({
   shadows            = true,
   background         = false,
   exposure           = 1,
+  surroundLighting   = false,
 }) {
   const env = ENV_PRESETS.includes(environment) ? environment : 'studio'
 
   return (
     <Canvas
-      shadows={shadows}
+      shadows={!surroundLighting && shadows}
       dpr={[1, 2]}
       camera={{ fov, position: [8, 4, 12] }}
       style={{ width: '100%', height: '100%' }}
@@ -131,8 +132,19 @@ export function SaunaViewer3D({
       <Suspense fallback={null}>
         <Environment preset={env} background={background} environmentIntensity={envIntensity} />
         <ambientLight intensity={ambientIntensity} />
-        <directionalLight position={keyPosition}  intensity={keyIntensity}  castShadow={shadows} shadow-mapSize={[1024, 1024]} />
-        <directionalLight position={fillPosition} intensity={fillIntensity} />
+        {surroundLighting ? (
+          <>
+            <directionalLight position={[ 6,  6,  6]} intensity={keyIntensity * 0.6} />
+            <directionalLight position={[-6,  6,  6]} intensity={keyIntensity * 0.6} />
+            <directionalLight position={[ 6,  6, -6]} intensity={keyIntensity * 0.6} />
+            <directionalLight position={[-6,  6, -6]} intensity={keyIntensity * 0.6} />
+          </>
+        ) : (
+          <>
+            <directionalLight position={keyPosition}  intensity={keyIntensity}  castShadow={shadows} shadow-mapSize={[1024, 1024]} />
+            <directionalLight position={fillPosition} intensity={fillIntensity} />
+          </>
+        )}
 
         <Bounds fit clip margin={1.2}>
           <CameraFit />

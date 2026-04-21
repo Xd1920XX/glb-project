@@ -67,19 +67,21 @@ export function ConfiguratorRenderer({ config }) {
         fillIntensity:    ((vs.glbFillIntensity    ?? 20) / 100) * 1.5,
         envIntensity:     ((vs.glbEnvIntensity     ?? 50) / 100) * 2,
       }
+      const sharedProps = {
+        materialOverrides: overrides,
+        autoRotate: vs.glbAutoRotate,
+        autoRotateSpeed: vs.glbAutoRotateSpeed ?? 1,
+        environment: vs.glbEnvironment ?? 'city',
+        allowZoom: vs.glbAllowZoom ?? true,
+        fov: vs.glbFov ?? 42,
+        surroundLighting: vs.glbSurroundLighting ?? false,
+        ...lightProps,
+      }
       if (show3D && variant.glbUrl) {
-        return <SaunaViewer3D key={variant.id + '3d'} glb={variant.glbUrl}
-          materialOverrides={overrides}
-          autoRotate={vs.glbAutoRotate} autoRotateSpeed={vs.glbAutoRotateSpeed ?? 1}
-          environment={vs.glbEnvironment ?? 'city'} allowZoom={vs.glbAllowZoom ?? true}
-          fov={vs.glbFov ?? 42} {...lightProps} />
+        return <SaunaViewer3D key={variant.id + '3d'} glb={variant.glbUrl} {...sharedProps} />
       }
       if (variant.type === 'glb' && variant.glbUrl) {
-        return <SaunaViewer3D key={variant.id} glb={variant.glbUrl}
-          materialOverrides={overrides}
-          autoRotate={vs.glbAutoRotate} autoRotateSpeed={vs.glbAutoRotateSpeed ?? 1}
-          environment={vs.glbEnvironment ?? 'city'} allowZoom={vs.glbAllowZoom ?? true}
-          fov={vs.glbFov ?? 42} {...lightProps} />
+        return <SaunaViewer3D key={variant.id} glb={variant.glbUrl} {...sharedProps} />
       }
       if (variant.type === 'spinner' && variant.frames?.length) {
         return (
