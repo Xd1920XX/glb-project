@@ -2,6 +2,27 @@ const encode = (p) => encodeURI(p)
 
 export const FRAME_COUNT = 16
 
+const INTERIORS_XS = [
+  { id: 'harvia',    label: 'Harvia Spirit 9kw WI-FI',             icon: encode('/Ikoonid/Harvia.jpg'),        path: encode('/new/interjor/CIty XS_6k_Harvia.jpg') },
+  { id: 'harvia-ir', label: 'Harvia Spirit 9kw WI-FI + Infrared',  icon: encode('/Ikoonid/Harvia + infrared.jpg'), path: encode('/new/interjor/CIty XS_6k_Harvia+infrared Harvia.jpg') },
+  { id: 'huum',      label: 'Huum Drop 9kw WI-FI',                 icon: encode('/Ikoonid/Huum.jpg'),          path: encode('/new/interjor/CIty XS_6k_Huum.jpg') },
+  { id: 'huum-eos',  label: 'Huum Drop 9kw WI-FI + Eos',           icon: encode('/Ikoonid/HUUM + EOS.jpg'),    path: encode('/new/interjor/CIty XS_6k_Huum+Eos.jpg') },
+]
+
+const INTERIORS_CITY = [
+  { id: 'harvia',    label: 'Harvia Spirit 9kw WI-FI',             icon: encode('/Ikoonid/Harvia.jpg'),        path: encode('/latest/CIty_6k_Harvia.jpg') },
+  { id: 'harvia-ir', label: 'Harvia Spirit 9kw WI-FI + Infrared',  icon: encode('/Ikoonid/Harvia + infrared.jpg'), path: encode('/latest/CIty_6k_Harvia+infrared Harvia.jpg') },
+  { id: 'huum',      label: 'Huum Drop 9kw WI-FI',                 icon: encode('/Ikoonid/Huum.jpg'),          path: encode('/latest/CIty_6k_Huum.jpg') },
+  { id: 'huum-eos',  label: 'Huum Drop 9kw WI-FI + Eos',           icon: encode('/Ikoonid/HUUM + EOS.jpg'),    path: encode('/latest/CIty_6k_Huum+infrared EOS.jpg') },
+]
+
+const INTERIORS_LUX = [
+  { id: 'harvia',    label: 'Harvia Spirit 9kw WI-FI',             icon: encode('/Ikoonid/Harvia.jpg'),        path: encode('/city_lux/CIty LUX_6k_Harvia.jpg') },
+  { id: 'harvia-ir', label: 'Harvia Spirit 9kw WI-FI + Infrared',  icon: encode('/Ikoonid/Harvia + infrared.jpg'), path: encode('/city_lux/CIty LUX_6k_Harvia+infrared Harvia.jpg') },
+  { id: 'huum',      label: 'Huum Drop 9kw WI-FI',                 icon: encode('/Ikoonid/Huum.jpg'),          path: encode('/city_lux/CIty LUX_6k_Huum.jpg') },
+  { id: 'huum-eos',  label: 'Huum Drop 9kw WI-FI + Eos',           icon: encode('/Ikoonid/HUUM + EOS.jpg'),    path: encode('/city_lux/CIty LUX_6k_Huum+infrared EOS.jpg') },
+]
+
 export const MODELS = {
   'city-xs': {
     name: 'City XS',
@@ -11,12 +32,7 @@ export const MODELS = {
         texture: encode('/new/brown_dark.jpg'),
         textureMaterials: ['black_walls', 'dark_wood_walls'] },
     ],
-    interiors: [
-      { id: 'harvia',    label: 'Harvia',            path: encode('/new/interjor/CIty XS_6k_Harvia.jpg') },
-      { id: 'harvia-ir', label: 'Harvia + Infrared', path: encode('/new/interjor/CIty XS_6k_Harvia+infrared Harvia.jpg') },
-      { id: 'huum',      label: 'Huum',              path: encode('/new/interjor/CIty XS_6k_Huum.jpg') },
-      { id: 'huum-eos',  label: 'Huum + Eos',        path: encode('/new/interjor/CIty XS_6k_Huum+Eos.jpg') },
-    ],
+    interiors: INTERIORS_XS,
   },
   'city-lux': {
     name: 'City LUX',
@@ -26,12 +42,7 @@ export const MODELS = {
         texture: encode('/new/brown_dark.jpg'),
         textureMaterials: ['black_walls'] },
     ],
-    interiors: [
-      { id: 'harvia',    label: 'Harvia',            path: encode('/city_lux/CIty LUX_6k_Harvia.jpg') },
-      { id: 'harvia-ir', label: 'Harvia + Infrared', path: encode('/city_lux/CIty LUX_6k_Harvia+infrared Harvia.jpg') },
-      { id: 'huum',      label: 'Huum',              path: encode('/city_lux/CIty LUX_6k_Huum.jpg') },
-      { id: 'huum-eos',  label: 'Huum + Eos',        path: encode('/city_lux/CIty LUX_6k_Huum+infrared EOS.jpg') },
-    ],
+    interiors: INTERIORS_LUX,
   },
   'city': {
     name: 'City',
@@ -41,12 +52,7 @@ export const MODELS = {
         texture: encode('/new/brown_dark.jpg'),
         textureMaterials: ['black_walls'] },
     ],
-    interiors: [
-      { id: 'harvia',    label: 'Harvia',            path: encode('/latest/CIty_6k_Harvia.jpg') },
-      { id: 'harvia-ir', label: 'Harvia + Infrared', path: encode('/latest/CIty_6k_Harvia+infrared Harvia.jpg') },
-      { id: 'huum',      label: 'Huum',              path: encode('/latest/CIty_6k_Huum.jpg') },
-      { id: 'huum-eos',  label: 'Huum + Eos',        path: encode('/latest/CIty_6k_Huum+infrared EOS.jpg') },
-    ],
+    interiors: INTERIORS_CITY,
   },
 }
 

@@ -156,7 +156,6 @@ export function SaunaViewer3D({
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <Canvas
-        frameloop="demand"
         dpr={[1, 1.5]}
         performance={{ min: 0.5 }}
         shadows={!surroundLighting && shadows}

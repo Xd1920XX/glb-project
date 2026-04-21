@@ -158,9 +158,11 @@ export function SaunaPanel({
                   className={`interior-item${interiorId === item.id ? ' selected' : ''}`}
                   onClick={() => onInteriorChange(item.id)}
                 >
-                  <div className="interior-item-thumb">
-                    <img src={item.path} alt="" />
-                  </div>
+                  {item.icon && (
+                    <div className="interior-item-thumb">
+                      <img src={item.icon} alt="" />
+                    </div>
+                  )}
                   <span className="interior-item-label">{item.label}</span>
                 </button>
               ))}
