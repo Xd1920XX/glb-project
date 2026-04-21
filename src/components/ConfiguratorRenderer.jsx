@@ -61,19 +61,25 @@ export function ConfiguratorRenderer({ config }) {
     }
     if ((view === 'exterior' || view === 'order') && variant) {
       const overrides = variant.materialOverrides ?? {}
+      const lightProps = {
+        ambientIntensity: ((vs.glbAmbientIntensity ?? 25) / 100) * 2,
+        keyIntensity:     ((vs.glbKeyIntensity     ?? 40) / 100) * 3,
+        fillIntensity:    ((vs.glbFillIntensity    ?? 20) / 100) * 1.5,
+        envIntensity:     ((vs.glbEnvIntensity     ?? 50) / 100) * 2,
+      }
       if (show3D && variant.glbUrl) {
         return <SaunaViewer3D key={variant.id + '3d'} glb={variant.glbUrl}
           materialOverrides={overrides}
           autoRotate={vs.glbAutoRotate} autoRotateSpeed={vs.glbAutoRotateSpeed ?? 1}
           environment={vs.glbEnvironment ?? 'city'} allowZoom={vs.glbAllowZoom ?? true}
-          fov={vs.glbFov ?? 42} />
+          fov={vs.glbFov ?? 42} {...lightProps} />
       }
       if (variant.type === 'glb' && variant.glbUrl) {
         return <SaunaViewer3D key={variant.id} glb={variant.glbUrl}
           materialOverrides={overrides}
           autoRotate={vs.glbAutoRotate} autoRotateSpeed={vs.glbAutoRotateSpeed ?? 1}
           environment={vs.glbEnvironment ?? 'city'} allowZoom={vs.glbAllowZoom ?? true}
-          fov={vs.glbFov ?? 42} />
+          fov={vs.glbFov ?? 42} {...lightProps} />
       }
       if (variant.type === 'spinner' && variant.frames?.length) {
         return (

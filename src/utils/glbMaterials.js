@@ -1,4 +1,5 @@
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js'
 
 /**
  * Load a GLB from a URL and return a de-duplicated list of its materials.
@@ -6,7 +7,11 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
  */
 export function extractGLBMaterials(url) {
   return new Promise((resolve, reject) => {
+    const dracoLoader = new DRACOLoader()
+    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/')
+
     const loader = new GLTFLoader()
+    loader.setDRACOLoader(dracoLoader)
     loader.load(
       url,
       (gltf) => {
@@ -27,10 +32,11 @@ export function extractGLBMaterials(url) {
             })
           })
         })
+        dracoLoader.dispose()
         resolve(materials)
       },
       undefined,
-      reject,
+      (err) => { dracoLoader.dispose(); reject(err) },
     )
   })
 }

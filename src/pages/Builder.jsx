@@ -20,6 +20,10 @@ const DEFAULT_VIEWER_SETTINGS = {
   glbEnvironment:        'city',
   glbAllowZoom:          true,
   glbFov:                42,
+  glbAmbientIntensity:   25,
+  glbKeyIntensity:       40,
+  glbFillIntensity:      20,
+  glbEnvIntensity:       50,
 }
 
 const DEFAULT_ORDER_FORM = {
@@ -652,7 +656,7 @@ function ViewerSettingsEditor({ settings, onChange }) {
       </div>
 
       <div className="vs-row">
-        <label className="vs-label">Lighting</label>
+        <label className="vs-label">Environment</label>
         <select className="vs-select"
           value={s.glbEnvironment ?? 'city'}
           onChange={(e) => set('glbEnvironment', e.target.value)}>
@@ -660,6 +664,48 @@ function ViewerSettingsEditor({ settings, onChange }) {
             <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
           ))}
         </select>
+      </div>
+
+      <p className="vs-group-label" style={{ marginTop: 16 }}>Light strength</p>
+
+      <div className="vs-row">
+        <label className="vs-label">Ambient</label>
+        <div className="vs-slider-wrap">
+          <input type="range" min="0" max="100" step="1"
+            value={s.glbAmbientIntensity ?? 25}
+            onChange={(e) => set('glbAmbientIntensity', Number(e.target.value))} />
+          <span className="vs-value">{s.glbAmbientIntensity ?? 25}</span>
+        </div>
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label">Key light</label>
+        <div className="vs-slider-wrap">
+          <input type="range" min="0" max="100" step="1"
+            value={s.glbKeyIntensity ?? 40}
+            onChange={(e) => set('glbKeyIntensity', Number(e.target.value))} />
+          <span className="vs-value">{s.glbKeyIntensity ?? 40}</span>
+        </div>
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label">Fill light</label>
+        <div className="vs-slider-wrap">
+          <input type="range" min="0" max="100" step="1"
+            value={s.glbFillIntensity ?? 20}
+            onChange={(e) => set('glbFillIntensity', Number(e.target.value))} />
+          <span className="vs-value">{s.glbFillIntensity ?? 20}</span>
+        </div>
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label">Env light</label>
+        <div className="vs-slider-wrap">
+          <input type="range" min="0" max="100" step="1"
+            value={s.glbEnvIntensity ?? 50}
+            onChange={(e) => set('glbEnvIntensity', Number(e.target.value))} />
+          <span className="vs-value">{s.glbEnvIntensity ?? 50}</span>
+        </div>
       </div>
     </div>
   )
