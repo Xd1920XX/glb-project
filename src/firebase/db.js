@@ -157,8 +157,15 @@ export async function getUserOrders(uid) {
 export async function getPublishedConfigurator(id) {
   const cfg = await getConfigurator(id)
   if (!cfg || !cfg.published) return null
-  const owner = await getUser(cfg.ownerId)
-  if (!owner) return null
-  const active = ['trial', 'active'].includes(owner.subscriptionStatus)
-  return active ? cfg : null
+  try {
+    const owner = await getUser(cfg.ownerId)
+    if (!owner) return null
+    const active = ['trial', 'active'].includes(owner.subscriptionStatus)
+    return active ? cfg : null
+  } catch {
+    // Unauthenticated visitors cannot read the owner's user doc (Firestore rules).
+    // If the configurator is published, allow it through — subscription enforcement
+    // happens at publish time in the builder.
+    return cfg
+  }
 }
