@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { ImageSpinner } from '../components/ImageSpinner.jsx'
 import { InteriorViewer } from '../components/InteriorViewer.jsx'
@@ -19,6 +19,13 @@ export default function SaunaConfigurator() {
   const color    = model.colors.find((c) => c.id === colorId)
   const interior = model.interiors.find((i) => i.id === interiorId)
 
+  const materialOverrides = useMemo(() => {
+    if (!color.texture || !color.textureMaterials) return {}
+    return Object.fromEntries(
+      color.textureMaterials.map((m) => [m, { type: 'texture', textureUrl: color.texture }])
+    )
+  }, [color])
+
   function handleColorChange(id) { setColorId(id); setShow3D(false) }
 
   function renderViewer() {
@@ -30,7 +37,7 @@ export default function SaunaConfigurator() {
       return <img key={color.id} src={src} alt={color.label} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
     }
     if (show3D && color.glb) {
-      return <SaunaViewer3D key={color.id} glb={color.glb} textureUrl={color.texture} textureMaterials={color.textureMaterials} />
+      return <SaunaViewer3D key={color.id} glb={color.glb} materialOverrides={materialOverrides} />
     }
     return (
       <ImageSpinner
@@ -47,8 +54,14 @@ export default function SaunaConfigurator() {
 
   return (
     <div className="app">
-      <div className="viewer-pane">
+      <div className="viewer-pane" style={{ position: 'relative' }}>
         {renderViewer()}
+        {can3D && (
+          <button className={`view-3d-btn${show3D ? ' active' : ''}`}
+            onClick={() => setShow3D((v) => !v)}>
+            {show3D ? 'Renders' : '3D'}
+          </button>
+        )}
       </div>
       <div className="config-pane">
         <SaunaPanel
