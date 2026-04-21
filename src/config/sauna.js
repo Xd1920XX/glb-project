@@ -27,16 +27,17 @@ export const MODELS = {
   'city-elegant': {
     name: 'City Elegant',
     colors: [
-      { id: 'black', label: 'Black', swatch: '#1A1A1A', folder: '/elegant-new/black', glb: encode('/elegant-new/Sauna City Elegant.glb') },
-      { id: 'brown', label: 'Brown', swatch: '#6B4226', folder: '/elegant-new/brown', glb: encode('/elegant-new/Sauna City Elegant.glb'),
+      { id: 'black', label: 'Black', swatch: '#1A1A1A', folder: encode('/update_elegant/black rotatable'), glb: encode('/update_elegant/Saun Elegant.glb') },
+      { id: 'brown', label: 'Brown', swatch: '#6B4226', folder: encode('/update_elegant/brown rotatable'), glb: encode('/update_elegant/Saun Elegant.glb'),
         texture: encode('/new/brown_dark.jpg'),
         textureMaterials: ['black_walls'] },
     ],
     interiors: [
-      { id: 'huum-drop',     label: 'Huum Drop 9kw WI-FI',         icon: encode('/Ikoonid/Huum.jpg'),       path: encode('/elegant-new/CIty Elegant_6k_Huum Drop.jpg') },
-      { id: 'huum-drop-eos', label: 'Huum Drop 9kw WI-FI + Eos',   icon: encode('/Ikoonid/HUUM + EOS.jpg'), path: encode('/elegant-new/CIty Elegant_6k_Huum Drop+EOS.jpg') },
-      { id: 'huum-flow',     label: 'Huum Flow Mini 8.5kw',         icon: encode('/Ikoonid/HUUM HIVE Flow Mini.jpg'), path: encode('/elegant-new/CIty Elegant_6k_Huum Flow.jpg') },
-      { id: 'huum-flow-eos', label: 'Huum Flow Mini 8.5kw + EOS',   icon: encode('/Ikoonid/HUUM HIVE Flow Mini + EOS.jpg'), path: encode('/elegant-new/CIty Elegant_6k_Huum Flow+EOS.jpg') },
+      { id: 'huum-drop',     label: 'Huum Drop 9kw WI-FI',         icon: encode('/Ikoonid/Huum.jpg'),                        path: encode('/update_elegant/Saun Elegant_6k_Huum Drop.jpg') },
+      { id: 'huum-drop-eos', label: 'Huum Drop 9kw WI-FI + Eos',   icon: encode('/Ikoonid/HUUM + EOS.jpg'),                  path: encode('/update_elegant/Saun Elegant_6k_Huum Drop+EOS.jpg') },
+      { id: 'huum-flow',     label: 'Huum Flow Mini 8.5kw',         icon: encode('/Ikoonid/HUUM HIVE Flow Mini.jpg'),         path: encode('/update_elegant/Saun Elegant_6k_Huum Flow.jpg') },
+      { id: 'huum-flow-eos', label: 'Huum Flow Mini 8.5kw + EOS',   icon: encode('/Ikoonid/HUUM HIVE Flow Mini + EOS.jpg'),  path: encode('/update_elegant/Saun Elegant_6k_Huum Flow+EOS.jpg') },
+      { id: '2nd-room',      label: '2nd Room',                     icon: encode('/Ikoonid/Huum.jpg'),                        path: encode('/update_elegant/Saun Elegant_6k_2nd room.jpg') },
     ],
   },
   'city-xs': {
