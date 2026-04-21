@@ -156,12 +156,11 @@ export function SaunaViewer3D({
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <Canvas
-        dpr={[1, 1.5]}
-        performance={{ min: 0.5 }}
+        dpr={Math.min(window.devicePixelRatio, 1.5)}
         shadows={!surroundLighting && shadows}
         camera={{ fov, position: [8, 4, 12] }}
         style={{ width: '100%', height: '100%' }}
-        gl={{ toneMappingExposure: exposure }}
+        gl={{ antialias: false, powerPreference: 'high-performance', toneMappingExposure: exposure }}
       >
         <Suspense fallback={null}>
           <Environment preset={env} background={background} environmentIntensity={envIntensity} />

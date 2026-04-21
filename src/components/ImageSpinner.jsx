@@ -1,16 +1,15 @@
 import { useRef, useState, useEffect } from 'react'
-import { COLORS, FRAME_COUNT } from '../config/sauna.js'
+import { MODELS, FRAME_COUNT } from '../config/sauna.js'
 
 const SENSITIVITY = 18 // px per frame step
 const MIN_SCALE = 1
 const MAX_SCALE = 4
-const FALLBACK_FOLDER = COLORS[0].folder
 
-// Module-level cache so Image objects are never GC'd and preloading runs once
+// Module-level cache so Image objects are never GC'd
 const preloadCache = new Map()
 
 function preloadFolder(folder, count, suffix = '') {
-  if (preloadCache.has(folder)) return
+  if (preloadCache.has(folder)) return preloadCache.get(folder)
   const imgs = []
   for (let i = 1; i <= count; i++) {
     const img = new Image()
@@ -18,33 +17,60 @@ function preloadFolder(folder, count, suffix = '') {
     imgs.push(img)
   }
   preloadCache.set(folder, imgs)
+  return imgs
 }
 
-// Eagerly preload all color folders as soon as the module loads
-COLORS.forEach((c) => { if (c.folder) preloadFolder(c.folder, FRAME_COUNT, c.fileSuffix || '') })
+// Eagerly preload all folders for all models at startup
+Object.values(MODELS).forEach((model) => {
+  model.colors.forEach((c) => { if (c.folder) preloadFolder(c.folder, FRAME_COUNT, c.fileSuffix || '') })
+})
 
 export function ImageSpinner({ folder, fileSuffix = '', frameCount, frameIndex, onFrameChange }) {
   const [dragging, setDragging] = useState(false)
-  const [useFallback, setUseFallback] = useState(false)
-  const [scale, setScale] = useState(1)
+  const [ready, setReady]       = useState(false)
+  const [scale, setScale]       = useState(1)
 
-  const prevX = useRef(0)
-  const acc = useRef(0)
-  const frameRef = useRef(frameIndex)
-  frameRef.current = frameIndex
+  const prevX            = useRef(0)
+  const acc              = useRef(0)
+  const frameRef         = useRef(frameIndex)
+  frameRef.current       = frameIndex
+  const scaleRef         = useRef(1)
+  const activePointers   = useRef(new Map())
+  const prevPinchDist    = useRef(null)
+  const containerRef     = useRef(null)
 
-  const scaleRef = useRef(1)
-  const activePointers = useRef(new Map())
-  const prevPinchDist = useRef(null)
-  const containerRef = useRef(null)
+  // Preload + track readiness whenever folder changes
+  useEffect(() => {
+    setReady(false)
+    const imgs = preloadFolder(folder, frameCount, fileSuffix)
 
-  useEffect(() => { setUseFallback(false) }, [folder])
+    let done = 0
+    const total = imgs.length
+
+    function tick() {
+      done++
+      if (done >= total) setReady(true)
+    }
+
+    imgs.forEach((img) => {
+      if (img.complete && img.naturalWidth > 0) {
+        done++
+      } else {
+        img.addEventListener('load',  tick, { once: true })
+        img.addEventListener('error', tick, { once: true })
+      }
+    })
+
+    if (done >= total) setReady(true)
+
+    return () => imgs.forEach((img) => {
+      img.removeEventListener('load',  tick)
+      img.removeEventListener('error', tick)
+    })
+  }, [folder, frameCount, fileSuffix])
 
   // Reset zoom when folder changes
-  useEffect(() => {
-    scaleRef.current = 1
-    setScale(1)
-  }, [folder])
+  useEffect(() => { scaleRef.current = 1; setScale(1) }, [folder])
 
   // Wheel zoom — must be non-passive to call preventDefault
   useEffect(() => {
@@ -70,6 +96,7 @@ export function ImageSpinner({ folder, fileSuffix = '', frameCount, frameIndex, 
   }
 
   function handlePointerDown(e) {
+    if (!ready) return
     activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
     e.currentTarget.setPointerCapture(e.pointerId)
     if (activePointers.current.size === 1) {
@@ -83,7 +110,7 @@ export function ImageSpinner({ folder, fileSuffix = '', frameCount, frameIndex, 
   }
 
   function handlePointerMove(e) {
-    if (activePointers.current.size === 0) return
+    if (!ready || activePointers.current.size === 0) return
     activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
 
     if (activePointers.current.size >= 2) {
@@ -98,7 +125,6 @@ export function ImageSpinner({ folder, fileSuffix = '', frameCount, frameIndex, 
       return
     }
 
-    // Single pointer — rotate
     acc.current += e.clientX - prevX.current
     prevX.current = e.clientX
     const steps = Math.trunc(acc.current / SENSITIVITY)
@@ -116,9 +142,7 @@ export function ImageSpinner({ folder, fileSuffix = '', frameCount, frameIndex, 
     if (activePointers.current.size === 0) setDragging(false)
   }
 
-  const activeFolder = useFallback ? FALLBACK_FOLDER : folder
-  const activeSuffix = useFallback ? '' : fileSuffix
-  const src = `${activeFolder}/${frameIndex + 1}${activeSuffix}.jpg`
+  const src = `${folder}/${frameIndex + 1}${fileSuffix}.jpg`
 
   return (
     <div
@@ -134,9 +158,27 @@ export function ImageSpinner({ folder, fileSuffix = '', frameCount, frameIndex, 
         alt=""
         draggable={false}
         style={{ transform: `scale(${scale})`, transformOrigin: 'center center' }}
-        onError={() => { if (!useFallback) setUseFallback(true) }}
       />
-      <div className="spinner-hint">Drag to rotate · Scroll to zoom</div>
+      {!ready && (
+        <div style={{
+          position: 'absolute', inset: 0,
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)',
+          color: '#fff', gap: 14, zIndex: 10,
+          fontFamily: 'system-ui, sans-serif',
+        }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: '50%',
+            border: '3px solid rgba(255,255,255,0.2)',
+            borderTopColor: '#fff',
+            animation: 'spin 0.8s linear infinite',
+          }} />
+          <span style={{ fontSize: 13, opacity: 0.85, letterSpacing: '0.02em' }}>Loading images…</span>
+          <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+        </div>
+      )}
+      {ready && <div className="spinner-hint">Drag to rotate · Scroll to zoom</div>}
     </div>
   )
 }
