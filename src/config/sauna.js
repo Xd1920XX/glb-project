@@ -24,6 +24,18 @@ const INTERIORS_LUX = [
 ]
 
 export const MODELS = {
+  'city-elegant': {
+    name: 'City Elegant',
+    colors: [
+      { id: 'black', label: 'Black', swatch: '#1A1A1A', folder: '/City_Elegant/black' },
+      { id: 'brown', label: 'Brown', swatch: '#6B4226', folder: '/City_Elegant/brown' },
+    ],
+    interiors: [
+      { id: 'huum-drop',     label: 'Huum Drop 9kw WI-FI',         icon: encode('/Ikoonid/Huum.jpg'),       path: encode('/City_Elegant/CIty Elegant_6k_Huum Drop.jpg') },
+      { id: 'huum-drop-eos', label: 'Huum Drop 9kw WI-FI + Eos',   icon: encode('/Ikoonid/HUUM + EOS.jpg'), path: encode('/City_Elegant/CIty Elegant_6k_Huum Drop+EOS.jpg') },
+      { id: 'huum-flow-eos', label: 'Huum Flow + Eos',             icon: encode('/Ikoonid/HUUM + EOS.jpg'), path: encode('/City_Elegant/CIty Elegant_6k_Huum Flow+EOS.jpg') },
+    ],
+  },
   'city-xs': {
     name: 'City XS',
     colors: [
