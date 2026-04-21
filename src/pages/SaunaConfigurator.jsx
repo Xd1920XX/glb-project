@@ -26,7 +26,11 @@ export default function SaunaConfigurator() {
     )
   }, [color])
 
-  function handleColorChange(id) { setColorId(id); setShow3D(false) }
+  function handleColorChange(id) {
+    const newColor = model.colors.find((c) => c.id === id)
+    setColorId(id)
+    if (!newColor?.glb) setShow3D(false)
+  }
 
   function renderViewer() {
     if (view === 'interior') {
