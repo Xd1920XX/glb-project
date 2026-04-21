@@ -18,6 +18,21 @@ export const MODELS = {
       { id: 'huum-eos',  label: 'Huum + Eos',        path: encode('/new/interjor/CIty XS_6k_Huum+Eos.jpg') },
     ],
   },
+  'city-lux': {
+    name: 'City LUX',
+    colors: [
+      { id: 'black', label: 'Black', swatch: '#1A1A1A', folder: '/city_lux/black', glb: encode('/city_lux/Sauna City LUX.glb') },
+      { id: 'brown', label: 'Brown', swatch: '#6B4226', folder: '/city_lux/brown', glb: encode('/city_lux/Sauna City LUX.glb'),
+        texture: encode('/new/brown_dark.jpg'),
+        textureMaterials: ['black_walls'] },
+    ],
+    interiors: [
+      { id: 'harvia',    label: 'Harvia',            path: encode('/city_lux/CIty LUX_6k_Harvia.jpg') },
+      { id: 'harvia-ir', label: 'Harvia + Infrared', path: encode('/city_lux/CIty LUX_6k_Harvia+infrared Harvia.jpg') },
+      { id: 'huum',      label: 'Huum',              path: encode('/city_lux/CIty LUX_6k_Huum.jpg') },
+      { id: 'huum-eos',  label: 'Huum + Eos',        path: encode('/city_lux/CIty LUX_6k_Huum+infrared EOS.jpg') },
+    ],
+  },
   'city': {
     name: 'City',
     colors: [

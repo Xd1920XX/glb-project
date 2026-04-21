@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 const MODELS = [
   { id: '01', name: 'City XS',      image: '/Mudelid/01_City XS/1.jpg',              modelId: 'city-xs' },
   { id: '02', name: 'City',         image: '/Mudelid/02_City/City_black.png',         modelId: 'city' },
-  { id: '03', name: 'City LUX',     image: '/Mudelid/03_City LUX/City LUX_black.png' },
+  { id: '03', name: 'City LUX',     image: '/Mudelid/03_City LUX/City LUX_black.png', modelId: 'city-lux' },
   { id: '04', name: 'City XL',      image: '/Mudelid/04_City XL/Saun XL.jpg' },
   { id: '05', name: 'City Elegant', image: '/Mudelid/05_City Elegant/1black.jpg' },
   { id: '06', name: 'Grande',       image: '/Mudelid/06_Grande/Grande.jpg' },
