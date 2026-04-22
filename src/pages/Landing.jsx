@@ -9,7 +9,7 @@ export default function Landing() {
 
       {/* ── Nav ── */}
       <nav className="landing-nav">
-        <span className="landing-logo">glbconfigurator</span>
+        <span className="landing-logo">GLB Configurator</span>
         <div className="landing-nav-links">
           <Link to="/contact">Contact</Link>
           <Link to="/login">Log in</Link>
@@ -113,10 +113,17 @@ export default function Landing() {
           </div>
           <div className="feature-card">
             <div className="feature-icon-wrap">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M2 12h4M18 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M2 12h4M18 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
             </div>
             <h3>Color &amp; price variants</h3>
             <p>Color swatches or image thumbnails per variant, individual pricing, and a "from €X" display.</p>
+          </div>
+          <div className="feature-card">
+            <div className="feature-icon-wrap">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            </div>
+            <h3>Branded landing pages</h3>
+            <p>Create a public storefront page with your logo, brand colors, and all your configurators listed — choose from 5 beautiful layouts.</p>
           </div>
           <div className="feature-card">
             <div className="feature-icon-wrap">
@@ -124,13 +131,6 @@ export default function Landing() {
             </div>
             <h3>iFrame &amp; JS widget</h3>
             <p>Embed with a single iframe tag or a lightweight JS widget snippet — works on any platform.</p>
-          </div>
-          <div className="feature-card">
-            <div className="feature-icon-wrap">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            </div>
-            <h3>Firebase-backed</h3>
-            <p>Files stored on Firebase Storage, configs in Firestore. Fast, reliable, and scales automatically.</p>
           </div>
         </div>
       </section>
@@ -157,6 +157,7 @@ export default function Landing() {
                 <li>Unlimited configurators</li>
                 <li>Unlimited asset uploads</li>
                 <li>3D GLB + rotation + 360°</li>
+                <li>{plan.landingPages} landing page{plan.landingPages !== 1 ? 's' : ''}</li>
                 <li>{plan.embeds} live embed{plan.embeds !== 1 ? 's' : ''}</li>
               </ul>
               <Link to="/signup" className={plan.popular ? 'btn-primary btn-block' : 'btn-ghost btn-block'}>
@@ -183,8 +184,8 @@ export default function Landing() {
       <footer className="landing-footer">
         <div className="landing-footer-inner">
           <div className="landing-footer-brand">
-            <span className="landing-logo">Configurator</span>
-            <p>Build &amp; embed 3D product configurators for any website.</p>
+            <span className="landing-logo">GLB Configurator</span>
+            <p>Build &amp; embed 3D product configurators. Create branded landing pages. Share anywhere.</p>
           </div>
           <div className="landing-footer-links">
             <div className="footer-col">
@@ -200,7 +201,7 @@ export default function Landing() {
           </div>
         </div>
         <div className="landing-footer-bottom">
-          © {new Date().getFullYear()} Configurator. All rights reserved.
+          © {new Date().getFullYear()} glbconfigurator.com. All rights reserved.
         </div>
       </footer>
 

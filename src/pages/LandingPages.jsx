@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { getUserLandingPages, createLandingPage, deleteLandingPage } from '../firebase/db.js'
+import { getLandingPageLimit } from '../config/plans.js'
 import { CmsSidebar } from '../components/CmsSidebar.jsx'
 
 const LAYOUT_LABELS = {
@@ -13,7 +14,7 @@ const LAYOUT_LABELS = {
 }
 
 export default function LandingPages() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const navigate  = useNavigate()
   const [pages, setPages]     = useState([])
   const [loading, setLoading] = useState(true)
@@ -45,7 +46,24 @@ export default function LandingPages() {
       <CmsSidebar active="landing" />
       <main className="cms-content dash-main">
         <div className="dash-title-row">
-          <h1>Landing Pages</h1>
+          <div>
+            <h1>Landing Pages</h1>
+            {!loading && (() => {
+              const limit      = getLandingPageLimit(profile)
+              const published  = pages.filter((p) => p.published).length
+              const atLimit    = published >= limit
+              return (
+                <div className="dash-embed-usage">
+                  <div className="dash-embed-bar"
+                    style={{ '--pct': `${Math.min(published / Math.max(limit, 1) * 100, 100)}%` }} />
+                  <span>
+                    {published} / {limit} landing pages published
+                    {atLimit && <Link to="/billing" className="dash-upgrade-link">Upgrade to publish more →</Link>}
+                  </span>
+                </div>
+              )
+            })()}
+          </div>
           <button className="btn-primary" onClick={handleCreate} disabled={creating}>
             {creating ? 'Creating…' : '+ New'}
           </button>

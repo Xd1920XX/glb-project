@@ -202,6 +202,16 @@ export async function deleteLandingPage(id) {
   await deleteDoc(doc(db, 'landingPages', id))
 }
 
+export async function getPublishedLandingPageCount(uid) {
+  const q = query(
+    collection(db, 'landingPages'),
+    where('ownerId', '==', uid),
+    where('published', '==', true),
+  )
+  const snaps = await getDocs(q)
+  return snaps.size
+}
+
 export async function publishLandingPage(id, published) {
   await updateDoc(doc(db, 'landingPages', id), { published, updatedAt: serverTimestamp() })
 }

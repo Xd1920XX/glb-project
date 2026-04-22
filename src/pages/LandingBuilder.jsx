@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
-import { getLandingPage, saveLandingPage, publishLandingPage, getUserConfigurators } from '../firebase/db.js'
+import { getLandingPage, saveLandingPage, publishLandingPage, getUserConfigurators, getPublishedLandingPageCount } from '../firebase/db.js'
+import { getLandingPageLimit } from '../config/plans.js'
 import { uploadFile, deleteFile } from '../firebase/storage.js'
 import { MediaPickerModal } from '../components/MediaPickerModal.jsx'
 import { LandingRenderer } from '../components/LandingRenderer.jsx'
@@ -97,9 +98,9 @@ function LogoEditor({ logoUrl, logoPath, uid: userUid, onChange }) {
 // ── Main builder ───────────────────────────────────────────────────
 
 export default function LandingBuilder() {
-  const { id }     = useParams()
-  const { user }   = useAuth()
-  const navigate   = useNavigate()
+  const { id }         = useParams()
+  const { user, profile } = useAuth()
+  const navigate       = useNavigate()
 
   const [name, setName]         = useState('')
   const [page, setPage]         = useState(DEFAULT_PAGE)
@@ -190,6 +191,13 @@ export default function LandingBuilder() {
   }
 
   async function handlePublish() {
+    const subOk = ['trial', 'active'].includes(profile?.subscriptionStatus)
+    if (!subOk) { navigate('/billing'); return }
+    if (!published) {
+      const limit = getLandingPageLimit(profile)
+      const count = await getPublishedLandingPageCount(user.uid)
+      if (count >= limit) { navigate('/billing'); return }
+    }
     clearTimeout(autoSave.current)
     await saveLandingPage(id, { name, ...page })
     await publishLandingPage(id, !published)
