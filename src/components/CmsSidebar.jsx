@@ -17,7 +17,7 @@ export function CmsSidebar({ active }) {
     <aside className="cms-sidebar">
       {/* Logo */}
       <div className="cms-sidebar-logo">
-        <Link to="/dashboard" className="cms-logo-text">Configurator</Link>
+        <Link to="/dashboard" className="cms-logo-text">GLB Configurator</Link>
       </div>
 
       {/* Navigation */}
@@ -47,6 +47,14 @@ export function CmsSidebar({ active }) {
             <path d="M5 5h5M5 8h5M5 11h3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
           </svg>
           Orders
+        </Link>
+
+        <Link to="/landing-pages" className={`cms-nav-link${active === 'landing' ? ' active' : ''}`}>
+          <svg className="cms-nav-icon" viewBox="0 0 16 16" fill="none">
+            <rect x="1.5" y="1.5" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="1.4"/>
+            <path d="M4 5h5M4 8h7M4 11h4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+          </svg>
+          Landing Pages
         </Link>
 
         <Link to="/billing" className={`cms-nav-link${active === 'billing' ? ' active' : ''}`}>

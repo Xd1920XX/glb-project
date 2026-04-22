@@ -152,6 +152,60 @@ export async function getUserOrders(uid) {
   return snaps.docs.map((d) => ({ id: d.id, ...d.data() }))
 }
 
+// ── Landing pages ──────────────────────────────────────────────────
+
+export async function createLandingPage(uid, name) {
+  const ref = await addDoc(collection(db, 'landingPages'), {
+    ownerId: uid,
+    name,
+    siteName: '',
+    tagline: '',
+    description: '',
+    logoUrl: null,
+    logoPath: null,
+    layout: 'hero',
+    accentColor: '#111111',
+    bgColor: '#ffffff',
+    cardBg: '#f5f5f5',
+    textColor: '#111111',
+    items: [],
+    published: false,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  })
+  return ref.id
+}
+
+export async function getLandingPage(id) {
+  const snap = await getDoc(doc(db, 'landingPages', id))
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null
+}
+
+export async function getUserLandingPages(uid) {
+  const q = query(
+    collection(db, 'landingPages'),
+    where('ownerId', '==', uid),
+    orderBy('createdAt', 'desc'),
+  )
+  const snaps = await getDocs(q)
+  return snaps.docs.map((d) => ({ id: d.id, ...d.data() }))
+}
+
+export async function saveLandingPage(id, data) {
+  await updateDoc(doc(db, 'landingPages', id), {
+    ...data,
+    updatedAt: serverTimestamp(),
+  })
+}
+
+export async function deleteLandingPage(id) {
+  await deleteDoc(doc(db, 'landingPages', id))
+}
+
+export async function publishLandingPage(id, published) {
+  await updateDoc(doc(db, 'landingPages', id), { published, updatedAt: serverTimestamp() })
+}
+
 // ── Public embed — reads config + checks owner subscription ────────
 
 export async function getPublishedConfigurator(id) {

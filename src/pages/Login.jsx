@@ -41,7 +41,7 @@ export default function Login() {
   return (
     <div className="auth-split">
       <div className="auth-split-left">
-        <Link to="/" className="auth-split-logo">Configurator</Link>
+        <Link to="/" className="auth-split-logo">GLB Configurator</Link>
         <div className="auth-split-pitch">
           <h2>Build configurators your customers will love</h2>
           <ul className="auth-split-features">

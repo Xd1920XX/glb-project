@@ -9,7 +9,7 @@ export default function Landing() {
 
       {/* ── Nav ── */}
       <nav className="landing-nav">
-        <span className="landing-logo">Configurator</span>
+        <span className="landing-logo">glbconfigurator</span>
         <div className="landing-nav-links">
           <Link to="/contact">Contact</Link>
           <Link to="/login">Log in</Link>
@@ -20,9 +20,9 @@ export default function Landing() {
       {/* ── Hero ── */}
       <section className="hero">
         <div className="hero-content">
-          <div className="hero-badge">3D · 360° · Interactive</div>
+          <div className="hero-badge">3D · 360° · Interactive · Landing pages</div>
           <h1>Build &amp; embed 3D<br />product configurators</h1>
-          <p>Upload your 3D models and images, build an interactive configurator, and embed it on any website — no coding required.</p>
+          <p>Upload your 3D models and images, build an interactive configurator, publish a branded landing page, and embed it anywhere — no coding required.</p>
           <div className="hero-actions">
             <Link to="/signup" className="btn-primary btn-lg">Start free 7-day trial</Link>
             <Link to="/demo" className="btn-ghost btn-lg">See demo →</Link>
@@ -79,8 +79,8 @@ export default function Landing() {
           <div className="step-arrow">→</div>
           <div className="step">
             <div className="step-num">03</div>
-            <h3>Embed anywhere</h3>
-            <p>Copy one line of HTML or a JS widget snippet and paste it into any page, CMS, or webshop. Done.</p>
+            <h3>Publish &amp; share</h3>
+            <p>Create a branded landing page to showcase all your configurators, or embed directly into any website with one line of code.</p>
           </div>
         </div>
       </section>
