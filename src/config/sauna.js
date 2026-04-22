@@ -27,13 +27,15 @@ export const MODELS = {
   'city-elegant': {
     name: 'City Elegant',
     colors: [
-      { id: 'black', label: 'Black', swatch: '#1A1A1A', folder: '/City_Elegant/black' },
-      { id: 'brown', label: 'Brown', swatch: '#6B4226', folder: '/City_Elegant/brown' },
+      { id: 'black', label: 'Black', swatch: '#1A1A1A', folder: '/elegant-new/black', glb: encode('/elegant-new/Sauna City Elegant.glb') },
+      { id: 'brown', label: 'Brown', swatch: '#6B4226', folder: '/elegant-new/brown', glb: encode('/elegant-new/Sauna City Elegant.glb'),
+        texture: encode('/new/brown_dark.jpg'),
+        textureMaterials: ['black_walls'] },
     ],
     interiors: [
-      { id: 'huum-drop',     label: 'Huum Drop 9kw WI-FI',         icon: encode('/Ikoonid/Huum.jpg'),       path: encode('/City_Elegant/CIty Elegant_6k_Huum Drop.jpg') },
-      { id: 'huum-drop-eos', label: 'Huum Drop 9kw WI-FI + Eos',   icon: encode('/Ikoonid/HUUM + EOS.jpg'), path: encode('/City_Elegant/CIty Elegant_6k_Huum Drop+EOS.jpg') },
-      { id: 'huum-flow-eos', label: 'Huum Flow Mini 8.5kw + EOS',  icon: encode('/Ikoonid/HUUM HIVE Flow Mini + EOS.jpg'), path: encode('/City_Elegant/CIty Elegant_6k_Huum Flow+EOS.jpg') },
+      { id: 'huum-drop',     label: 'Huum Drop 9kw WI-FI',         icon: encode('/Ikoonid/Huum.jpg'),       path: encode('/elegant-new/CIty Elegant_6k_Huum Drop.jpg') },
+      { id: 'huum-drop-eos', label: 'Huum Drop 9kw WI-FI + Eos',   icon: encode('/Ikoonid/HUUM + EOS.jpg'), path: encode('/elegant-new/CIty Elegant_6k_Huum Drop+EOS.jpg') },
+      { id: 'huum-flow-eos', label: 'Huum Flow Mini 8.5kw + EOS',  icon: encode('/Ikoonid/HUUM HIVE Flow Mini + EOS.jpg'), path: encode('/elegant-new/CIty Elegant_6k_Huum Flow+EOS.jpg') },
     ],
   },
   'city-xs': {
