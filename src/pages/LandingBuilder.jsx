@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { getLandingPage, saveLandingPage, publishLandingPage, getUserConfigurators, getPublishedLandingPageCount } from '../firebase/db.js'
 import { getLandingPageLimit } from '../config/plans.js'
-import { uploadFile, deleteFile } from '../firebase/storage.js'
+import { deleteFile } from '../firebase/storage.js'
 import { MediaPickerModal } from '../components/MediaPickerModal.jsx'
 import { LandingRenderer } from '../components/LandingRenderer.jsx'
 
@@ -18,17 +18,20 @@ const LAYOUTS = [
 ]
 
 const DEFAULT_PAGE = {
-  siteName: '',
-  tagline: '',
+  siteName:    '',
+  tagline:     '',
   description: '',
-  logoUrl: null,
-  logoPath: null,
-  layout: 'hero',
+  logoUrl:     null,
+  logoPath:    null,
+  layout:      'hero',
   accentColor: '#111111',
-  bgColor: '#ffffff',
-  cardBg: '#f5f5f5',
-  textColor: '#111111',
-  items: [],
+  bgColor:     '#ffffff',
+  cardBg:      '#f5f5f5',
+  textColor:   '#111111',
+  fontFamily:  'sans',
+  cardStyle:   'default',
+  spacing:     'normal',
+  items:       [],
 }
 
 // ── Section accordion ──────────────────────────────────────────────
@@ -46,23 +49,77 @@ function Section({ title, defaultOpen = true, children }) {
   )
 }
 
-// ── Item editor (one configurator entry in the list) ───────────────
+// ── Pill row (used in Design section) ─────────────────────────────
 
-function ItemEditor({ item, onChange, onDelete, onMoveUp, onMoveDown }) {
+function PillRow({ label, options, value, onChange }) {
+  return (
+    <div className="lb-design-row">
+      <label className="vs-label">{label}</label>
+      <div className="lb-pills">
+        {options.map(({ value: v, label: l }) => (
+          <button key={v} className={`lb-pill${value === v ? ' active' : ''}`} onClick={() => onChange(v)}>{l}</button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Item editor ────────────────────────────────────────────────────
+
+function ItemEditor({ item, onChange, onDelete, onMoveUp, onMoveDown, userUid }) {
+  const [showThumbPicker, setShowThumbPicker] = useState(false)
+
+  async function removeThumbnail() {
+    if (item.thumbnailPath) await deleteFile(item.thumbnailPath).catch(() => {})
+    onChange({ ...item, thumbnailUrl: null, thumbnailPath: null })
+  }
+
   return (
     <div className="lb-item">
       <div className="lb-item-header">
         <span className="lb-item-name">{item.label || 'Configurator'}</span>
         <div className="lb-item-actions">
-          <button className="btn-icon-move" disabled={!onMoveUp} onClick={onMoveUp}>↑</button>
+          <button className="btn-icon-move" disabled={!onMoveUp}   onClick={onMoveUp}>↑</button>
           <button className="btn-icon-move" disabled={!onMoveDown} onClick={onMoveDown}>↓</button>
           <button className="btn-icon-delete" onClick={onDelete}>✕</button>
         </div>
       </div>
+
+      {/* Thumbnail */}
+      <div className="lb-item-thumb-row">
+        {item.thumbnailUrl ? (
+          <div className="lb-thumb-preview">
+            <img src={item.thumbnailUrl} alt="" className="lb-thumb-img" />
+            <div className="lb-thumb-actions">
+              <button className="btn-ghost btn-sm" onClick={() => setShowThumbPicker(true)}>Change</button>
+              <button className="btn-text-danger" onClick={removeThumbnail}>Remove</button>
+            </div>
+          </div>
+        ) : (
+          <button className="btn-upload lb-thumb-add" onClick={() => setShowThumbPicker(true)}>
+            + Add thumbnail
+          </button>
+        )}
+      </div>
+
       <input className="field-input" placeholder="Label (shown on card)"
         value={item.label} onChange={(e) => onChange({ ...item, label: e.target.value })} />
-      <input className="field-input" placeholder="Short description (optional)"
+      <input className="field-input" style={{ marginTop: 6 }} placeholder="Short description (optional)"
         value={item.description} onChange={(e) => onChange({ ...item, description: e.target.value })} />
+      <input className="field-input" style={{ marginTop: 6 }} placeholder="Button label (default: Configure →)"
+        value={item.ctaLabel || ''} onChange={(e) => onChange({ ...item, ctaLabel: e.target.value })} />
+
+      {showThumbPicker && (
+        <MediaPickerModal
+          uid={userUid}
+          accept="image/*"
+          onSelect={({ url, storagePath }) => {
+            setShowThumbPicker(false)
+            onChange({ ...item, thumbnailUrl: url, thumbnailPath: storagePath })
+          }}
+          onClose={() => setShowThumbPicker(false)}
+        />
+      )}
     </div>
   )
 }
@@ -98,17 +155,17 @@ function LogoEditor({ logoUrl, logoPath, uid: userUid, onChange }) {
 // ── Main builder ───────────────────────────────────────────────────
 
 export default function LandingBuilder() {
-  const { id }         = useParams()
+  const { id }            = useParams()
   const { user, profile } = useAuth()
-  const navigate       = useNavigate()
+  const navigate          = useNavigate()
 
-  const [name, setName]         = useState('')
-  const [page, setPage]         = useState(DEFAULT_PAGE)
+  const [name, setName]           = useState('')
+  const [page, setPage]           = useState(DEFAULT_PAGE)
   const [published, setPublished] = useState(false)
-  const [loading, setLoading]   = useState(true)
-  const [saving, setSaving]     = useState(false)
-  const [saved, setSaved]       = useState(false)
-  const [dirty, setDirty]       = useState(false)
+  const [loading, setLoading]     = useState(true)
+  const [saving, setSaving]       = useState(false)
+  const [saved, setSaved]         = useState(false)
+  const [dirty, setDirty]         = useState(false)
   const [allConfigs, setAllConfigs] = useState([])
   const [showPicker, setShowPicker] = useState(false)
 
@@ -134,6 +191,9 @@ export default function LandingBuilder() {
         bgColor:     lp.bgColor     ?? '#ffffff',
         cardBg:      lp.cardBg      ?? '#f5f5f5',
         textColor:   lp.textColor   ?? '#111111',
+        fontFamily:  lp.fontFamily  ?? 'sans',
+        cardStyle:   lp.cardStyle   ?? 'default',
+        spacing:     lp.spacing     ?? 'normal',
         items:       lp.items       ?? [],
       })
       setPublished(lp.published ?? false)
@@ -163,11 +223,18 @@ export default function LandingBuilder() {
   function setField(key, value) { setPage((p) => ({ ...p, [key]: value })) }
 
   function addConfig(cfg) {
-    const already = page.items.some((x) => x.configId === cfg.id)
-    if (already) return
+    if (page.items.some((x) => x.configId === cfg.id)) return
     setPage((p) => ({
       ...p,
-      items: [...p.items, { id: uid(), configId: cfg.id, label: cfg.name, description: '' }],
+      items: [...p.items, {
+        id:           uid(),
+        configId:     cfg.id,
+        label:        cfg.name,
+        description:  '',
+        ctaLabel:     '',
+        thumbnailUrl: null,
+        thumbnailPath: null,
+      }],
     }))
     setShowPicker(false)
   }
@@ -204,9 +271,9 @@ export default function LandingBuilder() {
     setPublished((v) => !v)
   }
 
-  const addedIds    = new Set(page.items.map((x) => x.configId))
-  const available   = allConfigs.filter((c) => !addedIds.has(c.id))
-  const publicUrl   = `${window.location.origin}/lp/${id}`
+  const addedIds  = new Set(page.items.map((x) => x.configId))
+  const available = allConfigs.filter((c) => !addedIds.has(c.id))
+  const publicUrl = `${window.location.origin}/lp/${id}`
 
   if (loading) return <div className="page-loading">Loading…</div>
 
@@ -220,7 +287,7 @@ export default function LandingBuilder() {
           <input className="builder-name-input" value={name}
             onChange={(e) => setName(e.target.value)} placeholder="Page name" />
           <div className="builder-actions">
-            <button className="btn-ghost btn-sm" onClick={() => clearTimeout(autoSave.current) || doSave(name, page)} disabled={saving}>
+            <button className="btn-ghost btn-sm" onClick={() => { clearTimeout(autoSave.current); doSave(name, page) }} disabled={saving}>
               {saved ? '✓' : saving ? '…' : dirty ? 'Save*' : 'Save'}
             </button>
             <button className="btn-ghost btn-sm" onClick={() => window.open(publicUrl, '_blank')}>Preview</button>
@@ -261,17 +328,52 @@ export default function LandingBuilder() {
                     className={`lb-layout-card${page.layout === l.id ? ' active' : ''}`}
                     onClick={() => setField('layout', l.id)}>
                     <span className="lb-layout-thumb" data-layout={l.id}>
-                      {/* SVG thumbnail sketches */}
-                      {l.id === 'hero' && <HeroThumb />}
-                      {l.id === 'minimal' && <MinimalThumb />}
+                      {l.id === 'hero'     && <HeroThumb />}
+                      {l.id === 'minimal'  && <MinimalThumb />}
                       {l.id === 'magazine' && <MagazineThumb />}
-                      {l.id === 'bento' && <BentoThumb />}
-                      {l.id === 'split' && <SplitThumb />}
+                      {l.id === 'bento'    && <BentoThumb />}
+                      {l.id === 'split'    && <SplitThumb />}
                     </span>
                     <span className="lb-layout-label">{l.label}</span>
                   </button>
                 ))}
               </div>
+            </Section>
+
+            {/* Design */}
+            <Section title="Design" defaultOpen={false}>
+              <PillRow
+                label="Typography"
+                value={page.fontFamily ?? 'sans'}
+                onChange={(v) => setField('fontFamily', v)}
+                options={[
+                  { value: 'sans',    label: 'Sans' },
+                  { value: 'serif',   label: 'Serif' },
+                  { value: 'mono',    label: 'Mono' },
+                  { value: 'display', label: 'Display' },
+                ]}
+              />
+              <PillRow
+                label="Cards"
+                value={page.cardStyle ?? 'default'}
+                onChange={(v) => setField('cardStyle', v)}
+                options={[
+                  { value: 'flat',     label: 'Flat' },
+                  { value: 'default',  label: 'Default' },
+                  { value: 'elevated', label: 'Elevated' },
+                  { value: 'outlined', label: 'Outlined' },
+                ]}
+              />
+              <PillRow
+                label="Spacing"
+                value={page.spacing ?? 'normal'}
+                onChange={(v) => setField('spacing', v)}
+                options={[
+                  { value: 'compact',  label: 'Compact' },
+                  { value: 'normal',   label: 'Normal' },
+                  { value: 'spacious', label: 'Spacious' },
+                ]}
+              />
             </Section>
 
             {/* Colors */}
@@ -299,6 +401,7 @@ export default function LandingBuilder() {
                 <ItemEditor
                   key={item.id}
                   item={item}
+                  userUid={user.uid}
                   onChange={(u) => updateItem(item.id, u)}
                   onDelete={() => removeItem(item.id)}
                   onMoveUp={i > 0 ? () => moveItem(i, -1) : null}
@@ -306,7 +409,6 @@ export default function LandingBuilder() {
                 />
               ))}
 
-              {/* Configurator picker */}
               {showPicker ? (
                 <div className="lb-config-picker">
                   <div className="lb-picker-header">
@@ -360,65 +462,61 @@ export default function LandingBuilder() {
   )
 }
 
-// ── SVG layout thumbnail sketches ──────────────────────────────────
+// ── SVG layout thumbnails ───────────────────────────────────────────
 
 function HeroThumb() {
   return (
     <svg viewBox="0 0 60 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="20" y="6" width="20" height="4" rx="2" fill="currentColor" opacity=".5"/>
-      <rect x="12" y="13" width="36" height="5" rx="2" fill="currentColor" opacity=".8"/>
-      <rect x="16" y="20" width="28" height="3" rx="1.5" fill="currentColor" opacity=".35"/>
+      <rect x="20" y="6"  width="20" height="4"  rx="2" fill="currentColor" opacity=".5"/>
+      <rect x="12" y="13" width="36" height="5"  rx="2" fill="currentColor" opacity=".8"/>
+      <rect x="16" y="20" width="28" height="3"  rx="1.5" fill="currentColor" opacity=".35"/>
       <rect x="4"  y="28" width="16" height="11" rx="2" fill="currentColor" opacity=".2"/>
       <rect x="22" y="28" width="16" height="11" rx="2" fill="currentColor" opacity=".2"/>
       <rect x="40" y="28" width="16" height="11" rx="2" fill="currentColor" opacity=".2"/>
     </svg>
   )
 }
-
 function MinimalThumb() {
   return (
     <svg viewBox="0 0 60 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="4" y="4" width="12" height="5" rx="2" fill="currentColor" opacity=".5"/>
-      <rect x="4" y="12" width="52" height="1" fill="currentColor" opacity=".2"/>
-      <rect x="4" y="16" width="32" height="5" rx="2" fill="currentColor" opacity=".8"/>
-      <rect x="4" y="24" width="52" height="5" rx="2" fill="currentColor" opacity=".18"/>
-      <rect x="4" y="31" width="52" height="5" rx="2" fill="currentColor" opacity=".18"/>
-      <rect x="4" y="38" width="52" height="5" rx="2" fill="currentColor" opacity=".18"/>
+      <rect x="4" y="4"  width="12" height="5"  rx="2" fill="currentColor" opacity=".5"/>
+      <rect x="4" y="12" width="52" height="1"  fill="currentColor" opacity=".2"/>
+      <rect x="4" y="16" width="32" height="5"  rx="2" fill="currentColor" opacity=".8"/>
+      <rect x="4" y="24" width="52" height="5"  rx="2" fill="currentColor" opacity=".18"/>
+      <rect x="4" y="31" width="52" height="5"  rx="2" fill="currentColor" opacity=".18"/>
+      <rect x="4" y="38" width="52" height="5"  rx="2" fill="currentColor" opacity=".18"/>
     </svg>
   )
 }
-
 function MagazineThumb() {
   return (
     <svg viewBox="0 0 60 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="4" y="4" width="10" height="4" rx="2" fill="currentColor" opacity=".5"/>
-      <rect x="4" y="11" width="32" height="29" rx="3" fill="currentColor" opacity=".25"/>
+      <rect x="4"  y="4"  width="10" height="4"  rx="2" fill="currentColor" opacity=".5"/>
+      <rect x="4"  y="11" width="32" height="29" rx="3" fill="currentColor" opacity=".25"/>
       <rect x="38" y="11" width="18" height="13" rx="2" fill="currentColor" opacity=".18"/>
       <rect x="38" y="27" width="18" height="13" rx="2" fill="currentColor" opacity=".18"/>
     </svg>
   )
 }
-
 function BentoThumb() {
   return (
     <svg viewBox="0 0 60 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="4" y="4" width="24" height="5" rx="2" fill="currentColor" opacity=".8"/>
-      <rect x="4" y="12" width="34" height="14" rx="3" fill="currentColor" opacity=".25"/>
+      <rect x="4"  y="4"  width="24" height="5"  rx="2" fill="currentColor" opacity=".8"/>
+      <rect x="4"  y="12" width="34" height="14" rx="3" fill="currentColor" opacity=".25"/>
       <rect x="40" y="12" width="16" height="14" rx="3" fill="currentColor" opacity=".18"/>
-      <rect x="4" y="28" width="16" height="12" rx="3" fill="currentColor" opacity=".18"/>
+      <rect x="4"  y="28" width="16" height="12" rx="3" fill="currentColor" opacity=".18"/>
       <rect x="22" y="28" width="16" height="12" rx="3" fill="currentColor" opacity=".18"/>
       <rect x="40" y="28" width="16" height="12" rx="3" fill="currentColor" opacity=".18"/>
     </svg>
   )
 }
-
 function SplitThumb() {
   return (
     <svg viewBox="0 0 60 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="4" y="4" width="20" height="36" rx="3" fill="currentColor" opacity=".25"/>
-      <rect x="28" y="8" width="28" height="7" rx="2" fill="currentColor" opacity=".18"/>
-      <rect x="28" y="18" width="28" height="7" rx="2" fill="currentColor" opacity=".18"/>
-      <rect x="28" y="28" width="28" height="7" rx="2" fill="currentColor" opacity=".18"/>
+      <rect x="4"  y="4"  width="20" height="36" rx="3" fill="currentColor" opacity=".25"/>
+      <rect x="28" y="8"  width="28" height="7"  rx="2" fill="currentColor" opacity=".18"/>
+      <rect x="28" y="18" width="28" height="7"  rx="2" fill="currentColor" opacity=".18"/>
+      <rect x="28" y="28" width="28" height="7"  rx="2" fill="currentColor" opacity=".18"/>
     </svg>
   )
 }

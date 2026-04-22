@@ -32,13 +32,12 @@ export function CmsSidebar({ active }) {
           Configurators
         </Link>
 
-        <Link to="/media" className={`cms-nav-link${active === 'media' ? ' active' : ''}`}>
+        <Link to="/landing-pages" className={`cms-nav-link${active === 'landing' ? ' active' : ''}`}>
           <svg className="cms-nav-icon" viewBox="0 0 16 16" fill="none">
             <rect x="1.5" y="1.5" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="1.4"/>
-            <circle cx="5.5" cy="5.5" r="1.3" fill="currentColor"/>
-            <path d="M1.5 11.5l3.5-3.5 2.5 2.5 2-2 4.5 4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M4 5h5M4 8h7M4 11h4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
           </svg>
-          Media
+          Landing Pages
         </Link>
 
         <Link to="/orders" className={`cms-nav-link${active === 'orders' ? ' active' : ''}`}>
@@ -49,12 +48,13 @@ export function CmsSidebar({ active }) {
           Orders
         </Link>
 
-        <Link to="/landing-pages" className={`cms-nav-link${active === 'landing' ? ' active' : ''}`}>
+        <Link to="/media" className={`cms-nav-link${active === 'media' ? ' active' : ''}`}>
           <svg className="cms-nav-icon" viewBox="0 0 16 16" fill="none">
             <rect x="1.5" y="1.5" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="1.4"/>
-            <path d="M4 5h5M4 8h7M4 11h4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+            <circle cx="5.5" cy="5.5" r="1.3" fill="currentColor"/>
+            <path d="M1.5 11.5l3.5-3.5 2.5 2.5 2-2 4.5 4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          Landing Pages
+          Media
         </Link>
 
         <Link to="/billing" className={`cms-nav-link${active === 'billing' ? ' active' : ''}`}>

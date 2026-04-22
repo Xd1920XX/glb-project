@@ -23,10 +23,10 @@ const STRIPE_PRICE_IDS = {
 }
 
 const STATUS_CONFIG = {
-  trial:     { label: 'Free trial',      color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
-  active:    { label: 'Active',          color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
-  cancelled: { label: 'Cancelled',       color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
-  past_due:  { label: 'Payment overdue', color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
+  trial:     { label: 'Free trial',      color: '#d97706' },
+  active:    { label: 'Active',          color: '#16a34a' },
+  cancelled: { label: 'Cancelled',       color: '#dc2626' },
+  past_due:  { label: 'Payment overdue', color: '#dc2626' },
 }
 
 const COUNTRIES = [
@@ -71,17 +71,15 @@ export default function Billing() {
         )}
 
         {/* ── Status card ── */}
-        <div className="billing-status-card" style={{ borderColor: status.border, background: status.bg }}>
+        <div className="billing-status-card">
           <div className="billing-status-row">
-            <div>
-              <div className="billing-status-label">Current plan</div>
-              <div className="billing-status-value" style={{ color: status.color }}>
-                {sub === 'active' && currentPlan
-                  ? `${currentPlan.label} — €${currentPlan.price}/month`
-                  : status.label}
-              </div>
-            </div>
             <span className="billing-status-dot" style={{ background: status.color }} />
+            <span className="billing-status-badge" style={{ color: status.color }}>
+              {sub === 'active' && currentPlan ? currentPlan.label : status.label}
+            </span>
+            {sub === 'active' && currentPlan && (
+              <span className="billing-status-price">€{currentPlan.price}<span>/mo</span></span>
+            )}
           </div>
           {sub === 'trial' && daysLeft !== null && (
             <div className="billing-trial-note">
@@ -91,14 +89,10 @@ export default function Billing() {
             </div>
           )}
           {sub === 'active' && currentPlan && (
-            <div className="billing-trial-note">
-              {currentPlan.embeds} active embeds · renews automatically
-            </div>
+            <div className="billing-trial-note">{currentPlan.embeds} embeds · renews automatically</div>
           )}
           {sub === 'cancelled' && (
-            <div className="billing-trial-note">
-              Your subscription has been cancelled. Re-subscribe below to continue.
-            </div>
+            <div className="billing-trial-note">Your subscription has been cancelled. Re-subscribe below to continue.</div>
           )}
         </div>
 
