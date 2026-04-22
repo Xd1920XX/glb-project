@@ -45,5 +45,17 @@ service cloud.firestore {
       allow create: if request.auth != null
                     && request.auth.uid == request.resource.data.ownerId;
     }
+
+    // Invoices: server writes for real payments; users can create + read their own
+    match /invoices/{invoiceId} {
+      allow read:   if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update, delete: if false;
+    }
+
+    // Invoice counter (server-only)
+    match /meta/{docId} {
+      allow read, write: if false;
+    }
   }
 }

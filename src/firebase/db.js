@@ -216,6 +216,26 @@ export async function publishLandingPage(id, published) {
   await updateDoc(doc(db, 'landingPages', id), { published, updatedAt: serverTimestamp() })
 }
 
+// ── Invoices ────────────────────────────────────────────────────────
+
+export async function createClientInvoice(data) {
+  const ref = await addDoc(collection(db, 'invoices'), {
+    ...data,
+    issuedAt: serverTimestamp(),
+  })
+  return ref.id
+}
+
+export async function getUserInvoices(uid) {
+  const q = query(
+    collection(db, 'invoices'),
+    where('userId', '==', uid),
+    orderBy('issuedAt', 'desc'),
+  )
+  const snaps = await getDocs(q)
+  return snaps.docs.map((d) => ({ id: d.id, ...d.data() }))
+}
+
 // ── Public embed — reads config + checks owner subscription ────────
 
 export async function getPublishedConfigurator(id) {

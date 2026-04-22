@@ -1658,7 +1658,7 @@ html, body, #root { min-height: 100%; }
 }
 .billing-invoice-head {
   display: grid;
-  grid-template-columns: 120px 1fr 90px 80px;
+  grid-template-columns: 130px 110px 1fr 90px 70px 120px;
   gap: 12px;
   padding: 10px 16px;
   background: var(--bg);
@@ -1671,13 +1671,14 @@ html, body, #root { min-height: 100%; }
 }
 .billing-invoice-row {
   display: grid;
-  grid-template-columns: 120px 1fr 90px 80px;
+  grid-template-columns: 130px 110px 1fr 90px 70px 120px;
   gap: 12px;
   padding: 12px 16px;
   font-size: 13px;
   align-items: center;
   border-bottom: 1px solid var(--border);
 }
+.billing-invoice-num { font-family: monospace; font-size: 12px; color: var(--text-muted); }
 .billing-invoice-row:last-child { border-bottom: none; }
 .billing-invoice-amount { font-weight: 600; }
 .billing-invoice-status { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 20px; text-align: center; }
