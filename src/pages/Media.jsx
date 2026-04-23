@@ -105,20 +105,27 @@ export default function Media() {
   async function handleDelete(file, e) {
     e?.stopPropagation()
     if (!confirm(`Delete "${file.name}"?`)) return
-    await deleteFile(file.storagePath)
-    setFiles((f) => f.filter((x) => x.storagePath !== file.storagePath))
-    setSelected((s) => { const n = new Set(s); n.delete(file.storagePath); return n })
+    try {
+      await deleteFile(file.storagePath)
+      setFiles((f) => f.filter((x) => x.storagePath !== file.storagePath))
+      setSelected((s) => { const n = new Set(s); n.delete(file.storagePath); return n })
+    } catch {
+      alert('Delete failed — please try again.')
+    }
   }
 
   async function handleBulkDelete() {
     if (!confirm(`Delete ${selected.size} file${selected.size > 1 ? 's' : ''}?`)) return
     setDeleting(true)
+    const failed = []
     for (const path of selected) {
-      await deleteFile(path)
+      try { await deleteFile(path) } catch { failed.push(path) }
     }
-    setFiles((f) => f.filter((x) => !selected.has(x.storagePath)))
-    setSelected(new Set())
+    const deleted = new Set([...selected].filter((p) => !failed.includes(p)))
+    setFiles((f) => f.filter((x) => !deleted.has(x.storagePath)))
+    setSelected(new Set(failed))
     setDeleting(false)
+    if (failed.length) alert(`${failed.length} file(s) could not be deleted.`)
   }
 
   function toggleSelect(path, e) {

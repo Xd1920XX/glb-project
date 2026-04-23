@@ -1,11 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { listUserFiles, uploadFile } from '../firebase/storage.js'
-
-function mediaType(contentType = '', name = '') {
-  if (contentType.startsWith('image/')) return 'image'
-  if (contentType.includes('gltf') || name.toLowerCase().endsWith('.glb')) return 'model'
-  return 'other'
-}
+import { mediaType } from '../pages/Media.jsx'
 
 function fmtSize(bytes) {
   if (!bytes) return ''

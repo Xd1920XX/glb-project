@@ -340,7 +340,7 @@ exports.onInvoiceCreated = functions.firestore
   .onCreate(async (snap) => {
     const inv = snap.data()
     const to  = inv.buyer?.email
-    if (!to || inv.provider === 'demo') return   // skip demo invoices
+    if (!to) return
 
     const name = inv.buyer?.fullName || inv.buyer?.company || 'there'
     await sendEmail({ to, ...invoiceEmail(name, inv) })
@@ -449,35 +449,6 @@ exports.paypalWebhook = functions.https.onRequest(async (req, res) => {
   }
 
   res.sendStatus(200)
-})
-
-// ── Demo: activate subscription + create invoice ───────────────────
-
-exports.createDemoInvoice = functions.https.onCall(async (data, context) => {
-  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Login required')
-
-  const { planId } = data
-  const uid = context.auth.uid
-
-  const plan        = PLANS_MAP[planId] ?? { label: planId, price: 60 }
-  const grossAmount = plan.price
-
-  const update = {
-    subscriptionStatus: 'active',
-    planId,
-    subscribedAt:       admin.firestore.FieldValue.serverTimestamp(),
-    paymentProvider:    'demo',
-  }
-  await db.collection('users').doc(uid).update(update)
-  await createInvoice(uid, {
-    provider:      'demo',
-    transactionId: `DEMO-${Date.now()}`,
-    planId,
-    grossAmount,
-    currency:      'EUR',
-  })
-
-  return { ok: true }
 })
 
 // ── Order notification ──────────────────────────────────────────────

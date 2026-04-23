@@ -1,9 +1,7 @@
-import { Canvas, useLoader } from '@react-three/fiber'
+import { Canvas } from '@react-three/fiber'
 import { useGLTF, OrbitControls, Bounds, useBounds, Environment } from '@react-three/drei'
 import { Suspense, useLayoutEffect, useMemo, useEffect } from 'react'
 import * as THREE from 'three'
-
-useGLTF.preload('/new/' + encodeURIComponent('Sauna City XS.glb'))
 
 export const ENV_PRESETS = [
   'apartment', 'city', 'dawn', 'forest', 'lobby',
@@ -61,6 +59,7 @@ function Model({ url, materialOverrides = {} }) {
               tex.colorSpace = THREE.SRGBColorSpace
               tex.wrapS = tex.wrapT = THREE.RepeatWrapping
               mat.map = tex
+              mat.userData._ovTex = true  // mark: we own this texture, dispose on cleanup
               mat.needsUpdate = true
               resolve()
             })
@@ -71,14 +70,14 @@ function Model({ url, materialOverrides = {} }) {
     })
 
     return () => {
-      // Dispose any textures we loaded when overrides change
       cloned.traverse((node) => {
         if (!node.isMesh) return
         const mats = Array.isArray(node.material) ? node.material : [node.material]
         mats.forEach((mat) => {
-          if (mat.map && mat.userData.__ov) {
+          if (mat.map && mat.userData._ovTex) {
             mat.map.dispose()
             mat.map = null
+            mat.userData._ovTex = false
           }
         })
       })

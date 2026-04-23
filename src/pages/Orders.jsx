@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { getUserOrders } from '../firebase/db.js'
 import { CmsSidebar } from '../components/CmsSidebar.jsx'
@@ -30,18 +30,24 @@ export default function Orders() {
     ? orders.filter((o) => o.configuratorName === filter)
     : orders
 
+  function csvCell(val) {
+    const s = String(val ?? '')
+    return (s.includes(',') || s.includes('"') || s.includes('\n'))
+      ? '"' + s.replace(/"/g, '""') + '"'
+      : s
+  }
+
   function exportCSV() {
     const allKeys = [...new Set(displayed.flatMap((o) => Object.keys(o.formData ?? {})))]
-    const header = ['Date', 'Configurator', 'Variant', ...allKeys].join(',')
-    const rows = displayed.map((o) => {
-      const date = fmtDate(o.createdAt)
-      const cfg  = o.configuratorName ?? ''
-      const variant = o.variantId ?? ''
-      const fields  = allKeys.map((k) => JSON.stringify(o.formData?.[k] ?? '')).join(',')
-      return `"${date}","${cfg}","${variant}",${fields}`
-    })
+    const header  = ['Date', 'Configurator', 'Variant', ...allKeys].map(csvCell).join(',')
+    const rows    = displayed.map((o) => [
+      fmtDate(o.createdAt),
+      o.configuratorName ?? '',
+      o.variantId ?? '',
+      ...allKeys.map((k) => o.formData?.[k] ?? ''),
+    ].map(csvCell).join(','))
     const csv  = [header, ...rows].join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })
     const url  = URL.createObjectURL(blob)
     const a    = document.createElement('a')
     a.href = url; a.download = 'orders.csv'; a.click()
@@ -97,8 +103,8 @@ export default function Orders() {
                   const fieldKeys = Object.keys(order.formData ?? {})
                   const isOpen = expanded === order.id
                   return (
-                    <>
-                      <tr key={order.id} className={`orders-row${isOpen ? ' open' : ''}`}>
+                    <Fragment key={order.id}>
+                      <tr className={`orders-row${isOpen ? ' open' : ''}`}>
                         <td className="orders-cell-date">{fmtDate(order.createdAt)}</td>
                         <td className="orders-cell-cfg">{order.configuratorName || <em>—</em>}</td>
                         <td className="orders-cell-variant">{order.variantId || <em>—</em>}</td>
@@ -120,7 +126,7 @@ export default function Orders() {
                         </td>
                       </tr>
                       {isOpen && (
-                        <tr key={order.id + '-detail'} className="orders-row-detail">
+                        <tr className="orders-row-detail">
                           <td colSpan={5}>
                             <div className="orders-detail">
                               {Object.entries(order.formData ?? {}).map(([k, v]) => (
@@ -133,7 +139,7 @@ export default function Orders() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   )
                 })}
               </tbody>

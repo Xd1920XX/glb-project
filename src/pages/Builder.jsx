@@ -1086,7 +1086,7 @@ export default function Builder() {
     clearTimeout(autoSaveTimer.current)
     autoSaveTimer.current = setTimeout(() => doSave(name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors), 1500)
     return () => clearTimeout(autoSaveTimer.current)
-  }, [name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors])
+  }, [name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, doSave])
 
   function applySnapshot(snap) {
     skipHistory.current = true

@@ -9,8 +9,9 @@ export function ProtectedRoute({ children }) {
   if (user === undefined) return <div className="page-loading">Loading…</div>
   if (!user) return <Navigate to="/login" replace />
 
-  // Expired trial users can only access /billing to subscribe
-  if (pathname !== '/billing' && isTrialExpired(profile)) {
+  // Expired trial users can only access /billing (to subscribe) and /admin
+  const TRIAL_EXEMPT = ['/billing', '/admin']
+  if (!TRIAL_EXEMPT.includes(pathname) && isTrialExpired(profile)) {
     return <Navigate to="/billing" replace />
   }
 
