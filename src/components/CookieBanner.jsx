@@ -1,7 +1,27 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
-const KEY = 'cookie_consent'
+const KEY        = 'cookie_consent'
+const EXPIRY_MS  = 365 * 24 * 60 * 60 * 1000  // 12 months — GDPR re-consent interval
+
+function loadConsent() {
+  try {
+    const raw = localStorage.getItem(KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (parsed.expiresAt && Date.now() > parsed.expiresAt) {
+      localStorage.removeItem(KEY)
+      return null
+    }
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function saveConsent(prefs) {
+  localStorage.setItem(KEY, JSON.stringify({ ...prefs, expiresAt: Date.now() + EXPIRY_MS }))
+}
 
 export function CookieBanner() {
   const [visible,      setVisible]      = useState(false)
@@ -9,22 +29,21 @@ export function CookieBanner() {
   const [analytics,    setAnalytics]    = useState(true)
 
   useEffect(() => {
-    const stored = localStorage.getItem(KEY)
-    if (!stored) setVisible(true)
+    if (!loadConsent()) setVisible(true)
   }, [])
 
   function acceptAll() {
-    localStorage.setItem(KEY, JSON.stringify({ analytics: true }))
+    saveConsent({ analytics: true })
     setVisible(false)
   }
 
   function saveSettings() {
-    localStorage.setItem(KEY, JSON.stringify({ analytics }))
+    saveConsent({ analytics })
     setVisible(false)
   }
 
   function declineAll() {
-    localStorage.setItem(KEY, JSON.stringify({ analytics: false }))
+    saveConsent({ analytics: false })
     setVisible(false)
   }
 

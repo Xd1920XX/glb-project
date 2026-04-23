@@ -5,9 +5,15 @@ import {
   updateProfile,
   GoogleAuthProvider,
   signInWithPopup,
+  browserLocalPersistence,
+  setPersistence,
 } from 'firebase/auth'
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from './config.js'
+
+// Explicitly set local persistence so the session survives browser restarts.
+// Firebase refresh tokens last up to 6 months of inactivity.
+setPersistence(auth, browserLocalPersistence).catch(() => {})
 
 export async function signUp(name, email, password) {
   const { user } = await createUserWithEmailAndPassword(auth, email, password)
