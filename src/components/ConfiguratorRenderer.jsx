@@ -60,7 +60,13 @@ export function ConfiguratorRenderer({ config }) {
       return <InteriorViewer key={interior.id} src={interior.panoramaUrl} />
     }
     if ((view === 'exterior' || view === 'order') && variant) {
-      const overrides = variant.materialOverrides ?? {}
+      // Normalize GLB layers — support both old single-glb and new multi-layer variants
+      const glbLayers = variant.glbLayers
+        ? variant.glbLayers.filter((l) => l.visible !== false && l.glbUrl).map((l) => ({ url: l.glbUrl, materialOverrides: l.materialOverrides ?? {} }))
+        : variant.glbUrl
+          ? [{ url: variant.glbUrl, materialOverrides: variant.materialOverrides ?? {} }]
+          : []
+
       const lightProps = {
         ambientIntensity: ((vs.glbAmbientIntensity ?? 25) / 100) * 2,
         keyIntensity:     ((vs.glbKeyIntensity     ?? 40) / 100) * 3,
@@ -68,7 +74,6 @@ export function ConfiguratorRenderer({ config }) {
         envIntensity:     ((vs.glbEnvIntensity     ?? 50) / 100) * 2,
       }
       const sharedProps = {
-        materialOverrides: overrides,
         autoRotate: vs.glbAutoRotate,
         autoRotateSpeed: vs.glbAutoRotateSpeed ?? 1,
         environment: vs.glbEnvironment ?? 'city',
@@ -77,11 +82,11 @@ export function ConfiguratorRenderer({ config }) {
         surroundLighting: vs.glbSurroundLighting ?? false,
         ...lightProps,
       }
-      if (show3D && variant.glbUrl) {
-        return <SaunaViewer3D key={variant.id + '3d'} glb={variant.glbUrl} {...sharedProps} />
+      if (show3D && glbLayers.length > 0) {
+        return <SaunaViewer3D key={variant.id + '3d'} glbLayers={glbLayers} {...sharedProps} />
       }
-      if (variant.type === 'glb' && variant.glbUrl) {
-        return <SaunaViewer3D key={variant.id} glb={variant.glbUrl} {...sharedProps} />
+      if (variant.type === 'glb' && glbLayers.length > 0) {
+        return <SaunaViewer3D key={variant.id} glbLayers={glbLayers} {...sharedProps} />
       }
       if (variant.type === 'spinner' && variant.frames?.length) {
         return (
@@ -99,7 +104,10 @@ export function ConfiguratorRenderer({ config }) {
     return <div className="preview-empty">No preview available</div>
   }
 
-  const can3D = (view === 'exterior' || view === 'order') && variant?.glbUrl
+  const can3D = (view === 'exterior' || view === 'order') && (
+    variant?.glbLayers?.some((l) => l.visible !== false && l.glbUrl) ||
+    !!variant?.glbUrl
+  )
 
   async function handleOrderSubmit(e) {
     e.preventDefault()

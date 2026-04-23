@@ -100,7 +100,8 @@ function CameraFit() {
 // ── Main viewer ───────────────────────────────────────────────────
 
 export function SaunaViewer3D({
-  glb,
+  glb,               // backward compat: single GLB URL
+  glbLayers,         // new: array of { url, materialOverrides }
   materialOverrides  = {},
   autoRotate         = false,
   autoRotateSpeed    = 1,
@@ -120,6 +121,11 @@ export function SaunaViewer3D({
   surroundLighting   = false,
 }) {
   const env = ENV_PRESETS.includes(environment) ? environment : 'studio'
+
+  // Normalize to a layers array — supports both old single-glb and new glbLayers prop
+  const layers = glbLayers
+    ? glbLayers.filter((l) => l.url)
+    : (glb ? [{ url: glb, materialOverrides }] : [])
 
   return (
     <Canvas
@@ -148,7 +154,9 @@ export function SaunaViewer3D({
 
         <Bounds fit clip margin={1.2}>
           <CameraFit />
-          <Model url={glb} materialOverrides={materialOverrides} />
+          {layers.map((layer) => (
+            <Model key={layer.url} url={layer.url} materialOverrides={layer.materialOverrides ?? {}} />
+          ))}
         </Bounds>
 
         <OrbitControls

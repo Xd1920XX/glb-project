@@ -201,7 +201,12 @@ export default function Landing() {
           </div>
         </div>
         <div className="landing-footer-bottom">
-          © {new Date().getFullYear()} glbconfigurator.com. All rights reserved.
+          <span>© {new Date().getFullYear()} Nordic Render OÜ · Reg. 16885822 · VAT EE102691294</span>
+          <div className="landing-footer-legal">
+            <Link to="/privacy">Privacy Policy</Link>
+            <Link to="/terms">Terms of Service</Link>
+            <Link to="/cookies">Cookies</Link>
+          </div>
         </div>
       </footer>
 

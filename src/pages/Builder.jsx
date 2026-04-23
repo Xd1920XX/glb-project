@@ -91,7 +91,6 @@ function VariantEditor({ variant, uid: userUid, onChange, onDelete, onDuplicate,
   const [progress, setProgress]       = useState(0)
   const [uploadLabel, setUploadLabel] = useState('')
   const [uploadError, setUploadError] = useState('')
-  const [showGlbPicker, setShowGlbPicker]     = useState(false)
   const [showSwatchPicker, setShowSwatchPicker] = useState(false)
 
   const swatchType = variant.swatchType ?? 'color'
@@ -116,14 +115,6 @@ function VariantEditor({ variant, uid: userUid, onChange, onDelete, onDuplicate,
       onChange({ ...variant, frames, frameCount: frames.length })
     } catch (err) { setUploadError(errMsg(err)) }
     finally { setUploading(false); setUploadLabel(''); setProgress(0) }
-  }
-
-  async function handleGlbSelect({ url, storagePath }) {
-    setUploadLabel('Scanning materials…'); setUploading(true)
-    let glbMaterials = []
-    try { glbMaterials = await extractGLBMaterials(url) } catch { /* non-fatal */ }
-    onChange({ ...variant, glbUrl: url, glbStoragePath: storagePath, glbMaterials, materialOverrides: {} })
-    setUploading(false); setUploadLabel('')
   }
 
   async function handleDeleteFrames() {
@@ -214,37 +205,16 @@ function VariantEditor({ variant, uid: userUid, onChange, onDelete, onDuplicate,
         </div>
       )}
 
-      {/* GLB — media picker */}
+      {/* GLB layers */}
       {variant.type === 'glb' && (
-        <div className="upload-section">
-          {uploading
-            ? <UploadProgress progress={progress} label={uploadLabel || 'Processing…'} />
-            : variant.glbUrl
-              ? <div className="upload-done">✓ GLB uploaded
-                  <button className="btn-text-danger" onClick={() => setShowGlbPicker(true)}>Replace</button>
-                  <button className="btn-text-danger" onClick={async () => {
-                    await deleteFile(variant.glbStoragePath)
-                    onChange({ ...variant, glbUrl: null, glbStoragePath: null, glbMaterials: [], materialOverrides: {} })
-                  }}>Remove</button>
-                </div>
-              : <button className="btn-upload" onClick={() => setShowGlbPicker(true)}>
-                  Choose GLB from media library
-                </button>
-          }
-        </div>
-      )}
-
-      {/* Material overrides accordion (GLB only) */}
-      {variant.type === 'glb' && variant.glbUrl && (
-        <MaterialsAccordion variant={variant} uid={userUid} onChange={onChange} />
+        <GlbLayersEditor
+          layers={variant.glbLayers ?? []}
+          uid={userUid}
+          onChange={(layers) => onChange({ ...variant, glbLayers: layers })}
+        />
       )}
 
       {/* Media pickers */}
-      {showGlbPicker && (
-        <MediaPickerModal uid={userUid} accept=".glb"
-          onSelect={(f) => { setShowGlbPicker(false); handleGlbSelect(f) }}
-          onClose={() => setShowGlbPicker(false)} />
-      )}
       {showSwatchPicker && (
         <MediaPickerModal uid={userUid} accept="image/*"
           onSelect={({ url, storagePath }) => {
@@ -253,6 +223,121 @@ function VariantEditor({ variant, uid: userUid, onChange, onDelete, onDuplicate,
           }}
           onClose={() => setShowSwatchPicker(false)} />
       )}
+    </div>
+  )
+}
+
+// ── GLB layers editor ──────────────────────────────────────────────
+
+function GlbLayerEditor({ layer, uid: userUid, onChange, onDelete, onMoveUp, onMoveDown }) {
+  const [showPicker, setShowPicker]     = useState(false)
+  const [uploading, setUploading]       = useState(false)
+  const [uploadLabel, setUploadLabel]   = useState('')
+
+  async function handleSelect({ url, storagePath }) {
+    setUploadLabel('Scanning materials…'); setUploading(true)
+    let glbMaterials = []
+    try { glbMaterials = await extractGLBMaterials(url) } catch { /* non-fatal */ }
+    onChange({ ...layer, glbUrl: url, glbStoragePath: storagePath, glbMaterials, materialOverrides: {} })
+    setUploading(false); setUploadLabel('')
+  }
+
+  return (
+    <div className="glb-layer-block">
+      <div className="glb-layer-header">
+        <button
+          className={`glb-layer-eye${layer.visible === false ? ' off' : ''}`}
+          title={layer.visible === false ? 'Hidden' : 'Visible'}
+          onClick={() => onChange({ ...layer, visible: layer.visible === false ? true : false })}
+        >
+          {layer.visible === false ? '○' : '●'}
+        </button>
+        <input
+          className="field-input inline glb-layer-label"
+          placeholder="Layer name"
+          value={layer.label ?? ''}
+          onChange={(e) => onChange({ ...layer, label: e.target.value })}
+        />
+        <button className="btn-icon-move" title="Move up"   onClick={onMoveUp}   disabled={!onMoveUp}>↑</button>
+        <button className="btn-icon-move" title="Move down" onClick={onMoveDown} disabled={!onMoveDown}>↓</button>
+        <button className="btn-icon-delete" onClick={onDelete}>✕</button>
+      </div>
+
+      <div className="upload-section" style={{ paddingLeft: 28 }}>
+        {uploading
+          ? <div className="upload-progress-label">{uploadLabel || 'Processing…'}</div>
+          : layer.glbUrl
+            ? <div className="upload-done">
+                ✓ {layer.label || 'GLB'} loaded
+                <button className="btn-text-danger" onClick={() => setShowPicker(true)}>Replace</button>
+                <button className="btn-text-danger" onClick={async () => {
+                  if (layer.glbStoragePath) await deleteFile(layer.glbStoragePath)
+                  onChange({ ...layer, glbUrl: null, glbStoragePath: null, glbMaterials: [], materialOverrides: {} })
+                }}>Remove</button>
+              </div>
+            : <button className="btn-upload" onClick={() => setShowPicker(true)}>
+                Choose GLB from media library
+              </button>
+        }
+      </div>
+
+      {layer.glbUrl && (
+        <MaterialsAccordion
+          variant={{ glbUrl: layer.glbUrl, glbMaterials: layer.glbMaterials ?? [], materialOverrides: layer.materialOverrides ?? {} }}
+          uid={userUid}
+          onChange={(updated) => onChange({ ...layer, glbMaterials: updated.glbMaterials, materialOverrides: updated.materialOverrides })}
+        />
+      )}
+
+      {showPicker && (
+        <MediaPickerModal uid={userUid} accept=".glb"
+          onSelect={(f) => { setShowPicker(false); handleSelect(f) }}
+          onClose={() => setShowPicker(false)} />
+      )}
+    </div>
+  )
+}
+
+function GlbLayersEditor({ layers, uid: userUid, onChange }) {
+  function addLayer() {
+    onChange([...layers, { id: uid(), label: `Layer ${layers.length + 1}`, visible: true, glbUrl: null, glbStoragePath: null, glbMaterials: [], materialOverrides: {} }])
+  }
+
+  function updateLayer(id, updated) {
+    onChange(layers.map((l) => l.id === id ? updated : l))
+  }
+
+  function deleteLayer(id) {
+    onChange(layers.filter((l) => l.id !== id))
+  }
+
+  function moveLayer(i, dir) {
+    const next = [...layers]
+    const j = i + dir
+    ;[next[i], next[j]] = [next[j], next[i]]
+    onChange(next)
+  }
+
+  return (
+    <div className="glb-layers-editor">
+      <div className="glb-layers-header">
+        <span className="glb-layers-label">GLB Layers ({layers.length})</span>
+        <button className="btn-add" onClick={addLayer}>+ Add layer</button>
+      </div>
+      {layers.length === 0 && (
+        <p className="builder-hint">Add one or more GLB files. They are rendered at the same origin — use this to layer parts (e.g. body + legs + cushion).</p>
+      )}
+      {layers.map((layer, i) => (
+        <GlbLayerEditor
+          key={layer.id}
+          layer={layer}
+          uid={userUid}
+          onChange={(updated) => updateLayer(layer.id, updated)}
+          onDelete={() => deleteLayer(layer.id)}
+          onMoveUp={i > 0 ? () => moveLayer(i, -1) : null}
+          onMoveDown={i < layers.length - 1 ? () => moveLayer(i, 1) : null}
+        />
+      ))}
     </div>
   )
 }
@@ -942,7 +1027,18 @@ export default function Builder() {
     getConfigurator(id).then((cfg) => {
       if (!cfg) { navigate('/dashboard'); return }
       setName(cfg.name ?? '')
-      setVariants(cfg.variants ?? [])
+      // Migrate old single-glb variants to glbLayers
+      const migratedVariants = (cfg.variants ?? []).map((v) => {
+        if (v.type === 'glb' && v.glbUrl && !v.glbLayers) {
+          return {
+            ...v,
+            glbLayers: [{ id: uid(), label: 'Layer 1', visible: true, glbUrl: v.glbUrl, glbStoragePath: v.glbStoragePath ?? null, glbMaterials: v.glbMaterials ?? [], materialOverrides: v.materialOverrides ?? {} }],
+            glbUrl: undefined, glbStoragePath: undefined, glbMaterials: undefined, materialOverrides: undefined,
+          }
+        }
+        return v
+      })
+      setVariants(migratedVariants)
       setInteriors(cfg.interiors ?? [])
       setBackground(cfg.background ?? DEFAULT_BG)
       setViewerSettings({ ...DEFAULT_VIEWER_SETTINGS, ...(cfg.viewerSettings ?? {}) })
@@ -1098,7 +1194,7 @@ export default function Builder() {
             badge={variants.length}
             right={
               <button className="btn-add" onClick={() =>
-                setVariants((v) => [...v, { id: uid(), label: 'New Variant', swatch: '#888888', swatchType: 'color', price: null, type: 'spinner', frames: [], frameCount: 0 }])
+                setVariants((v) => [...v, { id: uid(), label: 'New Variant', swatch: '#888888', swatchType: 'color', price: null, type: 'spinner', frames: [], frameCount: 0, glbLayers: [] }])
               }>+ Add</button>
             }
           >

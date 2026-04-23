@@ -1,7 +1,6 @@
 const functions = require('firebase-functions')
 const admin     = require('firebase-admin')
 const axios     = require('axios')
-const Stripe    = require('stripe')
 const sgMail    = require('@sendgrid/mail')
 
 admin.initializeApp()
@@ -363,7 +362,7 @@ async function getPayPalAccessToken() {
   return { token: data.access_token, base }
 }
 
-async function verifyWebhookSignature(req, webhookId) {
+async function verifyPayPalWebhook(req, webhookId) {
   const { token, base } = await getPayPalAccessToken()
   const { data } = await axios.post(
     `${base}/v1/notifications/verify-webhook-signature`,
@@ -382,12 +381,19 @@ async function verifyWebhookSignature(req, webhookId) {
 }
 
 // ── PayPal webhook ─────────────────────────────────────────────────
+// Register in PayPal Developer → Webhooks. Events:
+//   BILLING.SUBSCRIPTION.ACTIVATED
+//   BILLING.SUBSCRIPTION.CANCELLED
+//   BILLING.SUBSCRIPTION.SUSPENDED
+//   BILLING.SUBSCRIPTION.EXPIRED
+//   PAYMENT.SALE.COMPLETED
+//   PAYMENT.SALE.DENIED
 
 exports.paypalWebhook = functions.https.onRequest(async (req, res) => {
   if (req.method !== 'POST') { res.sendStatus(405); return }
 
   try {
-    const valid = await verifyWebhookSignature(req, process.env.PAYPAL_WEBHOOK_ID)
+    const valid = await verifyPayPalWebhook(req, process.env.PAYPAL_WEBHOOK_ID)
     if (!valid) { res.sendStatus(400); return }
   } catch (e) {
     functions.logger.error('PayPal webhook verification failed', e)
@@ -406,22 +412,22 @@ exports.paypalWebhook = functions.https.onRequest(async (req, res) => {
   const uid     = userDoc.id
 
   const statusMap = {
-    'BILLING.SUBSCRIPTION.ACTIVATED': { subscriptionStatus: 'active' },
+    'BILLING.SUBSCRIPTION.ACTIVATED': { subscriptionStatus: 'active'    },
     'BILLING.SUBSCRIPTION.CANCELLED': { subscriptionStatus: 'cancelled' },
-    'BILLING.SUBSCRIPTION.SUSPENDED': { subscriptionStatus: 'past_due' },
+    'BILLING.SUBSCRIPTION.SUSPENDED': { subscriptionStatus: 'past_due'  },
     'BILLING.SUBSCRIPTION.EXPIRED':   { subscriptionStatus: 'cancelled' },
-    'PAYMENT.SALE.DENIED':            { subscriptionStatus: 'past_due' },
+    'PAYMENT.SALE.DENIED':            { subscriptionStatus: 'past_due'  },
   }
 
   const update = statusMap[event_type]
   if (update) await userDoc.ref.update(update)
 
   if (event_type === 'BILLING.SUBSCRIPTION.ACTIVATED') {
-    const planId      = userDoc.data()?.planId
-    const plan        = PLANS_MAP[planId] ?? PLANS_MAP.starter
-    const userData    = userDoc.data() ?? {}
-    const name        = userData.name || 'there'
-    const email       = userData.email
+    const planId   = userDoc.data()?.planId
+    const plan     = PLANS_MAP[planId] ?? PLANS_MAP.starter
+    const userData = userDoc.data() ?? {}
+    const name     = userData.name || 'there'
+    const email    = userData.email
     if (email) await sendEmail({ to: email, ...subscriptionEmail(name, plan.label, plan.price) })
   }
 
@@ -440,138 +446,6 @@ exports.paypalWebhook = functions.https.onRequest(async (req, res) => {
     } catch (e) {
       functions.logger.error('Failed to create PayPal invoice', e)
     }
-  }
-
-  res.sendStatus(200)
-})
-
-// ── Stripe: create checkout session ────────────────────────────────
-
-exports.createStripeCheckout = functions.https.onCall(async (data, context) => {
-  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Login required')
-
-  const { planId, priceId, appUrl } = data
-  const uid = context.auth.uid
-
-  const userSnap = await db.collection('users').doc(uid).get()
-  const userData = userSnap.exists ? userSnap.data() : {}
-
-  const stripe = Stripe(process.env.STRIPE_SECRET_KEY)
-
-  const session = await stripe.checkout.sessions.create({
-    mode:                       'subscription',
-    payment_method_types:       ['card'],
-    line_items:                 [{ price: priceId, quantity: 1 }],
-    subscription_data:          { trial_period_days: 3 },
-    customer_email:             userData.email ?? undefined,
-    billing_address_collection: 'required',
-    client_reference_id:        uid,
-    metadata:                   { uid, planId },
-    success_url:                `${appUrl}/billing?stripe=success`,
-    cancel_url:                 `${appUrl}/billing?stripe=cancel`,
-  })
-
-  return { url: session.url }
-})
-
-// ── Stripe webhook ─────────────────────────────────────────────────
-// Register in Stripe Dashboard → Webhooks. Events:
-//   checkout.session.completed
-//   customer.subscription.updated
-//   customer.subscription.deleted
-//   invoice.payment_succeeded
-//   invoice.payment_failed
-
-exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
-  if (req.method !== 'POST') { res.sendStatus(405); return }
-
-  const sig    = req.headers['stripe-signature']
-  const stripe = Stripe(process.env.STRIPE_SECRET_KEY)
-
-  let event
-  try {
-    event = stripe.webhooks.constructEvent(req.rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET)
-  } catch (e) {
-    functions.logger.error('Stripe webhook signature failed', e.message)
-    res.sendStatus(400); return
-  }
-
-  const obj = event.data.object
-
-  if (event.type === 'checkout.session.completed') {
-    const uid    = obj.client_reference_id
-    const planId = obj.metadata?.planId
-    const subId  = obj.subscription
-    if (uid && planId) {
-      await db.collection('users').doc(uid).update({
-        subscriptionStatus:   'active',
-        planId,
-        stripeSubscriptionId: subId,
-        stripeCustomerId:     obj.customer,
-        subscribedAt:         admin.firestore.FieldValue.serverTimestamp(),
-        paymentProvider:      'stripe',
-      })
-
-      // Send subscription confirmed email
-      const userSnap = await db.collection('users').doc(uid).get()
-      const userData = userSnap.exists ? userSnap.data() : {}
-      const plan     = PLANS_MAP[planId] ?? PLANS_MAP.starter
-      const name     = userData.name || 'there'
-      const email    = userData.email
-      if (email) await sendEmail({ to: email, ...subscriptionEmail(name, plan.label, plan.price) })
-    }
-  }
-
-  if (event.type === 'invoice.payment_succeeded') {
-    const subId = obj.subscription
-    if (!subId) { res.sendStatus(200); return }
-
-    const snap = await db.collection('users')
-      .where('stripeSubscriptionId', '==', subId).limit(1).get()
-    if (!snap.empty) {
-      const uid        = snap.docs[0].id
-      const planId     = snap.docs[0].data()?.planId ?? 'starter'
-      const grossCents = obj.amount_paid ?? 0
-      const currency   = (obj.currency ?? 'eur').toUpperCase()
-      try {
-        await createInvoice(uid, {
-          provider:      'stripe',
-          transactionId: obj.id,
-          planId,
-          grossAmount:   grossCents / 100,
-          currency,
-        })
-      } catch (e) {
-        functions.logger.error('Failed to create Stripe invoice', e)
-      }
-      await snap.docs[0].ref.update({
-        lastPaymentAt: admin.firestore.FieldValue.serverTimestamp(),
-      })
-    }
-  }
-
-  if (event.type === 'customer.subscription.updated') {
-    const snap = await db.collection('users')
-      .where('stripeSubscriptionId', '==', obj.id).limit(1).get()
-    if (!snap.empty) {
-      const status = obj.status === 'active'  ? 'active'
-        : obj.status === 'past_due'           ? 'past_due'
-        : obj.status === 'canceled'           ? 'cancelled'
-        : null
-      if (status) await snap.docs[0].ref.update({ subscriptionStatus: status })
-    }
-  }
-
-  if (event.type === 'customer.subscription.deleted') {
-    const snap = await db.collection('users')
-      .where('stripeSubscriptionId', '==', obj.id).limit(1).get()
-    if (!snap.empty) await snap.docs[0].ref.update({ subscriptionStatus: 'cancelled' })
-  }
-
-  if (event.type === 'invoice.payment_failed') {
-    const snap = await db.collection('users')
-      .where('stripeCustomerId', '==', obj.customer).limit(1).get()
-    if (!snap.empty) await snap.docs[0].ref.update({ subscriptionStatus: 'past_due' })
   }
 
   res.sendStatus(200)
