@@ -41,6 +41,19 @@ const DEFAULT_ORDER_FORM = {
 
 function uid() { return Math.random().toString(36).slice(2) }
 
+// Firestore rejects undefined values — strip them recursively before saving
+function stripUndefined(val) {
+  if (Array.isArray(val)) return val.map(stripUndefined)
+  if (val !== null && typeof val === 'object') {
+    return Object.fromEntries(
+      Object.entries(val)
+        .filter(([, v]) => v !== undefined)
+        .map(([k, v]) => [k, stripUndefined(v)])
+    )
+  }
+  return val
+}
+
 // ── Style themes ───────────────────────────────────────────────────
 
 const THEMES = [
@@ -1030,10 +1043,11 @@ export default function Builder() {
       // Migrate old single-glb variants to glbLayers
       const migratedVariants = (cfg.variants ?? []).map((v) => {
         if (v.type === 'glb' && v.glbUrl && !v.glbLayers) {
+          // Destructure out the old top-level GLB fields so they're not saved back
+          const { glbUrl, glbStoragePath, glbMaterials, materialOverrides, ...rest } = v
           return {
-            ...v,
-            glbLayers: [{ id: uid(), label: 'Layer 1', visible: true, glbUrl: v.glbUrl, glbStoragePath: v.glbStoragePath ?? null, glbMaterials: v.glbMaterials ?? [], materialOverrides: v.materialOverrides ?? {} }],
-            glbUrl: undefined, glbStoragePath: undefined, glbMaterials: undefined, materialOverrides: undefined,
+            ...rest,
+            glbLayers: [{ id: uid(), label: 'Layer 1', visible: true, glbUrl, glbStoragePath: glbStoragePath ?? null, glbMaterials: glbMaterials ?? [], materialOverrides: materialOverrides ?? {} }],
           }
         }
         return v
@@ -1056,7 +1070,7 @@ export default function Builder() {
   const doSave = useCallback(async (n, v, i, bg, vs, el, il, of_, th, dm, tc) => {
     setSaving(true); setSaveError(null)
     try {
-      await saveConfigurator(id, { name: n, variants: v, interiors: i, background: bg, viewerSettings: vs, exteriorLabel: el, interiorLabel: il, orderForm: of_, theme: th, darkMode: dm, themeColors: tc })
+      await saveConfigurator(id, stripUndefined({ name: n, variants: v, interiors: i, background: bg, viewerSettings: vs, exteriorLabel: el, interiorLabel: il, orderForm: of_, theme: th, darkMode: dm, themeColors: tc }))
       setSaved(true); setDirty(false)
       setTimeout(() => setSaved(false), 2000)
     } catch (err) {
@@ -1148,7 +1162,7 @@ export default function Builder() {
       const count = await getPublishedCount(user.uid)
       if (count >= limit) { navigate('/billing'); return }
     }
-    await saveConfigurator(id, { name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors })
+    await saveConfigurator(id, stripUndefined({ name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors }))
     await publishConfigurator(id, !published)
     setPublished((v) => !v)
   }
