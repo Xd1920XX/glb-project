@@ -1538,7 +1538,7 @@ html, body, #root { min-height: 100%; }
 .btn-upload:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); background: var(--hover-bg); }
 .btn-upload:disabled             { opacity: 0.45; cursor: default; }
 
-.upload-done       { font-size: 12px; color: #15803d; display: flex; align-items: center; gap: 10px; font-weight: 500; }
+.upload-done       { font-size: 12px; color: #15803d; display: flex; align-items: center; gap: 10px; font-weight: 500; margin-top: 8px; }
 .btn-text-danger   { all: unset; font-size: 12px; color: var(--text-muted); cursor: pointer; text-decoration: underline; }
 .btn-text-danger:hover { color: #dc2626; }
 
