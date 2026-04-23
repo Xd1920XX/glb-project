@@ -16,6 +16,21 @@ export async function updateUser(uid, data) {
   await updateDoc(doc(db, 'users', uid), data)
 }
 
+export async function getAllUsers() {
+  const snaps = await getDocs(collection(db, 'users'))
+  const users = snaps.docs.map((d) => ({ id: d.id, ...d.data() }))
+  // Sort client-side — not all user docs have createdAt
+  return users.sort((a, b) => {
+    const ta = a.createdAt?.toDate?.()?.getTime() ?? 0
+    const tb = b.createdAt?.toDate?.()?.getTime() ?? 0
+    return tb - ta
+  })
+}
+
+export async function deleteUser(uid) {
+  await deleteDoc(doc(db, 'users', uid))
+}
+
 // ── Configurators ──────────────────────────────────────────────────
 
 export async function createConfigurator(uid, name) {

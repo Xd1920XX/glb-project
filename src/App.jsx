@@ -20,6 +20,7 @@ import LandingView    from './pages/LandingView.jsx'
 import PrivacyPolicy  from './pages/PrivacyPolicy.jsx'
 import TermsOfService from './pages/TermsOfService.jsx'
 import CookiePolicy   from './pages/CookiePolicy.jsx'
+import Admin          from './pages/Admin.jsx'
 
 export default function App() {
   return (
@@ -42,6 +43,7 @@ export default function App() {
         <Route path="/orders"           element={<ProtectedRoute><Orders /></ProtectedRoute>} />
         <Route path="/landing-pages"    element={<ProtectedRoute><LandingPages /></ProtectedRoute>} />
         <Route path="/landing/:id"      element={<ProtectedRoute><LandingBuilder /></ProtectedRoute>} />
+        <Route path="/admin"            element={<ProtectedRoute><Admin /></ProtectedRoute>} />
         <Route path="*"               element={<Navigate to="/" replace />} />
       </Routes>
       <CookieBanner />

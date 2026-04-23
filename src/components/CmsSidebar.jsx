@@ -3,9 +3,12 @@ import { useAuth } from '../hooks/useAuth.jsx'
 import { logOut } from '../firebase/auth.js'
 import { useCmsTheme } from '../hooks/useCmsTheme.jsx'
 
+const SUPER_ADMIN_UID = 'kMZlGUDl3lPFm2VIyc5eyYHhA752'
+
 export function CmsSidebar({ active }) {
-  const { profile } = useAuth()
+  const { user, profile } = useAuth()
   const { dark, toggleDark } = useCmsTheme()
+  const isAdmin = user?.uid === SUPER_ADMIN_UID || profile?.isAdmin
   const navigate = useNavigate()
 
   const sub = profile?.subscriptionStatus ?? 'trial'
@@ -65,6 +68,18 @@ export function CmsSidebar({ active }) {
           </svg>
           Billing
         </Link>
+
+        {isAdmin && (
+          <Link to="/admin" className={`cms-nav-link${active === 'admin' ? ' active' : ''}`}>
+            <svg className="cms-nav-icon" viewBox="0 0 16 16" fill="none">
+              <circle cx="6" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.4"/>
+              <path d="M1.5 13c0-2.485 2.015-4 4.5-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+              <path d="M11 9l1 1.5 2-2.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="11.5" cy="11.5" r="3" stroke="currentColor" strokeWidth="1.3"/>
+            </svg>
+            Admin
+          </Link>
+        )}
       </nav>
 
       {/* Footer */}
