@@ -195,6 +195,11 @@ export default function Landing() {
               <Link to="/login">Log in</Link>
             </div>
             <div className="footer-col">
+              <div className="footer-col-title">Resources</div>
+              <Link to="/what-is-glb">What is GLB?</Link>
+              <Link to="/glb-models">GLB Model Service</Link>
+            </div>
+            <div className="footer-col">
               <div className="footer-col-title">Company</div>
               <Link to="/contact">Contact</Link>
             </div>

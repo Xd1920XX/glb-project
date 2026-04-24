@@ -21,6 +21,8 @@ import PrivacyPolicy  from './pages/PrivacyPolicy.jsx'
 import TermsOfService from './pages/TermsOfService.jsx'
 import CookiePolicy   from './pages/CookiePolicy.jsx'
 import Admin          from './pages/Admin.jsx'
+import GlbModels      from './pages/GlbModels.jsx'
+import WhatIsGlb      from './pages/WhatIsGlb.jsx'
 
 export default function App() {
   return (
@@ -31,6 +33,8 @@ export default function App() {
         <Route path="/signup"         element={<Signup />} />
         <Route path="/demo"           element={<SaunaDemo />} />
         <Route path="/contact"        element={<Contact />} />
+        <Route path="/glb-models"     element={<GlbModels />} />
+        <Route path="/what-is-glb"    element={<WhatIsGlb />} />
         <Route path="/privacy"        element={<PrivacyPolicy />} />
         <Route path="/terms"          element={<TermsOfService />} />
         <Route path="/cookies"        element={<CookiePolicy />} />

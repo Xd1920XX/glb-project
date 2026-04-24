@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
-import { getConfigurator, saveConfigurator, publishConfigurator, getPublishedCount } from '../firebase/db.js'
+import { getConfigurator, saveConfigurator, publishConfigurator, getPublishedCount, saveRevision, getRevisions } from '../firebase/db.js'
 import { getEmbedLimit } from '../config/plans.js'
 import { uploadFile, deleteFile } from '../firebase/storage.js'
 import { ConfiguratorRenderer } from '../components/ConfiguratorRenderer.jsx'
@@ -893,6 +893,76 @@ function OrderFormEditor({ orderForm, onChange }) {
   )
 }
 
+// ── Revision panel ─────────────────────────────────────────────────
+
+function RevisionPanel({ configuratorId, ownerId, onRestore, onClose }) {
+  const [revisions, setRevisions] = useState(null)
+  const [loadError, setLoadError] = useState(null)
+  const [restoring, setRestoring] = useState(null)
+
+  useEffect(() => {
+    getRevisions(configuratorId, ownerId)
+      .then(setRevisions)
+      .catch((err) => { console.error('getRevisions:', err); setLoadError(err.message ?? 'Failed to load') })
+  }, [configuratorId, ownerId])
+
+  function formatDate(ts) {
+    if (!ts) return '—'
+    const d = ts.toDate ? ts.toDate() : new Date(ts)
+    return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  }
+
+  async function handleRestore(rev) {
+    if (!confirm(`Restore to save from ${formatDate(rev.savedAt)}? Current changes will be overwritten.`)) return
+    setRestoring(rev.id)
+    await onRestore(rev.data)
+    setRestoring(null)
+  }
+
+  return (
+    <div className="rev-backdrop" onClick={onClose}>
+      <div className="rev-panel" onClick={(e) => e.stopPropagation()}>
+        <div className="rev-header">
+          <div>
+            <div className="rev-title">Revision history</div>
+            <div className="rev-sub">Manual saves only · Max 30 kept</div>
+          </div>
+          <button className="rev-close" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="rev-list">
+          {revisions === null && !loadError && <div className="rev-loading">Loading…</div>}
+          {loadError && <div className="rev-empty" style={{ color: '#dc2626' }}>Error: {loadError}</div>}
+          {revisions?.length === 0 && (
+            <div className="rev-empty">
+              No saved revisions yet. Click <strong>Save</strong> in the toolbar to create one.
+            </div>
+          )}
+          {revisions?.map((rev, i) => (
+            <div key={rev.id} className="rev-item">
+              <div className="rev-item-info">
+                <div className="rev-item-name">{rev.name || 'Untitled'}</div>
+                <div className="rev-item-meta">
+                  {formatDate(rev.savedAt)}
+                  {rev.variantCount != null && <span className="rev-item-count"> · {rev.variantCount} variant{rev.variantCount !== 1 ? 's' : ''}</span>}
+                  {i === 0 && <span className="rev-item-badge">latest</span>}
+                </div>
+              </div>
+              <button
+                className="btn-ghost btn-sm rev-restore-btn"
+                disabled={restoring === rev.id}
+                onClick={() => handleRestore(rev)}
+              >
+                {restoring === rev.id ? '…' : 'Restore'}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Sidebar accordion ──────────────────────────────────────────────
 
 function BuilderAccordion({ title, onTitleChange, badge, right, defaultOpen = true, children }) {
@@ -1019,11 +1089,12 @@ export default function Builder() {
   const [darkMode, setDarkMode]               = useState(false)
   const [themeColors, setThemeColors]         = useState({})
   const [published, setPublished]             = useState(false)
-  const [saving, setSaving]       = useState(false)
-  const [saved, setSaved]         = useState(false)
-  const [dirty, setDirty]         = useState(false)
-  const [saveError, setSaveError] = useState(null)
-  const [loading, setLoading]     = useState(true)
+  const [saving, setSaving]           = useState(false)
+  const [saved, setSaved]             = useState(false)
+  const [dirty, setDirty]             = useState(false)
+  const [saveError, setSaveError]     = useState(null)
+  const [loading, setLoading]         = useState(true)
+  const [showHistory, setShowHistory] = useState(false)
   const autoSaveTimer             = useRef(null)
   const initialLoad               = useRef(true)
 
@@ -1067,10 +1138,14 @@ export default function Builder() {
     })
   }, [id])
 
-  const doSave = useCallback(async (n, v, i, bg, vs, el, il, of_, th, dm, tc) => {
+  const doSave = useCallback(async (n, v, i, bg, vs, el, il, of_, th, dm, tc, opts = {}) => {
     setSaving(true); setSaveError(null)
     try {
-      await saveConfigurator(id, stripUndefined({ name: n, variants: v, interiors: i, background: bg, viewerSettings: vs, exteriorLabel: el, interiorLabel: il, orderForm: of_, theme: th, darkMode: dm, themeColors: tc }))
+      const payload = stripUndefined({ name: n, variants: v, interiors: i, background: bg, viewerSettings: vs, exteriorLabel: el, interiorLabel: il, orderForm: of_, theme: th, darkMode: dm, themeColors: tc })
+      await saveConfigurator(id, payload)
+      if (opts.createRevision) {
+        saveRevision(id, opts.ownerId, payload).catch((err) => console.error('saveRevision:', err))
+      }
       setSaved(true); setDirty(false)
       setTimeout(() => setSaved(false), 2000)
     } catch (err) {
@@ -1101,6 +1176,26 @@ export default function Builder() {
     setDarkMode(snap.darkMode)
     setThemeColors(snap.themeColors)
     setHistoryLen(historyRef.current.length)
+  }
+
+  async function handleRestoreRevision(revData) {
+    const d = { ...DEFAULT_VIEWER_SETTINGS, ...(revData.viewerSettings ?? {}) }
+    setName(revData.name ?? '')
+    applySnapshot({
+      variants:       revData.variants      ?? [],
+      interiors:      revData.interiors     ?? [],
+      background:     revData.background    ?? DEFAULT_BG,
+      viewerSettings: d,
+      exteriorLabel:  revData.exteriorLabel ?? 'Exterior',
+      interiorLabel:  revData.interiorLabel ?? 'Interior',
+      orderForm:      { ...DEFAULT_ORDER_FORM, ...(revData.orderForm ?? {}), fields: revData.orderForm?.fields ?? DEFAULT_ORDER_FORM.fields },
+      theme:          revData.theme         ?? 'minimal',
+      darkMode:       revData.darkMode      ?? false,
+      themeColors:    revData.themeColors   ?? {},
+    })
+    setShowHistory(false)
+    // Auto-save the restored state so it persists
+    setTimeout(() => handleSave(), 100)
   }
 
   useEffect(() => {
@@ -1151,7 +1246,7 @@ export default function Builder() {
 
   async function handleSave() {
     clearTimeout(autoSaveTimer.current)
-    await doSave(name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors)
+    await doSave(name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, { createRevision: true, ownerId: user.uid })
   }
 
   async function handlePublish() {
@@ -1188,6 +1283,9 @@ export default function Builder() {
               disabled={historyIdx.current >= historyLen - 1}>↪</button>
             <button className="btn-ghost btn-sm" onClick={handleSave} disabled={saving}>
               {saved ? '✓' : saving ? '…' : dirty ? 'Save*' : 'Save'}
+            </button>
+            <button className="btn-ghost btn-sm" title="Revision history" onClick={() => setShowHistory(true)}>
+              History
             </button>
             <button className="btn-ghost btn-sm" onClick={() => window.open(`/embed/${id}`, '_blank')}>
               Preview
@@ -1318,6 +1416,15 @@ export default function Builder() {
         </div>
       </div>
       </div>
+
+      {showHistory && user?.uid && (
+        <RevisionPanel
+          configuratorId={id}
+          ownerId={user.uid}
+          onRestore={handleRestoreRevision}
+          onClose={() => setShowHistory(false)}
+        />
+      )}
     </div>
   )
 }

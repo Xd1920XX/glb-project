@@ -251,6 +251,50 @@ export async function getUserInvoices(uid) {
   return snaps.docs.map((d) => ({ id: d.id, ...d.data() }))
 }
 
+// ── Revisions ───────────────────────────────────────────────────────
+
+const MAX_REVISIONS = 30
+
+export async function saveRevision(configuratorId, ownerId, data) {
+  await addDoc(collection(db, 'revisions'), {
+    configuratorId,
+    ownerId,
+    savedAt: serverTimestamp(),
+    name: data.name ?? '',
+    variantCount: data.variants?.length ?? 0,
+    data,
+  })
+  // Non-blocking cleanup: keep only the most recent MAX_REVISIONS
+  getDocs(
+    query(
+      collection(db, 'revisions'),
+      where('configuratorId', '==', configuratorId),
+      orderBy('savedAt', 'desc'),
+    ),
+  ).then((snaps) => {
+    if (snaps.size > MAX_REVISIONS) {
+      snaps.docs.slice(MAX_REVISIONS).forEach((d) => deleteDoc(d.ref))
+    }
+  }).catch(() => {})
+}
+
+export async function getRevisions(configuratorId, ownerId) {
+  // Both filters must be present so Firestore rules (which check ownerId) accept the query.
+  const snaps = await getDocs(
+    query(
+      collection(db, 'revisions'),
+      where('configuratorId', '==', configuratorId),
+      where('ownerId', '==', ownerId),
+    ),
+  )
+  const docs = snaps.docs.map((d) => ({ id: d.id, ...d.data() }))
+  return docs.sort((a, b) => {
+    const ta = a.savedAt?.toMillis?.() ?? 0
+    const tb = b.savedAt?.toMillis?.() ?? 0
+    return tb - ta
+  })
+}
+
 // ── Public embed — reads config + checks owner subscription ────────
 
 export async function getPublishedConfigurator(id) {

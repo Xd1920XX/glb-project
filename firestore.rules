@@ -61,9 +61,27 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Revisions: owner can read/write their own
+    match /revisions/{revId} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == resource.data.ownerId;
+      allow create: if request.auth != null
+                    && request.auth.uid == request.resource.data.ownerId;
+      allow delete: if request.auth != null
+                    && request.auth.uid == resource.data.ownerId;
+    }
+
     // Invoice counter (server-only)
     match /meta/{docId} {
       allow read, write: if false;
+    }
+
+    // Model inquiries: anyone can submit; only admins can read
+    match /model_inquiries/{docId} {
+      allow create: if request.resource.data.keys().hasAll(['name', 'email', 'description']);
+      allow read, update, delete: if request.auth != null
+                                  && (request.auth.uid == 'kMZlGUDl3lPFm2VIyc5eyYHhA752'
+                                      || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
     }
   }
 }
