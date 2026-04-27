@@ -1,14 +1,43 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { InteriorViewer } from './InteriorViewer.jsx'
 import { SaunaViewer3D } from './SaunaViewer3D.jsx'
 import { saveOrder } from '../firebase/db.js'
 
+// ── Group helpers ────────────────────────────────────────────────────
+
+const DEFAULT_GROUP_ID = '__default__'
+
+function computeGroups(variants, variantGroups) {
+  const grouped = {}
+  for (const v of variants) {
+    const gid = v.groupId || DEFAULT_GROUP_ID
+    if (!grouped[gid]) grouped[gid] = []
+    grouped[gid].push(v)
+  }
+  // Named groups first (only those that have variants)
+  const named = variantGroups
+    .filter((g) => (grouped[g.id]?.length ?? 0) > 0)
+    .map((g) => ({ ...g, variants: grouped[g.id] }))
+  // Unassigned variants go to a default group (no label)
+  if (grouped[DEFAULT_GROUP_ID]?.length) {
+    named.push({ id: DEFAULT_GROUP_ID, label: '', dependsOnVariantId: null, variants: grouped[DEFAULT_GROUP_ID] })
+  }
+  return named
+}
+
+function computeVisibleGroups(groups, selectedByGroup) {
+  return groups.filter((g) => {
+    if (!g.dependsOnVariantId) return true
+    return Object.values(selectedByGroup).includes(g.dependsOnVariantId)
+  })
+}
+
 /**
  * Generic configurator renderer.
- * config = { variants, interiors, background, viewerSettings }
+ * config = { variants, interiors, background, viewerSettings, variantGroups, hotspots, watermark }
  */
-export function ConfiguratorRenderer({ config }) {
-  const { variants = [], interiors = [], background, viewerSettings = {}, exteriorLabel, interiorLabel, orderForm, theme = 'minimal', darkMode = false, themeColors = {} } = config
+export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotPlace = null }) {
+  const { variants = [], interiors = [], background, viewerSettings = {}, exteriorLabel, interiorLabel, orderForm, theme = 'minimal', darkMode = false, themeColors = {}, variantGroups = [], hotspots = [], watermark } = config
 
   const extLabel = exteriorLabel || 'Exterior'
   const intLabel = interiorLabel || 'Interior'
@@ -21,14 +50,37 @@ export function ConfiguratorRenderer({ config }) {
   ]
 
   const [view, setView]               = useState(tabs[0] ?? 'exterior')
-  const [variantId, setVariantId]     = useState(variants[0]?.id ?? null)
+  const [selectedByGroup, setSelectedByGroup] = useState({})
   const [frameIndex, setFrameIndex]   = useState(0)
   const [show3D, setShow3D]           = useState(false)
   const [interiorId, setInteriorId]   = useState(interiors[0]?.id ?? null)
   const [orderData, setOrderData]     = useState({})
   const [orderSubmitted, setOrderSubmitted] = useState(false)
 
-  const variant  = variants.find((v) => v.id === variantId)
+  // Compute groups
+  const allGroups = useMemo(() => computeGroups(variants, variantGroups), [variants, variantGroups])
+  const visibleGroups = useMemo(() => computeVisibleGroups(allGroups, selectedByGroup), [allGroups, selectedByGroup])
+
+  // Initialize / update selection state when groups change
+  useEffect(() => {
+    setSelectedByGroup((prev) => {
+      const next = {}
+      for (const g of allGroups) {
+        if (g.variants.length > 0) {
+          const kept = prev[g.id] && g.variants.find((v) => v.id === prev[g.id])
+          next[g.id] = kept ? prev[g.id] : g.variants[0].id
+        }
+      }
+      return next
+    })
+  }, [allGroups])
+
+  // Primary variant drives the 3D / spinner viewer
+  const primaryGroup = visibleGroups[0]
+  const primaryVariantId = primaryGroup
+    ? (selectedByGroup[primaryGroup.id] ?? primaryGroup.variants[0]?.id)
+    : null
+  const variant  = variants.find((v) => v.id === primaryVariantId) ?? null
   const interior = interiors.find((i) => i.id === interiorId)
 
   // Background style for viewer pane
@@ -41,11 +93,14 @@ export function ConfiguratorRenderer({ config }) {
     viewerStyle.backgroundPosition = 'center'
   }
 
-  // Price display
+  // Price display — sum selected prices across all visible groups
   const hasAnyPrice = variants.some((v) => v.price != null)
-  const selectedPrice = variant?.price ?? null
-  const minPrice = hasAnyPrice
-    ? Math.min(...variants.filter((v) => v.price != null).map((v) => v.price))
+  const totalSelectedPrice = hasAnyPrice
+    ? visibleGroups.reduce((sum, g) => {
+        const selId = selectedByGroup[g.id] ?? g.variants[0]?.id
+        const sel = g.variants.find((v) => v.id === selId)
+        return sel?.price != null ? sum + sel.price : sum
+      }, 0)
     : null
 
   function fmt(n) {
@@ -113,8 +168,13 @@ export function ConfiguratorRenderer({ config }) {
     e.preventDefault()
     if (config.id && config.ownerId) {
       try {
+        const allSelections = visibleGroups.map((g) => {
+          const selId = selectedByGroup[g.id] ?? g.variants[0]?.id
+          const sel = g.variants.find((v) => v.id === selId)
+          return sel ? `${g.label || extLabel}: ${sel.label}` : null
+        }).filter(Boolean).join(', ')
         await saveOrder(config.id, config.ownerId, {
-          variantId: variant?.label ?? variantId,
+          variantId: allSelections || (variant?.label ?? primaryVariantId),
           interiorId: interior?.label ?? interiorId,
           formData: orderData,
           configuratorName: config.name ?? '',
@@ -137,13 +197,36 @@ export function ConfiguratorRenderer({ config }) {
         ...(themeColors.border  && { '--border':  themeColors.border  }),
       }}
     >
-      <div className="viewer-pane" style={viewerStyle}>
+      <div
+        className={`viewer-pane${hotspotPlaceId ? ' hotspot-place-mode' : ''}`}
+        style={viewerStyle}
+        onClick={hotspotPlaceId ? (e) => {
+          const rect = e.currentTarget.getBoundingClientRect()
+          const x = Math.round(((e.clientX - rect.left) / rect.width) * 100)
+          const y = Math.round(((e.clientY - rect.top) / rect.height) * 100)
+          onHotspotPlace?.(x, y)
+        } : undefined}
+      >
         {renderViewer()}
         {can3D && (
           <button className={`view-3d-btn${show3D ? ' active' : ''}`}
             onClick={() => setShow3D((v) => !v)}>
             {show3D ? 'Renders' : '3D'}
           </button>
+        )}
+        {hotspotPlaceId && (
+          <div className="hotspot-place-hint">Click anywhere to position hotspot</div>
+        )}
+        {!hotspotPlaceId && hotspots.map((hs) => (
+          <HotspotPin key={hs.id} hotspot={hs} />
+        ))}
+        {watermark?.enabled && watermark.imageUrl && (
+          <img
+            className={`viewer-watermark viewer-watermark--${watermark.position ?? 'bottom-right'}`}
+            src={watermark.imageUrl}
+            alt=""
+            style={{ opacity: (watermark.opacity ?? 80) / 100, width: `${watermark.size ?? 15}%` }}
+          />
         )}
       </div>
 
@@ -172,29 +255,34 @@ export function ConfiguratorRenderer({ config }) {
             {view === 'exterior' && variants.length > 0 && (
               <div className="tab-section">
                 {/* Price display */}
-                {hasAnyPrice && (
+                {hasAnyPrice && totalSelectedPrice != null && (
                   <div className="config-price-display">
-                    {selectedPrice != null
-                      ? <span className="config-price-value">{fmt(selectedPrice)}</span>
-                      : <span className="config-price-from">From {fmt(minPrice)}</span>
-                    }
+                    <span className="config-price-value">{fmt(totalSelectedPrice)}</span>
                   </div>
                 )}
 
-                <p className="section-label">Color</p>
-                <div className="color-grid">
-                  {variants.map((v) => (
-                    <button key={v.id}
-                      className={`color-card${variantId === v.id ? ' selected' : ''}`}
-                      onClick={() => { setVariantId(v.id); setFrameIndex(0); setShow3D(false) }}>
-                      <SwatchDot variant={v} />
-                      <div className="color-card-info">
-                        <span className="color-label">{v.label}</span>
-                        {v.price != null && <span className="color-price">{fmt(v.price)}</span>}
-                      </div>
-                    </button>
-                  ))}
-                </div>
+                {visibleGroups.map((group) => (
+                  <div key={group.id} className="variant-group-section">
+                    {group.label && <p className="section-label">{group.label}</p>}
+                    <div className="color-grid">
+                      {group.variants.map((v) => (
+                        <button key={v.id}
+                          className={`color-card${selectedByGroup[group.id] === v.id ? ' selected' : ''}`}
+                          onClick={() => {
+                            setSelectedByGroup((prev) => ({ ...prev, [group.id]: v.id }))
+                            setFrameIndex(0)
+                            setShow3D(false)
+                          }}>
+                          <SwatchDot variant={v} />
+                          <div className="color-card-info">
+                            <span className="color-label">{v.label}</span>
+                            {v.price != null && <span className="color-price">{fmt(v.price)}</span>}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
                 <TabNav tabs={tabs} view={view} setView={setView} />
               </div>
             )}
@@ -225,17 +313,28 @@ export function ConfiguratorRenderer({ config }) {
             {view === 'order' && orderForm?.enabled && (
               <div className="tab-section order-form-section">
                 {/* Selection summary */}
-                {(variant || interior) && (
+                {(variants.length > 0 || interior) && (
                   <div className="order-summary">
                     <p className="order-summary-label">Your selection</p>
-                    {variant && (
-                      <div className="order-summary-row">
-                        <span>Exterior</span>
-                        <span>
-                          <SwatchDot variant={variant} />
-                          {' '}{variant.label}
-                          {variant.price != null && ` — ${fmt(variant.price)}`}
-                        </span>
+                    {visibleGroups.map((g) => {
+                      const selId = selectedByGroup[g.id] ?? g.variants[0]?.id
+                      const sel = g.variants.find((v) => v.id === selId)
+                      if (!sel) return null
+                      return (
+                        <div key={g.id} className="order-summary-row">
+                          <span>{g.label || extLabel}</span>
+                          <span>
+                            <SwatchDot variant={sel} />
+                            {' '}{sel.label}
+                            {sel.price != null && ` — ${fmt(sel.price)}`}
+                          </span>
+                        </div>
+                      )
+                    })}
+                    {hasAnyPrice && visibleGroups.length > 1 && totalSelectedPrice != null && (
+                      <div className="order-summary-row order-summary-total">
+                        <span>Total</span>
+                        <span>{fmt(totalSelectedPrice)}</span>
                       </div>
                     )}
                     {interior && (
@@ -306,6 +405,29 @@ function SwatchDot({ variant }) {
     return <img src={variant.swatchImageUrl} className="color-dot color-dot-img" alt="" />
   }
   return <span className="color-dot" style={{ background: variant.swatch ?? '#888' }} />
+}
+
+// ── Hotspot pin ─────────────────────────────────────────────────────
+
+function HotspotPin({ hotspot }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="hotspot-pin-wrap" style={{ left: `${hotspot.x ?? 50}%`, top: `${hotspot.y ?? 50}%` }}>
+      <button
+        className={`hotspot-pin${open ? ' open' : ''}`}
+        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v) }}
+        title={hotspot.label}
+      >
+        +
+      </button>
+      {open && (
+        <div className="hotspot-popup">
+          {hotspot.label && <div className="hotspot-popup-title">{hotspot.label}</div>}
+          {hotspot.description && <div className="hotspot-popup-body">{hotspot.description}</div>}
+        </div>
+      )}
+    </div>
+  )
 }
 
 // ── Frame spinner ───────────────────────────────────────────────────

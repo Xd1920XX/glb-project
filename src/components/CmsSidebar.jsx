@@ -70,6 +70,16 @@ export function CmsSidebar({ active }) {
           Billing
         </Link>
 
+        <Link to="/team" className={`cms-nav-link${active === 'team' ? ' active' : ''}`}>
+          <svg className="cms-nav-icon" viewBox="0 0 16 16" fill="none">
+            <circle cx="5.5" cy="5" r="2.2" stroke="currentColor" strokeWidth="1.4"/>
+            <path d="M1 13c0-2.2 2.015-3.5 4.5-3.5S10 10.8 10 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+            <circle cx="11.5" cy="5" r="1.8" stroke="currentColor" strokeWidth="1.3"/>
+            <path d="M13 13c0-1.8-1.12-2.8-2.5-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+          </svg>
+          Team
+        </Link>
+
         {isAdmin && (
           <Link to="/admin" className={`cms-nav-link${active === 'admin' ? ' active' : ''}`}>
             <svg className="cms-nav-icon" viewBox="0 0 16 16" fill="none">

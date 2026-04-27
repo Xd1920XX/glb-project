@@ -23,6 +23,8 @@ import CookiePolicy   from './pages/CookiePolicy.jsx'
 import Admin          from './pages/Admin.jsx'
 import GlbModels      from './pages/GlbModels.jsx'
 import WhatIsGlb      from './pages/WhatIsGlb.jsx'
+import Team           from './pages/Team.jsx'
+import JoinTeam       from './pages/JoinTeam.jsx'
 
 export default function App() {
   return (
@@ -48,6 +50,8 @@ export default function App() {
         <Route path="/landing-pages"    element={<ProtectedRoute><LandingPages /></ProtectedRoute>} />
         <Route path="/landing/:id"      element={<ProtectedRoute><LandingBuilder /></ProtectedRoute>} />
         <Route path="/admin"            element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+        <Route path="/team"             element={<ProtectedRoute><Team /></ProtectedRoute>} />
+        <Route path="/join/:code"       element={<JoinTeam />} />
         <Route path="*"               element={<Navigate to="/" replace />} />
       </Routes>
       <CookieBanner />

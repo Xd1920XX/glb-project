@@ -39,6 +39,15 @@ const DEFAULT_ORDER_FORM = {
   ],
 }
 
+const DEFAULT_WATERMARK = {
+  enabled: false,
+  imageUrl: null,
+  imagePath: null,
+  position: 'bottom-right',
+  opacity: 80,
+  size: 15,
+}
+
 function uid() { return Math.random().toString(36).slice(2) }
 
 // Firestore rejects undefined values — strip them recursively before saving
@@ -99,7 +108,7 @@ function UploadProgress({ progress, label }) {
 
 // ── Variant editor ─────────────────────────────────────────────────
 
-function VariantEditor({ variant, uid: userUid, onChange, onDelete, onDuplicate, onMoveUp, onMoveDown }) {
+function VariantEditor({ variant, uid: userUid, onChange, onDelete, onDuplicate, onMoveUp, onMoveDown, variantGroups = [] }) {
   const [uploading, setUploading]     = useState(false)
   const [progress, setProgress]       = useState(0)
   const [uploadLabel, setUploadLabel] = useState('')
@@ -166,6 +175,21 @@ function VariantEditor({ variant, uid: userUid, onChange, onDelete, onDuplicate,
         <button className="btn-icon-dupe" title="Duplicate" onClick={onDuplicate}>⧉</button>
         <button className="btn-icon-delete" onClick={onDelete}>✕</button>
       </div>
+
+      {/* Group assignment */}
+      {variantGroups.length > 0 && (
+        <div className="variant-group-row">
+          <span className="variant-group-label">Group</span>
+          <select className="vs-select variant-group-select"
+            value={variant.groupId ?? ''}
+            onChange={(e) => onChange({ ...variant, groupId: e.target.value || null })}>
+            <option value="">No group</option>
+            {variantGroups.map((g) => (
+              <option key={g.id} value={g.id}>{g.label}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Swatch type toggle */}
       <div className="swatch-type-row">
@@ -1070,6 +1094,171 @@ function StyleEditor({ theme, darkMode, themeColors, onChange, onColorsChange })
   )
 }
 
+// ── Variant groups manager ─────────────────────────────────────────
+
+function VariantGroupsManager({ groups, variants, onChange }) {
+  function addGroup() {
+    onChange([...groups, { id: uid(), label: 'Group', dependsOnVariantId: null }])
+  }
+
+  function updateGroup(id, updated) {
+    onChange(groups.map((g) => g.id === id ? updated : g))
+  }
+
+  function deleteGroup(id) {
+    onChange(groups.filter((g) => g.id !== id))
+  }
+
+  if (groups.length === 0) {
+    return (
+      <div className="groups-empty-row">
+        <button className="btn-add" onClick={addGroup}>+ Add group</button>
+        <span className="builder-hint" style={{ margin: 0 }}>Groups organize variants into named sections (e.g. "Color", "Size").</span>
+      </div>
+    )
+  }
+
+  // All variants except those in this group are candidates for dependency
+  const allVariants = variants
+
+  return (
+    <div className="groups-manager">
+      {groups.map((g) => (
+        <div key={g.id} className="group-row">
+          <input className="field-input inline group-label-input" placeholder="Group name" value={g.label}
+            onChange={(e) => updateGroup(g.id, { ...g, label: e.target.value })} />
+          <select className="vs-select group-dep-select"
+            value={g.dependsOnVariantId ?? ''}
+            onChange={(e) => updateGroup(g.id, { ...g, dependsOnVariantId: e.target.value || null })}>
+            <option value="">Always visible</option>
+            <optgroup label="Show only when selected:">
+              {allVariants.map((v) => (
+                <option key={v.id} value={v.id}>{v.label || 'Unnamed variant'}</option>
+              ))}
+            </optgroup>
+          </select>
+          <button className="btn-icon-delete" onClick={() => deleteGroup(g.id)}>✕</button>
+        </div>
+      ))}
+      <button className="btn-add" style={{ marginTop: 6 }} onClick={addGroup}>+ Add group</button>
+    </div>
+  )
+}
+
+// ── Hotspots editor ────────────────────────────────────────────────
+
+function HotspotsEditor({ hotspots, onChange, placingId, onPlaceId }) {
+  function addHotspot() {
+    onChange([...hotspots, { id: uid(), label: 'Feature', description: '', x: 50, y: 50 }])
+  }
+
+  function updateHotspot(id, updated) {
+    onChange(hotspots.map((h) => h.id === id ? updated : h))
+  }
+
+  return (
+    <div className="hotspots-editor">
+      {hotspots.length === 0 && (
+        <p className="builder-hint">Hotspots appear as clickable pins on the viewer, revealing a label and description.</p>
+      )}
+      {hotspots.map((hs) => (
+        <div key={hs.id} className="hotspot-block">
+          <div className="hotspot-block-header">
+            <input className="field-input inline" placeholder="Label"
+              value={hs.label}
+              onChange={(e) => updateHotspot(hs.id, { ...hs, label: e.target.value })} />
+            <button
+              className={`btn-ghost btn-sm hotspot-place-btn${placingId === hs.id ? ' active' : ''}`}
+              onClick={() => onPlaceId(placingId === hs.id ? null : hs.id)}
+              title="Click the preview to position this hotspot">
+              {placingId === hs.id ? '✓ Click preview' : 'Place'}
+            </button>
+            <button className="btn-icon-delete" onClick={() => onChange(hotspots.filter((h) => h.id !== hs.id))}>✕</button>
+          </div>
+          <div className="vs-row">
+            <label className="vs-label">Description</label>
+            <input className="field-input inline" placeholder="Optional description shown on click"
+              value={hs.description ?? ''}
+              onChange={(e) => updateHotspot(hs.id, { ...hs, description: e.target.value })} />
+          </div>
+          <div className="vs-row">
+            <label className="vs-label">Position</label>
+            <span className="builder-hint" style={{ margin: 0, fontSize: 11 }}>
+              X: {hs.x ?? 50}% · Y: {hs.y ?? 50}%
+              {placingId === hs.id && ' — click the preview to reposition'}
+            </span>
+          </div>
+        </div>
+      ))}
+      <button className="btn-add" onClick={addHotspot}>+ Add hotspot</button>
+    </div>
+  )
+}
+
+// ── Watermark editor ───────────────────────────────────────────────
+
+function WatermarkEditor({ watermark, uid: userUid, onChange }) {
+  const [showPicker, setShowPicker] = useState(false)
+  const wm = watermark ?? DEFAULT_WATERMARK
+
+  return (
+    <div className="watermark-editor">
+      <div className="vs-row">
+        <label className="vs-label">Position</label>
+        <select className="vs-select" value={wm.position ?? 'bottom-right'}
+          onChange={(e) => onChange({ ...wm, position: e.target.value })}>
+          <option value="top-left">Top left</option>
+          <option value="top-right">Top right</option>
+          <option value="bottom-left">Bottom left</option>
+          <option value="bottom-right">Bottom right</option>
+        </select>
+      </div>
+      <div className="vs-row">
+        <label className="vs-label">Opacity</label>
+        <div className="vs-slider-wrap">
+          <input type="range" min="10" max="100" step="5"
+            value={wm.opacity ?? 80}
+            onChange={(e) => onChange({ ...wm, opacity: Number(e.target.value) })} />
+          <span className="vs-value">{wm.opacity ?? 80}%</span>
+        </div>
+      </div>
+      <div className="vs-row">
+        <label className="vs-label">Size</label>
+        <div className="vs-slider-wrap">
+          <input type="range" min="5" max="40" step="1"
+            value={wm.size ?? 15}
+            onChange={(e) => onChange({ ...wm, size: Number(e.target.value) })} />
+          <span className="vs-value">{wm.size ?? 15}%</span>
+        </div>
+      </div>
+      <div className="upload-section">
+        {wm.imageUrl ? (
+          <div className="watermark-preview-row">
+            <img src={wm.imageUrl} className="watermark-thumb" alt="" />
+            <button className="btn-text-danger" onClick={() => setShowPicker(true)}>Change</button>
+            <button className="btn-text-danger" onClick={async () => {
+              if (wm.imagePath) await deleteFile(wm.imagePath)
+              onChange({ ...wm, imageUrl: null, imagePath: null })
+            }}>Remove</button>
+          </div>
+        ) : (
+          <button className="btn-upload" onClick={() => setShowPicker(true)}>
+            Choose logo / watermark image
+          </button>
+        )}
+      </div>
+      {showPicker && (
+        <MediaPickerModal uid={userUid} accept="image/*"
+          onSelect={({ url, storagePath }) => {
+            setShowPicker(false)
+            onChange({ ...wm, imageUrl: url, imagePath: storagePath })
+          }}
+          onClose={() => setShowPicker(false)} />
+      )}
+    </div>
+  )
+}
+
 // ── Main builder ───────────────────────────────────────────────────
 
 export default function Builder() {
@@ -1088,6 +1277,10 @@ export default function Builder() {
   const [theme, setTheme]                     = useState('minimal')
   const [darkMode, setDarkMode]               = useState(false)
   const [themeColors, setThemeColors]         = useState({})
+  const [variantGroups, setVariantGroups]     = useState([])
+  const [hotspots, setHotspots]               = useState([])
+  const [watermark, setWatermark]             = useState(DEFAULT_WATERMARK)
+  const [hotspotPlaceId, setHotspotPlaceId]   = useState(null)
   const [published, setPublished]             = useState(false)
   const [saving, setSaving]           = useState(false)
   const [saved, setSaved]             = useState(false)
@@ -1136,15 +1329,18 @@ export default function Builder() {
       setTheme(cfg.theme ?? 'minimal')
       setDarkMode(cfg.darkMode ?? false)
       setThemeColors(cfg.themeColors ?? {})
+      setVariantGroups(cfg.variantGroups ?? [])
+      setHotspots(cfg.hotspots ?? [])
+      setWatermark({ ...DEFAULT_WATERMARK, ...(cfg.watermark ?? {}) })
       setPublished(cfg.published ?? false)
       setLoading(false)
     })
   }, [id])
 
-  const doSave = useCallback(async (n, v, i, bg, vs, el, il, of_, th, dm, tc, opts = {}) => {
+  const doSave = useCallback(async (n, v, i, bg, vs, el, il, of_, th, dm, tc, vg, hs, wm, opts = {}) => {
     setSaving(true); setSaveError(null)
     try {
-      const payload = stripUndefined({ name: n, variants: v, interiors: i, background: bg, viewerSettings: vs, exteriorLabel: el, interiorLabel: il, orderForm: of_, theme: th, darkMode: dm, themeColors: tc })
+      const payload = stripUndefined({ name: n, variants: v, interiors: i, background: bg, viewerSettings: vs, exteriorLabel: el, interiorLabel: il, orderForm: of_, theme: th, darkMode: dm, themeColors: tc, variantGroups: vg, hotspots: hs, watermark: wm })
       await saveConfigurator(id, payload)
       if (opts.createRevision) {
         saveRevision(id, opts.ownerId, payload).catch((err) => console.error('saveRevision:', err))
@@ -1162,9 +1358,9 @@ export default function Builder() {
     if (initialLoad.current) { initialLoad.current = false; return }
     setDirty(true)
     clearTimeout(autoSaveTimer.current)
-    autoSaveTimer.current = setTimeout(() => doSave(name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors), 1500)
+    autoSaveTimer.current = setTimeout(() => doSave(name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark), 1500)
     return () => clearTimeout(autoSaveTimer.current)
-  }, [name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, doSave])
+  }, [name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark, doSave])
 
   function applySnapshot(snap) {
     skipHistory.current = true
@@ -1178,6 +1374,9 @@ export default function Builder() {
     setTheme(snap.theme)
     setDarkMode(snap.darkMode)
     setThemeColors(snap.themeColors)
+    setVariantGroups(snap.variantGroups ?? [])
+    setHotspots(snap.hotspots ?? [])
+    setWatermark(snap.watermark ?? DEFAULT_WATERMARK)
     setHistoryLen(historyRef.current.length)
   }
 
@@ -1204,11 +1403,11 @@ export default function Builder() {
   useEffect(() => {
     if (loading) return
     if (skipHistory.current) { skipHistory.current = false; return }
-    const snapshot = { variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors }
+    const snapshot = { variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark }
     historyRef.current = [...historyRef.current.slice(0, historyIdx.current + 1), snapshot].slice(-50)
     historyIdx.current = historyRef.current.length - 1
     setHistoryLen(historyRef.current.length)
-  }, [variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors])
+  }, [variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark])
 
   useEffect(() => {
     function onKey(e) {
@@ -1249,7 +1448,7 @@ export default function Builder() {
 
   async function handleSave() {
     clearTimeout(autoSaveTimer.current)
-    await doSave(name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, { createRevision: true, ownerId: user.uid })
+    await doSave(name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark, { createRevision: true, ownerId: user.uid })
   }
 
   async function handlePublish() {
@@ -1260,14 +1459,14 @@ export default function Builder() {
       const count = await getPublishedCount(user.uid)
       if (count >= limit) { navigate('/billing'); return }
     }
-    await saveConfigurator(id, stripUndefined({ name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors }))
+    await saveConfigurator(id, stripUndefined({ name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark }))
     await publishConfigurator(id, !published)
     setPublished((v) => !v)
   }
 
   if (loading) return <div className="page-loading">Loading builder…</div>
 
-  const config = { variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors }
+  const config = { variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark }
 
   return (
     <div className="builder">
@@ -1344,10 +1543,15 @@ export default function Builder() {
               }>+ Add</button>
             }
           >
+            <VariantGroupsManager
+              groups={variantGroups}
+              variants={variants}
+              onChange={setVariantGroups}
+            />
             {variants.length === 0
               ? <p className="builder-hint">Add a variant with rotation images or a 3D model.</p>
               : variants.map((v, i) => (
-                <VariantEditor key={v.id} variant={v} uid={user.uid}
+                <VariantEditor key={v.id} variant={v} uid={user.uid} variantGroups={variantGroups}
                   onChange={(u) => setVariants((vs) => vs.map((x) => x.id === v.id ? u : x))}
                   onDelete={() => setVariants((vs) => vs.filter((x) => x.id !== v.id))}
                   onDuplicate={() => setVariants((vs) => {
@@ -1430,6 +1634,34 @@ export default function Builder() {
             />
           </BuilderAccordion>
 
+          {/* Hotspots */}
+          <BuilderAccordion title="Hotspots" defaultOpen={false} badge={hotspots.length}>
+            <HotspotsEditor
+              hotspots={hotspots}
+              onChange={setHotspots}
+              placingId={hotspotPlaceId}
+              onPlaceId={setHotspotPlaceId}
+            />
+          </BuilderAccordion>
+
+          {/* Watermark */}
+          <BuilderAccordion
+            title="Watermark"
+            defaultOpen={false}
+            right={
+              <label className="vs-toggle">
+                <input type="checkbox" checked={watermark.enabled}
+                  onChange={(e) => setWatermark({ ...watermark, enabled: e.target.checked })} />
+                <span className="vs-toggle-track" />
+              </label>
+            }
+          >
+            {watermark.enabled
+              ? <WatermarkEditor watermark={watermark} uid={user.uid} onChange={setWatermark} />
+              : <p className="builder-hint">Enable to overlay a logo or watermark on the viewer.</p>
+            }
+          </BuilderAccordion>
+
           {/* Embed code */}
           {published && <EmbedSection id={id} origin={window.location.origin} />}
         </aside>
@@ -1442,10 +1674,17 @@ export default function Builder() {
             e.preventDefault()
           }}
         />
-        <div className="builder-preview">
+        <div className={`builder-preview${hotspotPlaceId ? ' hotspot-placing' : ''}`}>
           {variants.length === 0 && interiors.length === 0
             ? <div className="preview-empty">Add variants or interiors to preview</div>
-            : <ConfiguratorRenderer config={config} />
+            : <ConfiguratorRenderer
+                config={config}
+                hotspotPlaceId={hotspotPlaceId}
+                onHotspotPlace={(x, y) => {
+                  setHotspots((hs) => hs.map((h) => h.id === hotspotPlaceId ? { ...h, x, y } : h))
+                  setHotspotPlaceId(null)
+                }}
+              />
           }
         </div>
       </div>

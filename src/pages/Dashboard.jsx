@@ -94,8 +94,15 @@ export default function Dashboard() {
                   <span className={`config-status ${cfg.published ? 'published' : ''}`}>
                     {cfg.published ? 'Published' : 'Draft'}
                   </span>
-                  <button className="config-dupe" onClick={(e) => handleDuplicate(cfg, e)} title="Duplicate">⧉</button>
-                  <button className="config-delete" onClick={(e) => handleDelete(cfg.id, e)} title="Delete">✕</button>
+                  {cfg._isTeamOwned && (
+                    <span className="config-team-badge">Shared</span>
+                  )}
+                  {!cfg._isTeamOwned && (
+                    <>
+                      <button className="config-dupe" onClick={(e) => handleDuplicate(cfg, e)} title="Duplicate">⧉</button>
+                      <button className="config-delete" onClick={(e) => handleDelete(cfg.id, e)} title="Delete">✕</button>
+                    </>
+                  )}
                 </div>
                 <div className="config-card-name">{cfg.name}</div>
                 <div className="config-card-meta">

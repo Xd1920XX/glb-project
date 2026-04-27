@@ -58,7 +58,33 @@ export async function getUserConfigurators(uid) {
     orderBy('createdAt', 'desc'),
   )
   const snaps = await getDocs(q)
-  return snaps.docs.map((d) => ({ id: d.id, ...d.data() }))
+  let results = snaps.docs.map((d) => ({ id: d.id, ...d.data() }))
+
+  // Also fetch configurators the user has been given team access to
+  try {
+    const inviteSnaps = await getDocs(query(
+      collection(db, 'teamInvites'),
+      where('memberUid', '==', uid),
+      where('status', '==', 'accepted'),
+    ))
+    for (const inviteDoc of inviteSnaps.docs) {
+      const { ownerUid } = inviteDoc.data()
+      const teamSnaps = await getDocs(query(
+        collection(db, 'configurators'),
+        where('ownerId', '==', ownerUid),
+        orderBy('createdAt', 'desc'),
+      ))
+      const teamConfigs = teamSnaps.docs.map((d) => ({ id: d.id, ...d.data(), _isTeamOwned: true }))
+      results = [...results, ...teamConfigs]
+    }
+    results.sort((a, b) => {
+      const ta = a.createdAt?.toMillis?.() ?? 0
+      const tb = b.createdAt?.toMillis?.() ?? 0
+      return tb - ta
+    })
+  } catch { /* ignore — Firestore rules may not allow cross-owner reads yet */ }
+
+  return results
 }
 
 export async function getPublishedCount(uid) {
@@ -293,6 +319,39 @@ export async function getRevisions(configuratorId, ownerId) {
     const tb = b.savedAt?.toMillis?.() ?? 0
     return tb - ta
   })
+}
+
+// ── Team invites ─────────────────────────────────────────────────────
+
+export async function createTeamInvite(ownerUid, ownerEmail, inviteeEmail, code) {
+  await setDoc(doc(db, 'teamInvites', code), {
+    ownerUid,
+    ownerEmail,
+    inviteeEmail,
+    code,
+    status: 'pending',
+    memberUid: null,
+    createdAt: serverTimestamp(),
+  })
+}
+
+export async function getTeamInviteByCode(code) {
+  const snap = await getDoc(doc(db, 'teamInvites', code))
+  return snap.exists() ? snap.data() : null
+}
+
+export async function acceptTeamInvite(code, memberUid) {
+  await updateDoc(doc(db, 'teamInvites', code), { status: 'accepted', memberUid })
+}
+
+export async function getTeamMembers(ownerUid) {
+  const q = query(collection(db, 'teamInvites'), where('ownerUid', '==', ownerUid))
+  const snaps = await getDocs(q)
+  return snaps.docs.map((d) => ({ ...d.data(), code: d.id }))
+}
+
+export async function revokeTeamInvite(code) {
+  await updateDoc(doc(db, 'teamInvites', code), { status: 'revoked' })
 }
 
 // ── Public embed — reads config + checks owner subscription ────────
