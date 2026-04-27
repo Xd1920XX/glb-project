@@ -15,6 +15,7 @@ export default function SaunaConfigurator() {
   const [view, setView]             = useState('exterior')
   const [show3D, setShow3D]         = useState(false)
   const [interiorId, setInteriorId] = useState(model.interiors[0].id)
+  const [roomId, setRoomId]         = useState(model.rooms?.[0]?.id ?? null)
 
   const color    = model.colors.find((c) => c.id === colorId)
   const interior = model.interiors.find((i) => i.id === interiorId)
@@ -34,7 +35,9 @@ export default function SaunaConfigurator() {
 
   function renderViewer() {
     if (view === 'interior') {
-      return <InteriorViewer key={interior.id} src={interior.path} />
+      const currentRoom = model.rooms?.find((r) => r.id === roomId)
+      const src = currentRoom?.path ?? interior.path
+      return <InteriorViewer key={src} src={src} />
     }
     if (view === 'order') {
       const src = `${color.folder}/1.jpg`
@@ -72,12 +75,15 @@ export default function SaunaConfigurator() {
           modelName={model.name}
           colors={model.colors}
           interiors={model.interiors}
+          rooms={model.rooms}
           colorId={colorId}
           view={view}
           interiorId={interiorId}
+          roomId={roomId}
           onColorChange={handleColorChange}
           onViewChange={setView}
           onInteriorChange={setInteriorId}
+          onRoomChange={setRoomId}
         />
       </div>
     </div>

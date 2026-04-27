@@ -101,12 +101,14 @@ function OrderForm({ color, interior }) {
 }
 
 export function SaunaPanel({
-  modelName, colors, interiors,
-  colorId, view, interiorId,
-  onColorChange, onViewChange, onInteriorChange,
+  modelName, colors, interiors, rooms,
+  colorId, view, interiorId, roomId,
+  onColorChange, onViewChange, onInteriorChange, onRoomChange,
 }) {
   const color = colors.find((c) => c.id === colorId)
   const interior = interiors.find((i) => i.id === interiorId)
+  const currentRoom = rooms?.find((r) => r.id === roomId)
+  const showHeaters = !rooms || !currentRoom?.path
 
   return (
     <div className="config-panel">
@@ -150,23 +152,43 @@ export function SaunaPanel({
 
         {view === 'interior' && (
           <div className="tab-section">
-            <p className="section-label">Heater</p>
-            <div className="interior-list">
-              {interiors.map((item) => (
-                <button
-                  key={item.id}
-                  className={`interior-item${interiorId === item.id ? ' selected' : ''}`}
-                  onClick={() => onInteriorChange(item.id)}
-                >
-                  {item.icon && (
-                    <div className="interior-item-thumb">
-                      <img src={item.icon} alt="" />
-                    </div>
-                  )}
-                  <span className="interior-item-label">{item.label}</span>
-                </button>
-              ))}
-            </div>
+            {rooms && (
+              <>
+                <p className="section-label">Room</p>
+                <div className="color-grid" style={{ marginBottom: 20 }}>
+                  {rooms.map((r) => (
+                    <button
+                      key={r.id}
+                      className={`color-card${roomId === r.id ? ' selected' : ''}`}
+                      onClick={() => onRoomChange(r.id)}
+                    >
+                      <span className="color-label">{r.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+            {showHeaters && (
+              <>
+                <p className="section-label">Heater</p>
+                <div className="interior-list">
+                  {interiors.map((item) => (
+                    <button
+                      key={item.id}
+                      className={`interior-item${interiorId === item.id ? ' selected' : ''}`}
+                      onClick={() => onInteriorChange(item.id)}
+                    >
+                      {item.icon && (
+                        <div className="interior-item-thumb">
+                          <img src={item.icon} alt="" />
+                        </div>
+                      )}
+                      <span className="interior-item-label">{item.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
             <button className="next-btn" onClick={() => onViewChange('order')}>Next →</button>
           </div>
         )}

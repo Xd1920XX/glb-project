@@ -32,12 +32,13 @@ export const MODELS = {
         texture: encode('/new/brown_dark.jpg'),
         textureMaterials: ['black_walls'] },
     ],
+    rooms: [
+      { id: 'stage', label: 'Stage Room' },
+      { id: 'front', label: 'Front Room', path: encode('/update_elegant/Saun Elegant_6k_2nd room.jpg') },
+    ],
     interiors: [
-      { id: 'huum-drop',     label: 'Huum Drop 9kw WI-FI',         icon: encode('/Ikoonid/Huum.jpg'),                        path: encode('/update_elegant/Saun Elegant_6k_Huum Drop.jpg') },
-      { id: 'huum-drop-eos', label: 'Huum Drop 9kw WI-FI + Eos',   icon: encode('/Ikoonid/HUUM + EOS.jpg'),                  path: encode('/update_elegant/Saun Elegant_6k_Huum Drop+EOS.jpg') },
-      { id: 'huum-flow',     label: 'Huum Flow Mini 8.5kw',         icon: encode('/Ikoonid/HUUM HIVE Flow Mini.jpg'),         path: encode('/update_elegant/Saun Elegant_6k_Huum Flow.jpg') },
-      { id: 'huum-flow-eos', label: 'Huum Flow Mini 8.5kw + EOS',   icon: encode('/Ikoonid/HUUM HIVE Flow Mini + EOS.jpg'),  path: encode('/update_elegant/Saun Elegant_6k_Huum Flow+EOS.jpg') },
-      { id: '2nd-room',      label: '2nd Room',                     icon: encode('/Ikoonid/Huum.jpg'),                        path: encode('/update_elegant/Saun Elegant_6k_2nd room.jpg') },
+      { id: 'huum-drop', label: 'Huum Drop 9kw WI-FI',   icon: encode('/Ikoonid/Huum.jpg'),               path: encode('/update_elegant/Saun Elegant_6k_Huum Drop.jpg') },
+      { id: 'huum-flow', label: 'Huum Flow Mini 8.5kw',   icon: encode('/Ikoonid/HUUM HIVE Flow Mini.jpg'), path: encode('/update_elegant/Saun Elegant_6k_Huum Flow.jpg') },
     ],
   },
   'city-xs': {
