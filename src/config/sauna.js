@@ -33,8 +33,8 @@ export const MODELS = {
         textureMaterials: ['black_walls'] },
     ],
     rooms: [
-      { id: 'stage', label: 'Stage Room' },
-      { id: 'front', label: 'Front Room', path: encode('/update_elegant/Saun Elegant_6k_2nd room.jpg') },
+      { id: 'stage', label: 'Sauna room' },
+      { id: 'front', label: 'Changing room', path: encode('/update_elegant/Saun Elegant_6k_2nd room.jpg') },
     ],
     interiors: [
       { id: 'huum-drop', label: 'Huum Drop 9kw WI-FI',   icon: encode('/Ikoonid/Huum.jpg'),               path: encode('/update_elegant/Saun Elegant_6k_Huum Drop.jpg') },
@@ -54,8 +54,8 @@ export const MODELS = {
   'city-lux': {
     name: 'City LUX',
     colors: [
-      { id: 'black', label: 'Black', swatch: '#1A1A1A', folder: '/city_lux/black', glb: encode('/city_lux/Sauna City LUX.glb') },
-      { id: 'brown', label: 'Brown', swatch: '#6B4226', folder: '/city_lux/brown', glb: encode('/city_lux/Sauna City LUX.glb'),
+      { id: 'black', label: 'Black', swatch: '#1A1A1A', folder: encode('/City_lux_new/black'), glb: encode('/City_lux_new/Sauna City LUX.glb') },
+      { id: 'brown', label: 'Brown', swatch: '#6B4226', folder: encode('/City_lux_new/brown'), glb: encode('/City_lux_new/Sauna City LUX.glb'),
         texture: encode('/new/brown_dark.jpg'),
         textureMaterials: ['black_walls'] },
     ],
