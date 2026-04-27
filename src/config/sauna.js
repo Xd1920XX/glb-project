@@ -59,10 +59,6 @@ export const MODELS = {
         texture: encode('/new/brown_dark.jpg'),
         textureMaterials: ['black_walls'] },
     ],
-    rooms: [
-      { id: 'sauna',    label: 'Sauna room' },
-      { id: 'changing', label: 'Changing room' },
-    ],
     interiors: INTERIORS_LUX,
   },
   'city': {
