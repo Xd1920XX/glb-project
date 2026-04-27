@@ -1,0 +1,12 @@
+<svg viewBox="0 0 180 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Icon mark -->
+  <rect width="32" height="32" rx="7" fill="#111111"/>
+  <text x="16" y="23" text-anchor="middle"
+        font-family="-apple-system, BlinkMacSystemFont, 'Inter', sans-serif"
+        font-size="20" font-weight="600" fill="#ffffff">g</text>
+
+  <!-- Wordmark -->
+  <text x="44" y="22" dominant-baseline="auto"
+        font-family="-apple-system, BlinkMacSystemFont, 'Inter', sans-serif"
+        font-size="15" font-weight="500" letter-spacing="-0.2" fill="#111111">glbconfigurator</text>
+</svg>

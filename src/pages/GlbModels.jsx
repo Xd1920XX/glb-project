@@ -29,7 +29,7 @@ export default function GlbModels() {
   return (
     <div className="landing">
       <nav className="landing-nav">
-        <Link to="/" className="landing-logo" style={{ textDecoration: 'none', color: 'inherit' }}>GLB Configurator</Link>
+        <Link to="/"><img src="/logo.svg" alt="glbconfigurator" className="landing-logo-img" /></Link>
         <div className="landing-nav-links">
           <Link to="/what-is-glb">What is GLB?</Link>
           <Link to="/contact">Contact</Link>

@@ -46,7 +46,7 @@ export default function Login() {
   return (
     <div className="auth-split">
       <div className="auth-split-left">
-        <Link to="/" className="auth-split-logo">GLB Configurator</Link>
+        <Link to="/" className="auth-split-logo"><img src="/logo-white.svg" alt="glbconfigurator" className="auth-logo-img" /></Link>
         <div className="auth-split-pitch">
           <h2>Build configurators your customers will love</h2>
           <ul className="auth-split-features">

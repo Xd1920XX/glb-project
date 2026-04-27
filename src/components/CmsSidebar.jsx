@@ -21,7 +21,7 @@ export function CmsSidebar({ active }) {
     <aside className="cms-sidebar">
       {/* Logo */}
       <div className="cms-sidebar-logo">
-        <Link to="/dashboard" className="cms-logo-text">GLB Configurator</Link>
+        <Link to="/dashboard" className="cms-logo-text"><img src="/logo.svg" alt="glbconfigurator" className="cms-logo-img" /></Link>
       </div>
 
       {/* Navigation */}

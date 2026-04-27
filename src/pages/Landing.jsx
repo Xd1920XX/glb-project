@@ -9,7 +9,7 @@ export default function Landing() {
 
       {/* ── Nav ── */}
       <nav className="landing-nav">
-        <span className="landing-logo">GLB Configurator</span>
+        <Link to="/"><img src="/logo.svg" alt="glbconfigurator" className="landing-logo-img" /></Link>
         <div className="landing-nav-links">
           <Link to="/contact">Contact</Link>
           <Link to="/login">Log in</Link>
@@ -184,7 +184,7 @@ export default function Landing() {
       <footer className="landing-footer">
         <div className="landing-footer-inner">
           <div className="landing-footer-brand">
-            <span className="landing-logo">GLB Configurator</span>
+            <img src="/logo.svg" alt="glbconfigurator" className="landing-logo-img" />
             <p>Build &amp; embed 3D product configurators. Create branded landing pages. Share anywhere.</p>
           </div>
           <div className="landing-footer-links">
