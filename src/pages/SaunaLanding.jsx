@@ -7,7 +7,7 @@ const MODELS = [
   { id: '04', name: 'City XL',      image: '/Mudelid/04_City XL/Saun XL.jpg' },
   { id: '05', name: 'City Elegant', image: '/Mudelid/05_City Elegant/1black.jpg', modelId: 'city-elegant' },
   { id: '06', name: 'Grande',       image: '/Mudelid/06_Grande/Grande.jpg' },
-  { id: '07', name: 'Elegant',      image: '/Mudelid/07_Elegant/Elegant.jpg' },
+  { id: '07', name: 'Elegant',      image: '/Mudelid/07_Elegant/Elegant.jpg', modelId: 'elegant' },
   { id: '08', name: 'Denmark',      image: '/Mudelid/08_Denmark/Saun-Denmark-nurga-alt-1024x1024.png' },
   { id: '09', name: 'Estonia',      image: '/Mudelid/09_Estonia/saun-city-lux-nurgalt-1024x1024.png' },
 ]
