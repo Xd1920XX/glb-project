@@ -7,12 +7,12 @@ import { useAuth } from '../hooks/useAuth.jsx'
 export default function Login() {
   const { user } = useAuth()
   const navigate = useNavigate()
-
-  if (user) return <Navigate to="/dashboard" replace />
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [error, setError]       = useState('')
   const [loading, setLoading]   = useState(false)
+
+  if (user) return <Navigate to="/dashboard" replace />
 
   async function handleGoogle() {
     setError('')
