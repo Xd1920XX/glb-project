@@ -1103,6 +1103,9 @@ export default function Builder() {
   const skipHistory = useRef(false)
   const [historyLen, setHistoryLen] = useState(0)
 
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
+
   const [settingsWidth, setSettingsWidth] = useState(360)
   const resizing    = useRef(false)
   const resizeStart = useRef(null)
@@ -1275,24 +1278,55 @@ export default function Builder() {
             onChange={(e) => setName(e.target.value)} placeholder="Configurator name" />
           <div className="builder-actions">
             {saveError && <span className="builder-save-error">{saveError}</span>}
-            <button className="btn-ghost btn-sm" title="Undo (Ctrl+Z)"
+            <button className="btn-ghost btn-sm builder-desktop-only" title="Undo (Ctrl+Z)"
               onClick={() => { if (historyIdx.current > 0) { historyIdx.current -= 1; applySnapshot(historyRef.current[historyIdx.current]) } }}
               disabled={historyIdx.current <= 0}>↩</button>
-            <button className="btn-ghost btn-sm" title="Redo (Ctrl+Y)"
+            <button className="btn-ghost btn-sm builder-desktop-only" title="Redo (Ctrl+Y)"
               onClick={() => { if (historyIdx.current < historyRef.current.length - 1) { historyIdx.current += 1; applySnapshot(historyRef.current[historyIdx.current]) } }}
               disabled={historyIdx.current >= historyLen - 1}>↪</button>
             <button className="btn-ghost btn-sm" onClick={handleSave} disabled={saving}>
               {saved ? '✓' : saving ? '…' : dirty ? 'Save*' : 'Save'}
             </button>
-            <button className="btn-ghost btn-sm" title="Revision history" onClick={() => setShowHistory(true)}>
+            <button className="btn-ghost btn-sm builder-desktop-only" title="Revision history" onClick={() => setShowHistory(true)}>
               History
             </button>
-            <button className="btn-ghost btn-sm" onClick={() => window.open(`/embed/${id}`, '_blank')}>
+            <button className="btn-ghost btn-sm builder-desktop-only" onClick={() => setPreviewOpen(true)}>
               Preview
             </button>
-            <button className={published ? 'btn-danger' : 'btn-primary'} onClick={handlePublish}>
+            <button className={`builder-desktop-only ${published ? 'btn-danger' : 'btn-primary'}`} onClick={handlePublish}>
               {published ? 'Unpublish' : 'Publish'}
             </button>
+
+            {/* Mobile three-dots menu */}
+            <div className="builder-mobile-menu">
+              <button className="btn-ghost btn-sm builder-mobile-menu-btn" onClick={() => setMobileMenuOpen((v) => !v)}>
+                •••
+              </button>
+              {mobileMenuOpen && (
+                <>
+                  <div className="builder-mobile-overlay" onClick={() => setMobileMenuOpen(false)} />
+                  <div className="builder-mobile-dropdown">
+                    <button className="builder-mobile-dropdown-item" title="Undo"
+                      onClick={() => { setMobileMenuOpen(false); if (historyIdx.current > 0) { historyIdx.current -= 1; applySnapshot(historyRef.current[historyIdx.current]) } }}
+                      disabled={historyIdx.current <= 0}>↩ Undo</button>
+                    <button className="builder-mobile-dropdown-item" title="Redo"
+                      onClick={() => { setMobileMenuOpen(false); if (historyIdx.current < historyRef.current.length - 1) { historyIdx.current += 1; applySnapshot(historyRef.current[historyIdx.current]) } }}
+                      disabled={historyIdx.current >= historyLen - 1}>↪ Redo</button>
+                    <button className="builder-mobile-dropdown-item" onClick={() => { setMobileMenuOpen(false); setShowHistory(true) }}>
+                      History
+                    </button>
+                    <button className="builder-mobile-dropdown-item" onClick={() => { setMobileMenuOpen(false); setPreviewOpen(true) }}>
+                      Preview
+                    </button>
+                    <div className="builder-mobile-dropdown-divider" />
+                    <button className={`builder-mobile-dropdown-item ${published ? 'builder-mobile-dropdown-item--danger' : 'builder-mobile-dropdown-item--primary'}`}
+                      onClick={() => { setMobileMenuOpen(false); handlePublish() }}>
+                      {published ? 'Unpublish' : 'Publish'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1424,6 +1458,23 @@ export default function Builder() {
           onRestore={handleRestoreRevision}
           onClose={() => setShowHistory(false)}
         />
+      )}
+
+      {previewOpen && (
+        <div className="builder-preview-modal" onClick={() => setPreviewOpen(false)}>
+          <div className="builder-preview-modal-inner" onClick={(e) => e.stopPropagation()}>
+            <div className="builder-preview-modal-header">
+              <span className="builder-preview-modal-title">Preview</span>
+              <button className="builder-preview-modal-close" onClick={() => setPreviewOpen(false)}>✕</button>
+            </div>
+            <iframe
+              src={`/embed/${id}`}
+              className="builder-preview-modal-iframe"
+              title="Configurator preview"
+              allowFullScreen
+            />
+          </div>
+        </div>
       )}
     </div>
   )

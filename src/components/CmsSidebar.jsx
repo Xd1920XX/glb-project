@@ -17,6 +17,7 @@ export function CmsSidebar({ active }) {
   const initials = (profile?.name || profile?.email || '?').slice(0, 2).toUpperCase()
 
   return (
+    <>
     <aside className="cms-sidebar">
       {/* Logo */}
       <div className="cms-sidebar-logo">
@@ -121,5 +122,53 @@ export function CmsSidebar({ active }) {
         </button>
       </div>
     </aside>
+
+    {/* Mobile bottom nav */}
+    <nav className="cms-mobile-nav">
+      <Link to="/dashboard" className={`cms-mobile-nav-item${active === 'configurators' ? ' active' : ''}`}>
+        <svg viewBox="0 0 16 16" fill="currentColor">
+          <rect x="1" y="1" width="6" height="6" rx="1.5" opacity=".9"/>
+          <rect x="9" y="1" width="6" height="6" rx="1.5" opacity=".9"/>
+          <rect x="1" y="9" width="6" height="6" rx="1.5" opacity=".9"/>
+          <rect x="9" y="9" width="6" height="6" rx="1.5" opacity=".9"/>
+        </svg>
+        <span>Configs</span>
+      </Link>
+      <Link to="/orders" className={`cms-mobile-nav-item${active === 'orders' ? ' active' : ''}`}>
+        <svg viewBox="0 0 16 16" fill="none">
+          <rect x="2" y="1" width="10" height="14" rx="1.5" stroke="currentColor" strokeWidth="1.4"/>
+          <path d="M5 5h5M5 8h5M5 11h3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+        </svg>
+        <span>Orders</span>
+      </Link>
+      <Link to="/media" className={`cms-mobile-nav-item${active === 'media' ? ' active' : ''}`}>
+        <svg viewBox="0 0 16 16" fill="none">
+          <rect x="1.5" y="1.5" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="1.4"/>
+          <circle cx="5.5" cy="5.5" r="1.3" fill="currentColor"/>
+          <path d="M1.5 11.5l3.5-3.5 2.5 2.5 2-2 4.5 4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        <span>Media</span>
+      </Link>
+      <Link to="/billing" className={`cms-mobile-nav-item${active === 'billing' ? ' active' : ''}`}>
+        <svg viewBox="0 0 16 16" fill="none">
+          <rect x="1.5" y="3.5" width="13" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.4"/>
+          <path d="M1.5 6.5h13" stroke="currentColor" strokeWidth="1.4"/>
+          <path d="M4 10h3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+        </svg>
+        <span>Billing</span>
+      </Link>
+      {isAdmin && (
+        <Link to="/admin" className={`cms-mobile-nav-item${active === 'admin' ? ' active' : ''}`}>
+          <svg viewBox="0 0 16 16" fill="none">
+            <circle cx="6" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.4"/>
+            <path d="M1.5 13c0-2.485 2.015-4 4.5-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+            <circle cx="11.5" cy="11.5" r="3" stroke="currentColor" strokeWidth="1.3"/>
+            <path d="M11 9l1 1.5 2-2.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span>Admin</span>
+        </Link>
+      )}
+    </nav>
+    </>
   )
 }
