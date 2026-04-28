@@ -60,7 +60,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <div className="contact-detail-label">Email</div>
-                  <div className="contact-detail-value">hello@configurator.app</div>
+                  <div className="contact-detail-value">info@nordicrender.com</div>
                 </div>
               </div>
               <div className="contact-detail-item">
