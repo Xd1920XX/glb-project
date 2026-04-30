@@ -5,12 +5,73 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev      # Start dev server (Vite, http://localhost:5173)
-npm run build    # Production build → dist/
-npm run preview  # Preview production build locally
+yarn dev          # Start dev server (Vite, http://localhost:5173)
+yarn build        # Production build → dist/
+yarn preview      # Preview production build locally
+yarn lint         # ESLint — checks src/ (eslint.config.js, flat config)
+yarn test         # Vitest in watch mode
+yarn test:run     # Vitest single run (CI)
 ```
 
-There are no test or lint commands configured.
+To run a single test file:
+```bash
+yarn vitest run src/path/to/file.test.jsx
+```
+
+## Writing tests
+
+**Framework:** Vitest + React Testing Library + jsdom. Test files live next to the source file they test: `src/components/Foo.test.jsx`, `src/firebase/db.test.js`, etc. The global setup at `src/test/setup.js` imports `@testing-library/jest-dom` so matchers like `toBeInTheDocument()` are available everywhere.
+
+**What to mock:** Firebase is the main external dependency. Mock the entire firebase modules rather than individual functions:
+
+```js
+import { vi } from 'vitest'
+
+vi.mock('../firebase/db.js', () => ({
+  getConfigurator: vi.fn(),
+  saveConfigurator: vi.fn(),
+}))
+
+vi.mock('../firebase/config.js', () => ({
+  auth: {},
+  db: {},
+  storage: {},
+}))
+```
+
+**Mocking `useAuth`:** Many components call `useAuth()`. Mock the hook module:
+
+```js
+vi.mock('../hooks/useAuth.jsx', () => ({
+  useAuth: vi.fn(() => ({
+    user: { uid: 'test-uid' },
+    profile: { subscriptionStatus: 'active', planId: 'pro' },
+    setProfile: vi.fn(),
+  })),
+}))
+```
+
+**Mocking React Router:** Components that use `useParams`, `useNavigate`, or `Link` need the router. Wrap with `MemoryRouter` or mock the module:
+
+```js
+import { MemoryRouter } from 'react-router-dom'
+render(<MemoryRouter initialEntries={['/builder/abc']}><MyComponent /></MemoryRouter>)
+```
+
+**Mocking Three.js / R3F:** Three.js and React Three Fiber do not work in jsdom. Mock entire modules for any component that imports from `three`, `@react-three/fiber`, or `@react-three/drei`:
+
+```js
+vi.mock('@react-three/fiber', () => ({ Canvas: ({ children }) => children, useFrame: vi.fn() }))
+vi.mock('@react-three/drei', () => ({ useGLTF: vi.fn(() => ({ scene: { clone: vi.fn(() => ({})) } })) }))
+```
+
+**Focus areas for tests:**
+- `src/firebase/db.js` — unit test each function by mocking the Firestore SDK calls
+- `src/config/plans.js` — pure functions (`getEmbedLimit`, `getLandingPageLimit`, `isTrialExpired`), test with no mocks needed
+- `src/utils/glbMaterials.js` — unit test material extraction logic
+- UI components: prefer testing behaviour (button clicks, form submission) over snapshot tests
+
+---
 
 ## Architecture
 
