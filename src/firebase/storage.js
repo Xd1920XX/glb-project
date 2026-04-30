@@ -46,7 +46,8 @@ export async function listUserFiles(uid) {
           contentType: meta.contentType || '',
           createdAt: meta.timeCreated,   // ISO string
         }
-      } catch {
+      } catch (err) {
+        console.warn('listUserFiles: skipped', item.fullPath, err)
         return null
       }
     })
@@ -59,7 +60,10 @@ export async function listUserFiles(uid) {
 export async function deleteFile(storagePath) {
   try {
     await deleteObject(ref(storage, storagePath))
-  } catch {
-    // file may already be gone
+  } catch (err) {
+    // storage/object-not-found is expected if the file is already gone — log others
+    if (err?.code !== 'storage/object-not-found') {
+      console.warn('deleteFile failed', storagePath, err)
+    }
   }
 }

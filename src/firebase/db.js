@@ -297,11 +297,13 @@ export async function saveRevision(configuratorId, ownerId, data) {
       where('configuratorId', '==', configuratorId),
       orderBy('savedAt', 'desc'),
     ),
-  ).then((snaps) => {
-    if (snaps.size > MAX_REVISIONS) {
-      snaps.docs.slice(MAX_REVISIONS).forEach((d) => deleteDoc(d.ref))
-    }
-  }).catch(() => {})
+  ).then(async (snaps) => {
+    if (snaps.size <= MAX_REVISIONS) return
+    const stale = snaps.docs.slice(MAX_REVISIONS)
+    await Promise.all(stale.map((d) => deleteDoc(d.ref)))
+  }).catch((err) => {
+    console.error('Revision cleanup failed:', err)
+  })
 }
 
 export async function getRevisions(configuratorId, ownerId) {

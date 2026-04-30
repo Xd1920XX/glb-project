@@ -1287,6 +1287,7 @@ export default function Builder() {
   const [dirty, setDirty]             = useState(false)
   const [saveError, setSaveError]     = useState(null)
   const [loading, setLoading]         = useState(true)
+  const [loadError, setLoadError]     = useState(null)
   const [showHistory, setShowHistory] = useState(false)
   const autoSaveTimer             = useRef(null)
   const initialLoad               = useRef(true)
@@ -1304,7 +1305,9 @@ export default function Builder() {
   const resizeStart = useRef(null)
 
   useEffect(() => {
+    let active = true
     getConfigurator(id).then((cfg) => {
+      if (!active) return
       if (!cfg) { navigate('/dashboard'); return }
       setName(cfg.name ?? '')
       // Migrate old single-glb variants to glbLayers
@@ -1334,13 +1337,19 @@ export default function Builder() {
       setWatermark({ ...DEFAULT_WATERMARK, ...(cfg.watermark ?? {}) })
       setPublished(cfg.published ?? false)
       setLoading(false)
+    }).catch((err) => {
+      if (!active) return
+      console.error('Builder load failed:', err)
+      setLoadError('Failed to load configurator — check your connection and try again.')
+      setLoading(false)
     })
-  }, [id])
+    return () => { active = false }
+  }, [id, navigate])
 
-  const doSave = useCallback(async (n, v, i, bg, vs, el, il, of_, th, dm, tc, vg, hs, wm, opts = {}) => {
+  const doSave = useCallback(async (cfg, opts = {}) => {
     setSaving(true); setSaveError(null)
     try {
-      const payload = stripUndefined({ name: n, variants: v, interiors: i, background: bg, viewerSettings: vs, exteriorLabel: el, interiorLabel: il, orderForm: of_, theme: th, darkMode: dm, themeColors: tc, variantGroups: vg, hotspots: hs, watermark: wm })
+      const payload = stripUndefined(cfg)
       await saveConfigurator(id, payload)
       if (opts.createRevision) {
         saveRevision(id, opts.ownerId, payload).catch((err) => console.error('saveRevision:', err))
@@ -1358,9 +1367,10 @@ export default function Builder() {
     if (initialLoad.current) { initialLoad.current = false; return }
     setDirty(true)
     clearTimeout(autoSaveTimer.current)
-    autoSaveTimer.current = setTimeout(() => doSave(name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark), 1500)
+    const cfg = { name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark }
+    autoSaveTimer.current = setTimeout(() => doSave(cfg), 1500)
     return () => clearTimeout(autoSaveTimer.current)
-  }, [name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark, doSave])
+  }, [name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark, loading, doSave])
 
   function applySnapshot(snap) {
     skipHistory.current = true
@@ -1448,7 +1458,8 @@ export default function Builder() {
 
   async function handleSave() {
     clearTimeout(autoSaveTimer.current)
-    await doSave(name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark, { createRevision: true, ownerId: user.uid })
+    const cfg = { name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark }
+    await doSave(cfg, { createRevision: true, ownerId: user.uid })
   }
 
   async function handlePublish() {
@@ -1459,12 +1470,14 @@ export default function Builder() {
       const count = await getPublishedCount(user.uid)
       if (count >= limit) { navigate('/billing'); return }
     }
-    await saveConfigurator(id, stripUndefined({ name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark }))
+    const cfg = { name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark }
+    await saveConfigurator(id, stripUndefined(cfg))
     await publishConfigurator(id, !published)
     setPublished((v) => !v)
   }
 
   if (loading) return <div className="page-loading">Loading builder…</div>
+  if (loadError) return <div className="page-loading">{loadError}</div>
 
   const config = { variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark }
 

@@ -10,16 +10,27 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null)
 
   useEffect(() => {
-    return onAuthStateChanged(auth, async (firebaseUser) => {
+    let active = true
+    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        const p = await getUser(firebaseUser.uid)
-        setProfile(p)
-        setUser(firebaseUser)
+        try {
+          const p = await getUser(firebaseUser.uid)
+          if (!active) return
+          setProfile(p)
+          setUser(firebaseUser)
+        } catch (err) {
+          if (!active) return
+          console.error('useAuth: getUser failed', err)
+          setProfile(null)
+          setUser(firebaseUser)
+        }
       } else {
+        if (!active) return
         setUser(null)
         setProfile(null)
       }
     })
+    return () => { active = false; unsub() }
   }, [])
 
   return (
