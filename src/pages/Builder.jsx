@@ -557,6 +557,7 @@ function MaterialsAccordion({ variant, uid: userUid, onChange }) {
 
 function InteriorEditor({ interior, uid: userUid, onChange, onDelete, onDuplicate, onMoveUp, onMoveDown }) {
   const [showPicker, setShowPicker] = useState(false)
+  const mode = interior.mode ?? 'pano'
 
   return (
     <div className="variant-block">
@@ -569,9 +570,19 @@ function InteriorEditor({ interior, uid: userUid, onChange, onDelete, onDuplicat
         <button className="btn-icon-dupe" title="Duplicate" onClick={onDuplicate}>⧉</button>
         <button className="btn-icon-delete" onClick={onDelete}>✕</button>
       </div>
+      <div className="variant-type-row">
+        <label className="radio-label">
+          <input type="radio" checked={mode === 'pano'}
+            onChange={() => onChange({ ...interior, mode: 'pano' })} /> 360° panorama
+        </label>
+        <label className="radio-label">
+          <input type="radio" checked={mode === 'flat'}
+            onChange={() => onChange({ ...interior, mode: 'flat' })} /> Flat image
+        </label>
+      </div>
       <div className="upload-section">
         {interior.panoramaUrl ? (
-          <div className="upload-done">✓ Panorama uploaded
+          <div className="upload-done">✓ Image uploaded
             <button className="btn-text-danger" onClick={() => setShowPicker(true)}>Replace</button>
             <button className="btn-text-danger" onClick={async () => {
               await deleteFile(interior.panoramaStoragePath)
@@ -580,7 +591,7 @@ function InteriorEditor({ interior, uid: userUid, onChange, onDelete, onDuplicat
           </div>
         ) : (
           <button className="btn-upload" onClick={() => setShowPicker(true)}>
-            Choose 360° panorama image
+            {mode === 'flat' ? 'Choose flat interior image' : 'Choose 360° panorama image'}
           </button>
         )}
       </div>

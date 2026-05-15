@@ -112,7 +112,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
   // ── Viewer ──────────────────────────────────────────────────────
   function renderViewer() {
     if (view === 'interior' && interior?.panoramaUrl) {
-      return <InteriorViewer key={interior.id} src={interior.panoramaUrl} />
+      return <InteriorViewer key={interior.id} src={interior.panoramaUrl} mode={interior.mode ?? 'pano'} />
     }
     if ((view === 'exterior' || view === 'order') && variant) {
       // Normalize GLB layers — support both old single-glb and new multi-layer variants
