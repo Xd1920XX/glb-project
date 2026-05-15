@@ -68,7 +68,15 @@ export async function getUserConfigurators(uid) {
       where('status', '==', 'accepted'),
     ))
     for (const inviteDoc of inviteSnaps.docs) {
-      const { ownerUid } = inviteDoc.data()
+      const { ownerUid, configuratorId } = inviteDoc.data()
+      if (configuratorId) {
+        // Per-project invite — fetch only that one configurator
+        const oneSnap = await getDoc(doc(db, 'configurators', configuratorId))
+        if (oneSnap.exists() && oneSnap.data().ownerId === ownerUid) {
+          results.push({ id: oneSnap.id, ...oneSnap.data(), _isTeamOwned: true })
+        }
+        continue
+      }
       const teamSnaps = await getDocs(query(
         collection(db, 'configurators'),
         where('ownerId', '==', ownerUid),
@@ -325,7 +333,7 @@ export async function getRevisions(configuratorId, ownerId) {
 
 // ── Team invites ─────────────────────────────────────────────────────
 
-export async function createTeamInvite(ownerUid, ownerEmail, inviteeEmail, code) {
+export async function createTeamInvite(ownerUid, ownerEmail, inviteeEmail, code, configuratorId = null) {
   await setDoc(doc(db, 'teamInvites', code), {
     ownerUid,
     ownerEmail,
@@ -333,6 +341,7 @@ export async function createTeamInvite(ownerUid, ownerEmail, inviteeEmail, code)
     code,
     status: 'pending',
     memberUid: null,
+    configuratorId,
     createdAt: serverTimestamp(),
   })
 }

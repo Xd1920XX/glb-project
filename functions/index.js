@@ -242,6 +242,30 @@ function orderEmail(configuratorName, variantId, formData) {
   }
 }
 
+// Team invite email
+function teamInviteEmail(ownerEmail, inviteUrl, projectName) {
+  const scopeLine = projectName
+    ? `You've been invited to collaborate on <strong>${projectName}</strong>.`
+    : `You've been invited to collaborate on all configurators in this workspace.`
+  const body = `
+    <h1 style="font-size:22px;font-weight:700;color:#111;margin:0 0 8px;">You're invited</h1>
+    <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 8px;">
+      ${ownerEmail || 'A teammate'} invited you to Nordic Render.
+    </p>
+    <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 24px;">
+      ${scopeLine}
+    </p>
+    <p style="font-size:13px;color:#777;margin:0 0 8px;">Open this link to accept:</p>
+    <p style="font-size:13px;color:#111;word-break:break-all;margin:0 0 16px;"><a href="${inviteUrl}" style="color:#111;">${inviteUrl}</a></p>
+    ${btn('Accept invite →', inviteUrl)}
+  `
+  return {
+    subject: projectName ? `Invite to edit "${projectName}" on Nordic Render` : 'Invite to collaborate on Nordic Render',
+    html:    emailWrapper(`You've been invited to Nordic Render${projectName ? ` — ${projectName}` : ''}.`, body),
+    text:    `${ownerEmail || 'A teammate'} invited you to Nordic Render.\n\n${scopeLine.replace(/<[^>]+>/g, '')}\n\nAccept: ${inviteUrl}`,
+  }
+}
+
 // ── Seller info ────────────────────────────────────────────────────
 
 const SELLER = {
@@ -472,4 +496,25 @@ exports.onOrderCreated = functions.firestore
     await sendEmail({ to: notificationEmail, ...orderEmail(name, variantId, formData) })
 
     functions.logger.info(`Order notification sent to ${notificationEmail}`)
+  })
+
+// Email a team invite when a new teamInvites doc is created
+exports.onTeamInviteCreated = functions.firestore
+  .document('teamInvites/{code}')
+  .onCreate(async (snap) => {
+    const invite = snap.data()
+    const { inviteeEmail, ownerEmail, code, configuratorId } = invite ?? {}
+    if (!inviteeEmail || !code) return
+
+    let projectName = null
+    if (configuratorId) {
+      try {
+        const cfgSnap = await db.collection('configurators').doc(configuratorId).get()
+        if (cfgSnap.exists) projectName = cfgSnap.data().name ?? null
+      } catch (e) { functions.logger.warn('Could not load configurator for invite', e.message) }
+    }
+
+    const inviteUrl = `${APP_URL}/join/${code}`
+    await sendEmail({ to: inviteeEmail, ...teamInviteEmail(ownerEmail, inviteUrl, projectName) })
+    functions.logger.info(`Team invite sent to ${inviteeEmail} (project=${projectName ?? 'all'})`)
   })

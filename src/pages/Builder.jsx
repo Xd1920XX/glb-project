@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
-import { getConfigurator, saveConfigurator, publishConfigurator, getPublishedCount, saveRevision, getRevisions } from '../firebase/db.js'
+import { getConfigurator, saveConfigurator, publishConfigurator, getPublishedCount, saveRevision, getRevisions, createTeamInvite } from '../firebase/db.js'
 import { getEmbedLimit } from '../config/plans.js'
 import { uploadFile, deleteFile } from '../firebase/storage.js'
 import { ConfiguratorRenderer } from '../components/ConfiguratorRenderer.jsx'
@@ -1310,6 +1310,7 @@ export default function Builder() {
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [inviteOpen, setInviteOpen]   = useState(false)
 
   const [settingsWidth, setSettingsWidth] = useState(360)
   const resizing    = useRef(false)
@@ -1516,6 +1517,9 @@ export default function Builder() {
             <button className="btn-ghost btn-sm builder-desktop-only" onClick={() => setPreviewOpen(true)}>
               Preview
             </button>
+            <button className="btn-ghost btn-sm builder-desktop-only" onClick={() => setInviteOpen(true)}>
+              Invite
+            </button>
             <button className={`builder-desktop-only ${published ? 'btn-danger' : 'btn-primary'}`} onClick={handlePublish}>
               {published ? 'Unpublish' : 'Publish'}
             </button>
@@ -1540,6 +1544,9 @@ export default function Builder() {
                     </button>
                     <button className="builder-mobile-dropdown-item" onClick={() => { setMobileMenuOpen(false); setPreviewOpen(true) }}>
                       Preview
+                    </button>
+                    <button className="builder-mobile-dropdown-item" onClick={() => { setMobileMenuOpen(false); setInviteOpen(true) }}>
+                      Invite collaborator
                     </button>
                     <div className="builder-mobile-dropdown-divider" />
                     <button className={`builder-mobile-dropdown-item ${published ? 'builder-mobile-dropdown-item--danger' : 'builder-mobile-dropdown-item--primary'}`}
@@ -1739,6 +1746,85 @@ export default function Builder() {
           </div>
         </div>
       )}
+
+      {inviteOpen && user?.uid && (
+        <InviteModal
+          configuratorId={id}
+          ownerUid={user.uid}
+          ownerEmail={profile?.email ?? user.email ?? ''}
+          onClose={() => setInviteOpen(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+function InviteModal({ configuratorId, ownerUid, ownerEmail, onClose }) {
+  const [email, setEmail]       = useState('')
+  const [working, setWorking]   = useState(false)
+  const [link, setLink]         = useState(null)
+  const [error, setError]       = useState('')
+  const [copied, setCopied]     = useState(false)
+
+  async function handleGenerate(e) {
+    e.preventDefault()
+    if (!email.trim()) return
+    setWorking(true); setError('')
+    try {
+      const code = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10)
+      await createTeamInvite(ownerUid, ownerEmail, email.trim(), code, configuratorId)
+      setLink(`${window.location.origin}/join/${code}`)
+    } catch (err) {
+      setError(err.message || 'Failed to create invite')
+    } finally {
+      setWorking(false)
+    }
+  }
+
+  function copy() {
+    navigator.clipboard.writeText(link)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="builder-preview-modal" onClick={onClose}>
+      <div className="builder-preview-modal-inner" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520, height: 'auto' }}>
+        <div className="builder-preview-modal-header">
+          <span className="builder-preview-modal-title">Invite collaborator to this project</span>
+          <button className="builder-preview-modal-close" onClick={onClose}>✕</button>
+        </div>
+        <div style={{ padding: 24 }}>
+          <p className="builder-hint" style={{ marginTop: 0 }}>
+            They will get edit access to this configurator only. An email with the invite link will be sent automatically.
+          </p>
+          <form onSubmit={handleGenerate} style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+            <input
+              className="field-input"
+              type="email"
+              placeholder="teammate@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={working || link}
+              style={{ flex: 1 }}
+            />
+            <button className="btn-primary" type="submit" disabled={working || link}>
+              {working ? 'Generating…' : 'Generate link'}
+            </button>
+          </form>
+          {error && <div className="upload-error" style={{ marginTop: 12 }}>{error}</div>}
+          {link && (
+            <div className="team-invite-link-box" style={{ marginTop: 16 }}>
+              <code className="team-invite-link">{link}</code>
+              <button className="btn-ghost btn-sm" onClick={copy}>{copied ? '✓ Copied' : 'Copy'}</button>
+              <p className="team-invite-hint" style={{ marginTop: 8 }}>
+                Email sent to {email || 'invitee'}. They can also use the link directly.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
