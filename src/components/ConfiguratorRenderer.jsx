@@ -56,6 +56,8 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
   const [interiorId, setInteriorId]   = useState(interiors[0]?.id ?? null)
   const [orderData, setOrderData]     = useState({})
   const [orderSubmitted, setOrderSubmitted] = useState(false)
+  const [colorByVariant, setColorByVariant] = useState({})
+  const [layerVisByVariant, setLayerVisByVariant] = useState({})
 
   // Compute groups
   const allGroups = useMemo(() => computeGroups(variants, variantGroups), [variants, variantGroups])
@@ -115,9 +117,20 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
       return <InteriorViewer key={interior.id} src={interior.panoramaUrl} mode={interior.mode ?? 'pano'} />
     }
     if ((view === 'exterior' || view === 'order') && variant) {
+      const selectedColor = variant.colorOptions?.find((c) => c.id === colorByVariant[variant.id])
+        ?? variant.colorOptions?.find((c) => c.id === variant.defaultColorOptionId)
+        ?? variant.colorOptions?.[0]
+      const colorOverrides = selectedColor?.materialOverridesByMaterial ?? {}
+      const layerVis = layerVisByVariant[variant.id] ?? {}
+      const isLayerVisible = (l) => {
+        if (l.togglable) return layerVis[l.id] ?? l.defaultOn ?? true
+        return l.visible !== false
+      }
       // Normalize GLB layers — support both old single-glb and new multi-layer variants
       const glbLayers = variant.glbLayers
-        ? variant.glbLayers.filter((l) => l.visible !== false && l.glbUrl).map((l) => ({ url: l.glbUrl, materialOverrides: l.materialOverrides ?? {} }))
+        ? variant.glbLayers
+            .filter((l) => isLayerVisible(l) && l.glbUrl)
+            .map((l) => ({ url: l.glbUrl, materialOverrides: { ...(l.materialOverrides ?? {}), ...colorOverrides } }))
         : variant.glbUrl
           ? [{ url: variant.glbUrl, materialOverrides: variant.materialOverrides ?? {} }]
           : []
@@ -283,6 +296,48 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
                     </div>
                   </div>
                 ))}
+                {variant?.colorOptions?.length > 0 && (() => {
+                  const selectedId = colorByVariant[variant.id] ?? variant.defaultColorOptionId ?? variant.colorOptions[0]?.id
+                  return (
+                    <div className="variant-group-section">
+                      <p className="section-label">Color</p>
+                      <div className="color-grid">
+                        {variant.colorOptions.map((c) => (
+                          <button key={c.id}
+                            className={`color-card${selectedId === c.id ? ' selected' : ''}`}
+                            onClick={() => setColorByVariant((prev) => ({ ...prev, [variant.id]: c.id }))}>
+                            <span className="color-dot" style={{ background: c.swatch }} />
+                            <div className="color-card-info">
+                              <span className="color-label">{c.label}</span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
+                {variant?.glbLayers?.some((l) => l.togglable) && (() => {
+                  const layerVis = layerVisByVariant[variant.id] ?? {}
+                  const get = (l) => layerVis[l.id] ?? l.defaultOn ?? true
+                  return (
+                    <div className="variant-group-section">
+                      <p className="section-label">Parts</p>
+                      <div className="layer-toggles">
+                        {variant.glbLayers.filter((l) => l.togglable).map((l) => (
+                          <label key={l.id} className="layer-toggle">
+                            <input type="checkbox"
+                              checked={get(l)}
+                              onChange={(e) => setLayerVisByVariant((prev) => ({
+                                ...prev,
+                                [variant.id]: { ...(prev[variant.id] ?? {}), [l.id]: e.target.checked },
+                              }))} />
+                            <span>{l.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
                 <TabNav tabs={tabs} view={view} setView={setView} />
               </div>
             )}

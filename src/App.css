@@ -181,6 +181,34 @@ body {
   color: var(--text-muted);
 }
 
+/* ── Layer toggles ───────────────────────────────────────────────── */
+
+.layer-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.layer-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+}
+.layer-toggle:hover { border-color: var(--accent); }
+.layer-toggle input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  margin: 0;
+}
+
 /* ── Color / variant cards ───────────────────────────────────────── */
 
 .color-grid {
