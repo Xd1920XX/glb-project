@@ -46,6 +46,14 @@ function Model({ url, materialOverrides = {} }) {
       if (!node.isMesh) return
       const mats = Array.isArray(node.material) ? node.material : [node.material]
       mats.forEach((mat) => {
+        // Cache original color + map ONCE so we can restore when override removed
+        if (mat.userData._origColor === undefined) {
+          mat.userData._origColor = mat.color ? mat.color.getHex() : null
+        }
+        if (mat.userData._origMap === undefined) {
+          mat.userData._origMap = mat.map ?? null
+        }
+
         const ov = materialOverrides[mat.name]
         if (!ov || ov.type === 'none') return
 
@@ -74,11 +82,19 @@ function Model({ url, materialOverrides = {} }) {
         if (!node.isMesh) return
         const mats = Array.isArray(node.material) ? node.material : [node.material]
         mats.forEach((mat) => {
+          // Dispose any override texture we created
           if (mat.map && mat.userData._ovTex) {
             mat.map.dispose()
-            mat.map = null
             mat.userData._ovTex = false
           }
+          // Restore original map + color from GLB
+          if (mat.userData._origMap !== undefined) {
+            mat.map = mat.userData._origMap
+          }
+          if (mat.userData._origColor !== undefined && mat.userData._origColor !== null && mat.color) {
+            mat.color.setHex(mat.userData._origColor)
+          }
+          mat.needsUpdate = true
         })
       })
     }
