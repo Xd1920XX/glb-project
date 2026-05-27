@@ -51,6 +51,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
 
   const [view, setView]               = useState(tabs[0] ?? 'exterior')
   const [selectedByGroup, setSelectedByGroup] = useState({})
+  const [activeGroupId, setActiveGroupId]     = useState(null)
   const [frameIndex, setFrameIndex]   = useState(0)
   const [show3D, setShow3D]           = useState(false)
   const [interiorId, setInteriorId]   = useState(interiors[0]?.id ?? null)
@@ -78,8 +79,9 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
     })
   }, [allGroups])
 
-  // Primary variant drives the 3D / spinner viewer
-  const primaryGroup = visibleGroups[0]
+  // Primary variant drives the 3D / spinner viewer.
+  // Follows the most recently clicked group (falls back to first).
+  const primaryGroup = visibleGroups.find((g) => g.id === activeGroupId) ?? visibleGroups[0]
   const primaryVariantId = primaryGroup
     ? (selectedByGroup[primaryGroup.id] ?? primaryGroup.variants[0]?.id)
     : null
@@ -303,6 +305,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
                           className={`color-card${selectedByGroup[group.id] === v.id ? ' selected' : ''}`}
                           onClick={() => {
                             setSelectedByGroup((prev) => ({ ...prev, [group.id]: v.id }))
+                            setActiveGroupId(group.id)
                             setFrameIndex(0)
                             setShow3D(false)
                           }}>
