@@ -64,6 +64,10 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
   // colorSel: color.label (e.g. 'Natural' | 'Dark')
   const [partSel, setPartSel] = useState({})
   const [colorSel, setColorSel] = useState(null)
+  // Progressive disclosure: hide partOptions until model picked,
+  // show only first partOption group until that's picked too.
+  const [modelTouched, setModelTouched]         = useState(false)
+  const [firstPartTouched, setFirstPartTouched] = useState(false)
 
   // Compute groups
   const allGroups = useMemo(() => computeGroups(variants, variantGroups), [variants, variantGroups])
@@ -113,6 +117,15 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
       try { useGLTF.preload(url) } catch { /* ignore */ }
     }
   }, [variantForPreload])
+
+  // Auto-skip the size step if the first partOption group has only 1 option.
+  useEffect(() => {
+    if (!modelTouched || firstPartTouched || !variantForPreload) return
+    const first = variantForPreload.partOptions?.[0]
+    if (first && (first.options?.length ?? 0) <= 1) {
+      setFirstPartTouched(true)
+    }
+  }, [modelTouched, firstPartTouched, variantForPreload])
   const variant  = variants.find((v) => v.id === primaryVariantId) ?? null
   const interior = interiors.find((i) => i.id === interiorId)
 
@@ -340,10 +353,12 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
                     <div className="color-grid">
                       {group.variants.map((v) => (
                         <button key={v.id}
-                          className={`color-card${selectedByGroup[group.id] === v.id && activeGroupId === group.id ? ' selected' : ''}`}
+                          className={`color-card${selectedByGroup[group.id] === v.id && activeGroupId === group.id && modelTouched ? ' selected' : ''}`}
                           onClick={() => {
                             setSelectedByGroup((prev) => ({ ...prev, [group.id]: v.id }))
                             setActiveGroupId(group.id)
+                            setModelTouched(true)
+                            setFirstPartTouched(false)
                             setFrameIndex(0)
                             setShow3D(false)
                           }}>
@@ -357,7 +372,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
                     </div>
                   </div>
                 ))}
-                {variant?.colorOptions?.length > 0 && (() => {
+                {firstPartTouched && variant?.colorOptions?.length > 0 && (() => {
                   const sel = variant.colorOptions.find((c) => c.label === colorSel)
                     ?? variant.colorOptions.find((c) => c.id === variant.defaultColorOptionId)
                     ?? variant.colorOptions[0]
@@ -379,8 +394,9 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
                     </div>
                   )
                 })()}
-                {variant?.partOptions?.length > 0 && variant.partOptions.map((grp) => {
+                {modelTouched && variant?.partOptions?.length > 0 && variant.partOptions.map((grp, idx) => {
                   if (!grp.options?.length) return null
+                  if (idx > 0 && !firstPartTouched) return null
                   const selOpt = grp.options.find((o) => o.label === partSel[grp.label])
                     ?? grp.options.find((o) => o.id === grp.defaultOptionId)
                     ?? grp.options[0]
@@ -391,7 +407,10 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
                         {grp.options.map((o) => (
                           <button key={o.id}
                             className={`color-card${selOpt?.label === o.label ? ' selected' : ''}`}
-                            onClick={() => setPartSel((prev) => ({ ...prev, [grp.label]: o.label }))}>
+                            onClick={() => {
+                              setPartSel((prev) => ({ ...prev, [grp.label]: o.label }))
+                              if (idx === 0) setFirstPartTouched(true)
+                            }}>
                             {o.swatchImageUrl
                               ? <img src={o.swatchImageUrl} className="color-dot color-dot-img" alt="" />
                               : <span className="color-dot" style={{ background: o.swatch ?? '#888' }} />}
@@ -405,7 +424,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
                     </div>
                   )
                 })}
-                {variant?.glbLayers?.some((l) => l.togglable) && (() => {
+                {firstPartTouched && variant?.glbLayers?.some((l) => l.togglable) && (() => {
                   const layerVis = layerVisByVariant[variant.id] ?? {}
                   const get = (l) => layerVis[l.id] ?? l.defaultOn ?? true
                   return (
