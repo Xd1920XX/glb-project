@@ -38,16 +38,16 @@ function computeVisibleGroups(groups, selectedByGroup) {
  * config = { variants, interiors, background, viewerSettings, variantGroups, hotspots, watermark }
  */
 export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotPlace = null }) {
-  const { variants = [], interiors = [], background, viewerSettings = {}, exteriorLabel, interiorLabel, orderForm, theme = 'minimal', darkMode = false, themeColors = {}, variantGroups = [], hotspots = [], watermark } = config
+  const { variants = [], interiors = [], background, viewerSettings = {}, exteriorLabel, interiorLabel, orderForm, theme = 'minimal', darkMode = false, themeColors = {}, variantGroups = [], hotspots = [], watermark, hideInteriorTab = false, hide3DButton = false } = config
 
   const extLabel = exteriorLabel || 'Exterior'
   const intLabel = interiorLabel || 'Interior'
 
   // Build ordered tab list for prev/next navigation
   const tabs = [
-    ...(variants.length > 0  ? ['exterior'] : []),
-    ...(interiors.length > 0 ? ['interior'] : []),
-    ...(orderForm?.enabled   ? ['order']    : []),
+    ...(variants.length > 0                       ? ['exterior'] : []),
+    ...(!hideInteriorTab && interiors.length > 0  ? ['interior'] : []),
+    ...(orderForm?.enabled                        ? ['order']    : []),
   ]
 
   const [view, setView]               = useState(tabs[0] ?? 'exterior')
@@ -254,15 +254,50 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
     e.preventDefault()
     if (config.id && config.ownerId) {
       try {
-        const allSelections = visibleGroups.map((g) => {
+        // Selections: model groups + color + every partOption group
+        const modelParts = visibleGroups.map((g) => {
           const selId = selectedByGroup[g.id] ?? g.variants[0]?.id
           const sel = g.variants.find((v) => v.id === selId)
           return sel ? `${g.label || extLabel}: ${sel.label}` : null
-        }).filter(Boolean).join(', ')
+        }).filter(Boolean)
+
+        const selectedColorOpt = variant?.colorOptions?.find((c) => c.label === colorSel)
+          ?? variant?.colorOptions?.find((c) => c.id === variant.defaultColorOptionId)
+          ?? variant?.colorOptions?.[0]
+        const colorPart = selectedColorOpt ? `Color: ${selectedColorOpt.label}` : null
+
+        const partOptionParts = (variant?.partOptions ?? []).map((grp) => {
+          const opt = grp.options?.find((o) => o.label === partSel[grp.label])
+            ?? grp.options?.find((o) => o.id === grp.defaultOptionId)
+            ?? grp.options?.[0]
+          return opt ? `${grp.label}: ${opt.label}` : null
+        }).filter(Boolean)
+
+        const allSelections = [...modelParts, colorPart, ...partOptionParts].filter(Boolean).join(', ')
+
+        // Structured snapshot for later retrieval
+        const selections = {
+          model: visibleGroups.reduce((acc, g) => {
+            const selId = selectedByGroup[g.id] ?? g.variants[0]?.id
+            const sel = g.variants.find((v) => v.id === selId)
+            if (sel) acc[g.label || extLabel] = sel.label
+            return acc
+          }, {}),
+          color: selectedColorOpt?.label ?? null,
+          partOptions: (variant?.partOptions ?? []).reduce((acc, grp) => {
+            const opt = grp.options?.find((o) => o.label === partSel[grp.label])
+              ?? grp.options?.find((o) => o.id === grp.defaultOptionId)
+              ?? grp.options?.[0]
+            if (opt) acc[grp.label] = opt.label
+            return acc
+          }, {}),
+        }
+
         await saveOrder(config.id, config.ownerId, {
           variantId: allSelections || (variant?.label ?? primaryVariantId),
-          interiorId: interior?.label ?? interiorId,
+          interiorId: hideInteriorTab ? null : (interior?.label ?? interiorId),
           formData: orderData,
+          selections,
           configuratorName: config.name ?? '',
         })
       } catch { /* non-fatal */ }
@@ -294,7 +329,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
         } : undefined}
       >
         {renderViewer()}
-        {can3D && (
+        {can3D && !hide3DButton && (
           <button className={`view-3d-btn${show3D ? ' active' : ''}`}
             onClick={() => setShow3D((v) => !v)}>
             {show3D ? 'Renders' : '3D'}
@@ -324,7 +359,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
               <button className={`view-tab${view === 'exterior' ? ' active' : ''}`}
                 onClick={() => setView('exterior')}>{extLabel}</button>
             )}
-            {interiors.length > 0 && (
+            {!hideInteriorTab && interiors.length > 0 && (
               <button className={`view-tab${view === 'interior' ? ' active' : ''}`}
                 onClick={() => setView('interior')}>{intLabel}</button>
             )}
@@ -451,7 +486,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
             )}
 
             {/* Interior panel */}
-            {view === 'interior' && interiors.length > 0 && (
+            {view === 'interior' && !hideInteriorTab && interiors.length > 0 && (
               <div className="tab-section">
                 <p className="section-label">View</p>
                 <div className="interior-list">
@@ -494,13 +529,46 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
                         </div>
                       )
                     })}
+                    {(() => {
+                      const sel = variant?.colorOptions?.find((c) => c.label === colorSel)
+                        ?? variant?.colorOptions?.find((c) => c.id === variant.defaultColorOptionId)
+                        ?? variant?.colorOptions?.[0]
+                      if (!sel) return null
+                      return (
+                        <div key="color" className="order-summary-row">
+                          <span>Color</span>
+                          <span>
+                            <span className="color-dot" style={{ background: sel.swatch }} />
+                            {' '}{sel.label}
+                          </span>
+                        </div>
+                      )
+                    })()}
+                    {(variant?.partOptions ?? []).map((grp) => {
+                      const opt = grp.options?.find((o) => o.label === partSel[grp.label])
+                        ?? grp.options?.find((o) => o.id === grp.defaultOptionId)
+                        ?? grp.options?.[0]
+                      if (!opt) return null
+                      return (
+                        <div key={grp.id} className="order-summary-row">
+                          <span>{grp.label}</span>
+                          <span>
+                            {opt.swatchImageUrl
+                              ? <img src={opt.swatchImageUrl} className="color-dot color-dot-img" alt="" />
+                              : <span className="color-dot" style={{ background: opt.swatch ?? '#888' }} />}
+                            {' '}{opt.label}
+                            {opt.price != null && ` — ${fmt(opt.price)}`}
+                          </span>
+                        </div>
+                      )
+                    })}
                     {hasAnyPrice && visibleGroups.length > 1 && totalSelectedPrice != null && (
                       <div className="order-summary-row order-summary-total">
                         <span>Total</span>
                         <span>{fmt(totalSelectedPrice)}</span>
                       </div>
                     )}
-                    {interior && (
+                    {!hideInteriorTab && interior && (
                       <div className="order-summary-row">
                         <span>Interior</span>
                         <span>{interior.label}</span>

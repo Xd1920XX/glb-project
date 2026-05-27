@@ -179,13 +179,14 @@ export async function duplicateConfigurator(uid, source) {
 }
 
 // Orders
-export async function saveOrder(configuratorId, ownerId, { variantId, interiorId, formData, configuratorName }) {
+export async function saveOrder(configuratorId, ownerId, { variantId, interiorId, formData, selections, configuratorName }) {
   await addDoc(collection(db, 'orders'), {
     configuratorId,
     ownerId,
     variantId: variantId ?? null,
     interiorId: interiorId ?? null,
     formData: formData ?? {},
+    selections: selections ?? null,
     configuratorName: configuratorName ?? '',
     createdAt: serverTimestamp(),
   })
