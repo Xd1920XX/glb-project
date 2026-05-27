@@ -77,6 +77,11 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
       }
       return next
     })
+    // Default active group = first group on mount or when groups change
+    setActiveGroupId((prev) => {
+      if (prev && allGroups.find((g) => g.id === prev)) return prev
+      return allGroups[0]?.id ?? null
+    })
   }, [allGroups])
 
   // Primary variant drives the 3D / spinner viewer.
@@ -100,8 +105,10 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
 
   // Price display — sum selected prices across all visible groups
   const hasAnyPrice = variants.some((v) => v.price != null)
+  // Only the active group contributes to the selected price summary
   const totalSelectedPrice = hasAnyPrice
     ? visibleGroups.reduce((sum, g) => {
+        if (g.id !== activeGroupId) return sum
         const selId = selectedByGroup[g.id] ?? g.variants[0]?.id
         const sel = g.variants.find((v) => v.id === selId)
         return sel?.price != null ? sum + sel.price : sum
@@ -129,14 +136,16 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
         if (l.togglable) return layerVis[l.id] ?? l.defaultOn ?? true
         return l.visible !== false
       }
-      // Resolve partOption selections → swap GLB on matching layers
+      // Resolve partOption selections → swap or hide GLB on matching layers
       const partSel = partByVariant[variant.id] ?? {}
       const resolvePartLayer = (l) => {
         for (const grp of variant.partOptions ?? []) {
           if (!grp.matchLayerLabels?.includes(l.label)) continue
           const selId = partSel[grp.id] ?? grp.defaultOptionId ?? grp.options?.[0]?.id
           const opt = grp.options?.find((o) => o.id === selId)
-          if (!opt?.glbUrl) return l
+          if (!opt) return l
+          if (opt.hidden) return null               // option says: drop layer
+          if (!opt.glbUrl) return l                 // option has no swap data, keep original
           return {
             ...l,
             label: opt.layerLabel ?? opt.label ?? l.label,
@@ -151,7 +160,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
       const glbLayers = variant.glbLayers
         ? variant.glbLayers
             .map(resolvePartLayer)
-            .filter((l) => isLayerVisible(l) && l.glbUrl)
+            .filter((l) => l && isLayerVisible(l) && l.glbUrl)
             .map((l) => ({ url: l.glbUrl, materialOverrides: { ...(l.materialOverrides ?? {}), ...colorOverrides } }))
         : variant.glbUrl
           ? [{ url: variant.glbUrl, materialOverrides: variant.materialOverrides ?? {} }]
@@ -302,7 +311,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
                     <div className="color-grid">
                       {group.variants.map((v) => (
                         <button key={v.id}
-                          className={`color-card${selectedByGroup[group.id] === v.id ? ' selected' : ''}`}
+                          className={`color-card${selectedByGroup[group.id] === v.id && activeGroupId === group.id ? ' selected' : ''}`}
                           onClick={() => {
                             setSelectedByGroup((prev) => ({ ...prev, [group.id]: v.id }))
                             setActiveGroupId(group.id)
