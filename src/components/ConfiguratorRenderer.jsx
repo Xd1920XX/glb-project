@@ -58,6 +58,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
   const [orderSubmitted, setOrderSubmitted] = useState(false)
   const [colorByVariant, setColorByVariant] = useState({})
   const [layerVisByVariant, setLayerVisByVariant] = useState({})
+  const [partByVariant, setPartByVariant] = useState({})
 
   // Compute groups
   const allGroups = useMemo(() => computeGroups(variants, variantGroups), [variants, variantGroups])
@@ -126,9 +127,28 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
         if (l.togglable) return layerVis[l.id] ?? l.defaultOn ?? true
         return l.visible !== false
       }
+      // Resolve partOption selections → swap GLB on matching layers
+      const partSel = partByVariant[variant.id] ?? {}
+      const resolvePartLayer = (l) => {
+        for (const grp of variant.partOptions ?? []) {
+          if (!grp.matchLayerLabels?.includes(l.label)) continue
+          const selId = partSel[grp.id] ?? grp.defaultOptionId ?? grp.options?.[0]?.id
+          const opt = grp.options?.find((o) => o.id === selId)
+          if (!opt?.glbUrl) return l
+          return {
+            ...l,
+            label: opt.layerLabel ?? opt.label ?? l.label,
+            glbUrl: opt.glbUrl,
+            glbStoragePath: opt.glbStoragePath,
+            materialOverrides: { ...(opt.materialOverrides ?? {}), ...(l.materialOverrides ?? {}) },
+          }
+        }
+        return l
+      }
       // Normalize GLB layers — support both old single-glb and new multi-layer variants
       const glbLayers = variant.glbLayers
         ? variant.glbLayers
+            .map(resolvePartLayer)
             .filter((l) => isLayerVisible(l) && l.glbUrl)
             .map((l) => ({ url: l.glbUrl, materialOverrides: { ...(l.materialOverrides ?? {}), ...colorOverrides } }))
         : variant.glbUrl
@@ -316,6 +336,35 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
                     </div>
                   )
                 })()}
+                {variant?.partOptions?.length > 0 && variant.partOptions.map((grp) => {
+                  if (!grp.options?.length) return null
+                  const selId = (partByVariant[variant.id] ?? {})[grp.id]
+                    ?? grp.defaultOptionId
+                    ?? grp.options[0]?.id
+                  return (
+                    <div key={grp.id} className="variant-group-section">
+                      <p className="section-label">{grp.label}</p>
+                      <div className="color-grid">
+                        {grp.options.map((o) => (
+                          <button key={o.id}
+                            className={`color-card${selId === o.id ? ' selected' : ''}`}
+                            onClick={() => setPartByVariant((prev) => ({
+                              ...prev,
+                              [variant.id]: { ...(prev[variant.id] ?? {}), [grp.id]: o.id },
+                            }))}>
+                            {o.swatchImageUrl
+                              ? <img src={o.swatchImageUrl} className="color-dot color-dot-img" alt="" />
+                              : <span className="color-dot" style={{ background: o.swatch ?? '#888' }} />}
+                            <div className="color-card-info">
+                              <span className="color-label">{o.label}</span>
+                              {o.price != null && <span className="color-price">{fmt(o.price)}</span>}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
                 {variant?.glbLayers?.some((l) => l.togglable) && (() => {
                   const layerVis = layerVisByVariant[variant.id] ?? {}
                   const get = (l) => layerVis[l.id] ?? l.defaultOn ?? true
