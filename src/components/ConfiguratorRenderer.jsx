@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useGLTF } from '@react-three/drei'
 import { InteriorViewer } from './InteriorViewer.jsx'
-import { SaunaViewer3D } from './SaunaViewer3D.jsx'
+import { SaunaViewer3D, LIGHT_PRESETS } from './SaunaViewer3D.jsx'
 import { saveOrder } from '../firebase/db.js'
 
 // ── Group helpers ────────────────────────────────────────────────────
@@ -38,7 +38,7 @@ function computeVisibleGroups(groups, selectedByGroup) {
  * config = { variants, interiors, background, viewerSettings, variantGroups, hotspots, watermark }
  */
 export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotPlace = null }) {
-  const { variants = [], interiors = [], background, viewerSettings = {}, exteriorLabel, interiorLabel, orderForm, theme = 'minimal', darkMode = false, themeColors = {}, variantGroups = [], hotspots = [], watermark, hideInteriorTab = false, hide3DButton = false } = config
+  const { variants = [], interiors = [], background, viewerSettings = {}, exteriorLabel, interiorLabel, orderForm, theme = 'minimal', darkMode = false, themeColors = {}, variantGroups = [], hotspots = [], watermark, hideInteriorTab = false, hide3DButton = false, enableLightingControl = false } = config
 
   const extLabel = exteriorLabel || 'Exterior'
   const intLabel = interiorLabel || 'Interior'
@@ -68,6 +68,8 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
   // show only first partOption group until that's picked too.
   const [modelTouched, setModelTouched]         = useState(false)
   const [firstPartTouched, setFirstPartTouched] = useState(false)
+  // User-selectable lighting preset (when enableLightingControl is on)
+  const [lightPresetKey, setLightPresetKey]     = useState(null)
 
   // Compute groups
   const allGroups = useMemo(() => computeGroups(variants, variantGroups), [variants, variantGroups])
@@ -222,6 +224,11 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
         fov: vs.glbFov ?? 42,
         surroundLighting: vs.glbSurroundLighting ?? false,
         ...lightProps,
+        // If the viewer-side lighting selector is on and a preset is chosen,
+        // its values override the configurator's lighting.
+        ...(enableLightingControl && lightPresetKey && LIGHT_PRESETS[lightPresetKey]
+          ? LIGHT_PRESETS[lightPresetKey]
+          : {}),
       }
       if (show3D && glbLayers.length > 0) {
         return <SaunaViewer3D key={variant.id + '3d'} glbLayers={glbLayers} {...sharedProps} />
@@ -334,6 +341,19 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
             onClick={() => setShow3D((v) => !v)}>
             {show3D ? 'Renders' : '3D'}
           </button>
+        )}
+        {enableLightingControl && (
+          <div className="viewer-light-picker">
+            <label className="viewer-light-picker-label">Light</label>
+            <select className="viewer-light-picker-select"
+              value={lightPresetKey ?? ''}
+              onChange={(e) => setLightPresetKey(e.target.value || null)}>
+              <option value="">Auto</option>
+              {Object.keys(LIGHT_PRESETS).map((k) => (
+                <option key={k} value={k}>{k[0].toUpperCase() + k.slice(1)}</option>
+              ))}
+            </select>
+          </div>
         )}
         <button
           className="view-save-btn"

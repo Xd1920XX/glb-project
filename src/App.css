@@ -390,6 +390,36 @@ body {
 }
 .view-save-btn:hover { background: rgba(17,17,17,0.85); }
 
+.viewer-light-picker {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(17,17,17,0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 5px 10px;
+  border-radius: 20px;
+  z-index: 10;
+}
+.viewer-light-picker-label {
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.viewer-light-picker-select {
+  all: unset;
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+.viewer-light-picker-select option { color: #111; }
+
 /* ── 3D loader ───────────────────────────────────────────────────── */
 
 .model-loader {

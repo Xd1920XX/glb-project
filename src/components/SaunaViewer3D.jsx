@@ -1,4 +1,4 @@
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useThree } from '@react-three/fiber'
 import { useGLTF, OrbitControls, Bounds, useBounds, Environment } from '@react-three/drei'
 import { Suspense, useLayoutEffect, useMemo, useEffect } from 'react'
 import * as THREE from 'three'
@@ -45,20 +45,42 @@ function loadCachedTexture(url) {
 
 function Model({ url, materialOverrides = {} }) {
   const { scene } = useGLTF(url)
+  const { gl } = useThree()
+  const maxAniso = useMemo(() => gl?.capabilities?.getMaxAnisotropy?.() ?? 8, [gl])
 
-  // Clone scene + clone every material so we never mutate the cache
+  // Clone scene + clone every material so we never mutate the cache.
+  // Also bumps texture quality: high anisotropy + correct colour spaces + mipmaps.
   const cloned = useMemo(() => {
     const root = scene.clone(true)
     root.traverse((node) => {
       if (!node.isMesh) return
-      if (Array.isArray(node.material)) {
-        node.material = node.material.map((m) => m.clone())
-      } else {
-        node.material = node.material.clone()
-      }
+      node.castShadow = true
+      node.receiveShadow = true
+      const list = Array.isArray(node.material) ? node.material : [node.material]
+      const out = list.map((m) => {
+        const c = m.clone()
+        const tuneTex = (tex, isColor) => {
+          if (!tex) return
+          tex.anisotropy = maxAniso
+          tex.minFilter = THREE.LinearMipmapLinearFilter
+          tex.magFilter = THREE.LinearFilter
+          tex.colorSpace = isColor ? THREE.SRGBColorSpace : THREE.NoColorSpace
+          tex.generateMipmaps = true
+          tex.needsUpdate = true
+        }
+        tuneTex(c.map,           true)
+        tuneTex(c.emissiveMap,   true)
+        tuneTex(c.normalMap,     false)
+        tuneTex(c.roughnessMap,  false)
+        tuneTex(c.metalnessMap,  false)
+        tuneTex(c.aoMap,         false)
+        return c
+      })
+      node.material = Array.isArray(node.material) ? out : out[0]
     })
     return root
-  }, [scene])
+  }, [scene, maxAniso])
+
 
   // Apply overrides whenever they or the clone change.
   // Textures are pulled from a shared cache so switching colors does not re-download.
@@ -167,7 +189,14 @@ export function SaunaViewer3D({
       dpr={[1, 2]}
       camera={{ fov, position: [8, 4, 12] }}
       style={{ width: '100%', height: '100%' }}
-      gl={{ toneMappingExposure: exposure, preserveDrawingBuffer: true }}
+      gl={{
+        toneMappingExposure: exposure,
+        preserveDrawingBuffer: true,
+        antialias: true,
+        toneMapping: THREE.ACESFilmicToneMapping,
+        outputColorSpace: THREE.SRGBColorSpace,
+        powerPreference: 'high-performance',
+      }}
     >
       <Suspense fallback={null}>
         <Environment preset={env} background={background} environmentIntensity={envIntensity} />
