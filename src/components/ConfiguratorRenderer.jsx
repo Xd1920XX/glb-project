@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
+import { useGLTF } from '@react-three/drei'
 import { InteriorViewer } from './InteriorViewer.jsx'
 import { SaunaViewer3D } from './SaunaViewer3D.jsx'
 import { saveOrder } from '../firebase/db.js'
@@ -59,7 +60,8 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
   const [orderSubmitted, setOrderSubmitted] = useState(false)
   const [colorByVariant, setColorByVariant] = useState({})
   const [layerVisByVariant, setLayerVisByVariant] = useState({})
-  const [partByVariant, setPartByVariant] = useState({})
+  // partSel is keyed by group.label → option.label so selections persist across variant switches
+  const [partSel, setPartSel] = useState({})
 
   // Compute groups
   const allGroups = useMemo(() => computeGroups(variants, variantGroups), [variants, variantGroups])
@@ -90,6 +92,25 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
   const primaryVariantId = primaryGroup
     ? (selectedByGroup[primaryGroup.id] ?? primaryGroup.variants[0]?.id)
     : null
+
+  // Preload every GLB referenced by the current variant + its partOptions
+  // so swapping a part is instant on first click.
+  const variantForPreload = variants.find((v) => v.id === primaryVariantId)
+  useEffect(() => {
+    if (!variantForPreload) return
+    const urls = new Set()
+    for (const l of variantForPreload.glbLayers ?? []) {
+      if (l.glbUrl) urls.add(l.glbUrl)
+    }
+    for (const g of variantForPreload.partOptions ?? []) {
+      for (const o of g.options ?? []) {
+        if (o.glbUrl) urls.add(o.glbUrl)
+      }
+    }
+    for (const url of urls) {
+      try { useGLTF.preload(url) } catch { /* ignore */ }
+    }
+  }, [variantForPreload])
   const variant  = variants.find((v) => v.id === primaryVariantId) ?? null
   const interior = interiors.find((i) => i.id === interiorId)
 
@@ -136,13 +157,19 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
         if (l.togglable) return layerVis[l.id] ?? l.defaultOn ?? true
         return l.visible !== false
       }
-      // Resolve partOption selections → swap or hide GLB on matching layers
-      const partSel = partByVariant[variant.id] ?? {}
+      // Resolve partOption selections → swap or hide GLB on matching layers.
+      // partSel is shared across variants, keyed by group.label + option.label.
+      const resolveOption = (grp) => {
+        const selLabel = partSel[grp.label]
+        return grp.options?.find((o) => o.label === selLabel)
+          ?? grp.options?.find((o) => o.id === grp.defaultOptionId)
+          ?? grp.options?.[0]
+          ?? null
+      }
       const resolvePartLayer = (l) => {
         for (const grp of variant.partOptions ?? []) {
           if (!grp.matchLayerLabels?.includes(l.label)) continue
-          const selId = partSel[grp.id] ?? grp.defaultOptionId ?? grp.options?.[0]?.id
-          const opt = grp.options?.find((o) => o.id === selId)
+          const opt = resolveOption(grp)
           if (!opt) return l
           if (opt.hidden) return null               // option says: drop layer
           if (!opt.glbUrl) return l                 // option has no swap data, keep original
@@ -350,20 +377,17 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
                 })()}
                 {variant?.partOptions?.length > 0 && variant.partOptions.map((grp) => {
                   if (!grp.options?.length) return null
-                  const selId = (partByVariant[variant.id] ?? {})[grp.id]
-                    ?? grp.defaultOptionId
-                    ?? grp.options[0]?.id
+                  const selOpt = grp.options.find((o) => o.label === partSel[grp.label])
+                    ?? grp.options.find((o) => o.id === grp.defaultOptionId)
+                    ?? grp.options[0]
                   return (
                     <div key={grp.id} className="variant-group-section">
                       <p className="section-label">{grp.label}</p>
                       <div className="color-grid">
                         {grp.options.map((o) => (
                           <button key={o.id}
-                            className={`color-card${selId === o.id ? ' selected' : ''}`}
-                            onClick={() => setPartByVariant((prev) => ({
-                              ...prev,
-                              [variant.id]: { ...(prev[variant.id] ?? {}), [grp.id]: o.id },
-                            }))}>
+                            className={`color-card${selOpt?.label === o.label ? ' selected' : ''}`}
+                            onClick={() => setPartSel((prev) => ({ ...prev, [grp.label]: o.label }))}>
                             {o.swatchImageUrl
                               ? <img src={o.swatchImageUrl} className="color-dot color-dot-img" alt="" />
                               : <span className="color-dot" style={{ background: o.swatch ?? '#888' }} />}

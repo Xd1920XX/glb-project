@@ -18,6 +18,29 @@ export const LIGHT_PRESETS = {
   natural:  { environment: 'forest',    envIntensity: 1,   ambientIntensity: 0.5, keyIntensity: 1.5, fillIntensity: 0.4, shadows: true,  exposure: 1   },
 }
 
+// ── Shared texture cache: load each URL once, reuse across materials ─
+
+const TEX_CACHE = new Map()   // url → THREE.Texture
+const TEX_PENDING = new Map() // url → Promise<Texture>
+
+function loadCachedTexture(url) {
+  const cached = TEX_CACHE.get(url)
+  if (cached) return Promise.resolve(cached)
+  const pending = TEX_PENDING.get(url)
+  if (pending) return pending
+  const p = new Promise((resolve) => {
+    new THREE.TextureLoader().load(url, (tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping
+      TEX_CACHE.set(url, tex)
+      TEX_PENDING.delete(url)
+      resolve(tex)
+    })
+  })
+  TEX_PENDING.set(url, p)
+  return p
+}
+
 // ── Model with optional material overrides ────────────────────────
 
 function Model({ url, materialOverrides = {} }) {
@@ -37,10 +60,10 @@ function Model({ url, materialOverrides = {} }) {
     return root
   }, [scene])
 
-  // Apply overrides whenever they or the clone change
+  // Apply overrides whenever they or the clone change.
+  // Textures are pulled from a shared cache so switching colors does not re-download.
   useEffect(() => {
-    const loader = new THREE.TextureLoader()
-    const pending = []
+    let cancelled = false
 
     cloned.traverse((node) => {
       if (!node.isMesh) return
@@ -55,42 +78,38 @@ function Model({ url, materialOverrides = {} }) {
         }
 
         const ov = materialOverrides[mat.name]
-        if (!ov || ov.type === 'none') return
+        if (!ov || ov.type === 'none') {
+          // Reset to original (in case prior override was applied)
+          if (mat.userData._origMap !== undefined) mat.map = mat.userData._origMap
+          if (mat.userData._origColor !== undefined && mat.userData._origColor !== null && mat.color) {
+            mat.color.setHex(mat.userData._origColor)
+          }
+          mat.needsUpdate = true
+          return
+        }
 
         if (ov.type === 'color' && ov.color) {
           mat.color.set(ov.color)
-          mat.map = null          // clear any existing texture
+          mat.map = null
           mat.needsUpdate = true
         } else if (ov.type === 'texture' && ov.textureUrl) {
-          const p = new Promise((resolve) => {
-            loader.load(ov.textureUrl, (tex) => {
-              tex.colorSpace = THREE.SRGBColorSpace
-              tex.wrapS = tex.wrapT = THREE.RepeatWrapping
-              mat.map = tex
-              mat.userData._ovTex = true  // mark: we own this texture, dispose on cleanup
-              mat.needsUpdate = true
-              resolve()
-            })
+          loadCachedTexture(ov.textureUrl).then((tex) => {
+            if (cancelled) return
+            mat.map = tex
+            mat.needsUpdate = true
           })
-          pending.push(p)
         }
       })
     })
 
     return () => {
+      cancelled = true
+      // Reset materials to GLB originals; cached textures stay alive in TEX_CACHE
       cloned.traverse((node) => {
         if (!node.isMesh) return
         const mats = Array.isArray(node.material) ? node.material : [node.material]
         mats.forEach((mat) => {
-          // Dispose any override texture we created
-          if (mat.map && mat.userData._ovTex) {
-            mat.map.dispose()
-            mat.userData._ovTex = false
-          }
-          // Restore original map + color from GLB
-          if (mat.userData._origMap !== undefined) {
-            mat.map = mat.userData._origMap
-          }
+          if (mat.userData._origMap !== undefined) mat.map = mat.userData._origMap
           if (mat.userData._origColor !== undefined && mat.userData._origColor !== null && mat.color) {
             mat.color.setHex(mat.userData._origColor)
           }
