@@ -335,6 +335,32 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
             {show3D ? 'Renders' : '3D'}
           </button>
         )}
+        <button
+          className="view-save-btn"
+          onClick={(e) => {
+            const pane = e.currentTarget.closest('.viewer-pane')
+            const canvas = pane?.querySelector('canvas')
+            if (!canvas) {
+              const img = pane?.querySelector('img')
+              if (!img) return
+              const a = document.createElement('a')
+              a.href = img.src
+              a.download = `${(variant?.label ?? 'image').replace(/\s+/g, '_')}.png`
+              a.click()
+              return
+            }
+            canvas.toBlob((blob) => {
+              if (!blob) return
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `${(variant?.label ?? 'render').replace(/\s+/g, '_')}.png`
+              a.click()
+              URL.revokeObjectURL(url)
+            }, 'image/png')
+          }}>
+          Save image
+        </button>
         {hotspotPlaceId && (
           <div className="hotspot-place-hint">Click anywhere to position hotspot</div>
         )}

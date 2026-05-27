@@ -167,7 +167,7 @@ export function SaunaViewer3D({
       dpr={[1, 2]}
       camera={{ fov, position: [8, 4, 12] }}
       style={{ width: '100%', height: '100%' }}
-      gl={{ toneMappingExposure: exposure }}
+      gl={{ toneMappingExposure: exposure, preserveDrawingBuffer: true }}
     >
       <Suspense fallback={null}>
         <Environment preset={env} background={background} environmentIntensity={envIntensity} />

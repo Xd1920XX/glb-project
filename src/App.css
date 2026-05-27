@@ -369,6 +369,27 @@ body {
 .view-3d-btn:hover  { background: rgba(17,17,17,0.85); }
 .view-3d-btn.active { background: var(--accent); }
 
+.view-save-btn {
+  all: unset;
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(17,17,17,0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 7px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.15s;
+  z-index: 10;
+}
+.view-save-btn:hover { background: rgba(17,17,17,0.85); }
+
 /* ── 3D loader ───────────────────────────────────────────────────── */
 
 .model-loader {
