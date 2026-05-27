@@ -58,10 +58,12 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
   const [interiorId, setInteriorId]   = useState(interiors[0]?.id ?? null)
   const [orderData, setOrderData]     = useState({})
   const [orderSubmitted, setOrderSubmitted] = useState(false)
-  const [colorByVariant, setColorByVariant] = useState({})
   const [layerVisByVariant, setLayerVisByVariant] = useState({})
-  // partSel is keyed by group.label → option.label so selections persist across variant switches
+  // partSel + colorSel persist across variant switches.
+  // partSel:  group.label → option.label
+  // colorSel: color.label (e.g. 'Natural' | 'Dark')
   const [partSel, setPartSel] = useState({})
+  const [colorSel, setColorSel] = useState(null)
 
   // Compute groups
   const allGroups = useMemo(() => computeGroups(variants, variantGroups), [variants, variantGroups])
@@ -148,7 +150,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
       return <InteriorViewer key={interior.id} src={interior.panoramaUrl} mode={interior.mode ?? 'pano'} />
     }
     if ((view === 'exterior' || view === 'order') && variant) {
-      const selectedColor = variant.colorOptions?.find((c) => c.id === colorByVariant[variant.id])
+      const selectedColor = variant.colorOptions?.find((c) => c.label === colorSel)
         ?? variant.colorOptions?.find((c) => c.id === variant.defaultColorOptionId)
         ?? variant.colorOptions?.[0]
       const colorOverrides = selectedColor?.materialOverridesByMaterial ?? {}
@@ -356,15 +358,17 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
                   </div>
                 ))}
                 {variant?.colorOptions?.length > 0 && (() => {
-                  const selectedId = colorByVariant[variant.id] ?? variant.defaultColorOptionId ?? variant.colorOptions[0]?.id
+                  const sel = variant.colorOptions.find((c) => c.label === colorSel)
+                    ?? variant.colorOptions.find((c) => c.id === variant.defaultColorOptionId)
+                    ?? variant.colorOptions[0]
                   return (
                     <div className="variant-group-section">
                       <p className="section-label">Color</p>
                       <div className="color-grid">
                         {variant.colorOptions.map((c) => (
                           <button key={c.id}
-                            className={`color-card${selectedId === c.id ? ' selected' : ''}`}
-                            onClick={() => setColorByVariant((prev) => ({ ...prev, [variant.id]: c.id }))}>
+                            className={`color-card${sel?.label === c.label ? ' selected' : ''}`}
+                            onClick={() => setColorSel(c.label)}>
                             <span className="color-dot" style={{ background: c.swatch }} />
                             <div className="color-card-info">
                               <span className="color-label">{c.label}</span>
