@@ -25,6 +25,7 @@ const DEFAULT_VIEWER_SETTINGS = {
   glbFillIntensity:      20,
   glbEnvIntensity:       50,
   glbSurroundLighting:   false,
+  glbEnableAR:           false,
 }
 
 const DEFAULT_ORDER_FORM = {
@@ -778,6 +779,18 @@ function ViewerSettingsEditor({ settings, onChange }) {
           <span className="vs-toggle-track" />
         </label>
       </div>
+
+      <div className="vs-row">
+        <label className="vs-label">AR / LiDAR (mobile)</label>
+        <label className="vs-toggle">
+          <input type="checkbox" checked={s.glbEnableAR ?? false}
+            onChange={(e) => set('glbEnableAR', e.target.checked)} />
+          <span className="vs-toggle-track" />
+        </label>
+      </div>
+      <p className="builder-hint" style={{ fontSize: 11, marginBottom: 8 }}>
+        Shows a "View in AR" button on iOS (AR Quick Look + LiDAR on Pro devices) and Android (Scene Viewer / ARCore). Hidden on desktop.
+      </p>
 
       <div className="vs-row">
         <label className="vs-label">Camera FOV</label>

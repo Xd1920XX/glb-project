@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 import { useGLTF } from '@react-three/drei'
 import { InteriorViewer } from './InteriorViewer.jsx'
 import { SaunaViewer3D, LIGHT_PRESETS } from './SaunaViewer3D.jsx'
+import { ARButton } from './ARButton.jsx'
 import { saveOrder } from '../firebase/db.js'
 
 // ── Group helpers ────────────────────────────────────────────────────
@@ -159,56 +160,59 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
 
   const vs = viewerSettings
 
+  // Resolved GLB layers for the active variant — shared by viewer + AR button.
+  const activeGlbLayers = useMemo(() => {
+    if (!variant || (view !== 'exterior' && view !== 'order')) return []
+    const selectedColor = variant.colorOptions?.find((c) => c.label === colorSel)
+      ?? variant.colorOptions?.find((c) => c.id === variant.defaultColorOptionId)
+      ?? variant.colorOptions?.[0]
+    const colorOverrides = selectedColor?.materialOverridesByMaterial ?? {}
+    const layerVis = layerVisByVariant[variant.id] ?? {}
+    const isLayerVisible = (l) => {
+      if (l.togglable) return layerVis[l.id] ?? l.defaultOn ?? true
+      return l.visible !== false
+    }
+    const resolveOption = (grp) => {
+      const selLabel = partSel[grp.label]
+      return grp.options?.find((o) => o.label === selLabel)
+        ?? grp.options?.find((o) => o.id === grp.defaultOptionId)
+        ?? grp.options?.[0]
+        ?? null
+    }
+    const resolvePartLayer = (l) => {
+      for (const grp of variant.partOptions ?? []) {
+        if (!grp.matchLayerLabels?.includes(l.label)) continue
+        const opt = resolveOption(grp)
+        if (!opt) return l
+        if (opt.hidden) return null
+        if (!opt.glbUrl) return l
+        return {
+          ...l,
+          label: opt.layerLabel ?? opt.label ?? l.label,
+          glbUrl: opt.glbUrl,
+          glbStoragePath: opt.glbStoragePath,
+          materialOverrides: { ...(opt.materialOverrides ?? {}), ...(l.materialOverrides ?? {}) },
+        }
+      }
+      return l
+    }
+    return variant.glbLayers
+      ? variant.glbLayers
+          .map(resolvePartLayer)
+          .filter((l) => l && isLayerVisible(l) && l.glbUrl)
+          .map((l) => ({ url: l.glbUrl, materialOverrides: { ...(l.materialOverrides ?? {}), ...colorOverrides } }))
+      : variant.glbUrl
+        ? [{ url: variant.glbUrl, materialOverrides: variant.materialOverrides ?? {} }]
+        : []
+  }, [variant, view, colorSel, layerVisByVariant, partSel])
+
   // ── Viewer ──────────────────────────────────────────────────────
   function renderViewer() {
     if (view === 'interior' && interior?.panoramaUrl) {
       return <InteriorViewer key={interior.id} src={interior.panoramaUrl} mode={interior.mode ?? 'pano'} />
     }
     if ((view === 'exterior' || view === 'order') && variant) {
-      const selectedColor = variant.colorOptions?.find((c) => c.label === colorSel)
-        ?? variant.colorOptions?.find((c) => c.id === variant.defaultColorOptionId)
-        ?? variant.colorOptions?.[0]
-      const colorOverrides = selectedColor?.materialOverridesByMaterial ?? {}
-      const layerVis = layerVisByVariant[variant.id] ?? {}
-      const isLayerVisible = (l) => {
-        if (l.togglable) return layerVis[l.id] ?? l.defaultOn ?? true
-        return l.visible !== false
-      }
-      // Resolve partOption selections → swap or hide GLB on matching layers.
-      // partSel is shared across variants, keyed by group.label + option.label.
-      const resolveOption = (grp) => {
-        const selLabel = partSel[grp.label]
-        return grp.options?.find((o) => o.label === selLabel)
-          ?? grp.options?.find((o) => o.id === grp.defaultOptionId)
-          ?? grp.options?.[0]
-          ?? null
-      }
-      const resolvePartLayer = (l) => {
-        for (const grp of variant.partOptions ?? []) {
-          if (!grp.matchLayerLabels?.includes(l.label)) continue
-          const opt = resolveOption(grp)
-          if (!opt) return l
-          if (opt.hidden) return null               // option says: drop layer
-          if (!opt.glbUrl) return l                 // option has no swap data, keep original
-          return {
-            ...l,
-            label: opt.layerLabel ?? opt.label ?? l.label,
-            glbUrl: opt.glbUrl,
-            glbStoragePath: opt.glbStoragePath,
-            materialOverrides: { ...(opt.materialOverrides ?? {}), ...(l.materialOverrides ?? {}) },
-          }
-        }
-        return l
-      }
-      // Normalize GLB layers — support both old single-glb and new multi-layer variants
-      const glbLayers = variant.glbLayers
-        ? variant.glbLayers
-            .map(resolvePartLayer)
-            .filter((l) => l && isLayerVisible(l) && l.glbUrl)
-            .map((l) => ({ url: l.glbUrl, materialOverrides: { ...(l.materialOverrides ?? {}), ...colorOverrides } }))
-        : variant.glbUrl
-          ? [{ url: variant.glbUrl, materialOverrides: variant.materialOverrides ?? {} }]
-          : []
+      const glbLayers = activeGlbLayers
 
       const lightProps = {
         ambientIntensity: ((vs.glbAmbientIntensity ?? 25) / 100) * 2,
@@ -341,6 +345,9 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
             onClick={() => setShow3D((v) => !v)}>
             {show3D ? 'Renders' : '3D'}
           </button>
+        )}
+        {vs.glbEnableAR && activeGlbLayers.length > 0 && (
+          <ARButton glbLayers={activeGlbLayers} />
         )}
         {enableLightingControl && (
           <div className="viewer-light-picker">
