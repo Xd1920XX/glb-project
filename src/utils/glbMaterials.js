@@ -32,8 +32,12 @@ export function extractGLBMaterials(url) {
             })
           })
         })
+        const animations = (gltf.animations ?? []).map((clip) => ({
+          name: clip.name || 'Untitled',
+          duration: clip.duration,
+        }))
         dracoLoader.dispose()
-        resolve(materials)
+        resolve({ materials, animations })
       },
       undefined,
       (err) => { dracoLoader.dispose(); reject(err) },

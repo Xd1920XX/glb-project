@@ -200,9 +200,13 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
       ? variant.glbLayers
           .map(resolvePartLayer)
           .filter((l) => l && isLayerVisible(l) && l.glbUrl)
-          .map((l) => ({ url: l.glbUrl, materialOverrides: { ...(l.materialOverrides ?? {}), ...colorOverrides } }))
+          .map((l) => ({
+            url: l.glbUrl,
+            materialOverrides: { ...(l.materialOverrides ?? {}), ...colorOverrides },
+            animationConfig: l.animationConfig ?? null,
+          }))
       : variant.glbUrl
-        ? [{ url: variant.glbUrl, materialOverrides: variant.materialOverrides ?? {} }]
+        ? [{ url: variant.glbUrl, materialOverrides: variant.materialOverrides ?? {}, animationConfig: variant.animationConfig ?? null }]
         : []
   }, [variant, view, colorSel, layerVisByVariant, partSel])
 

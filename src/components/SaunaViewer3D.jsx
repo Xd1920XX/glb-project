@@ -1,6 +1,6 @@
-import { Canvas, useThree } from '@react-three/fiber'
+import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import { useGLTF, OrbitControls, Bounds, useBounds, Environment } from '@react-three/drei'
-import { Suspense, useLayoutEffect, useMemo, useEffect } from 'react'
+import { Suspense, useLayoutEffect, useMemo, useEffect, useRef } from 'react'
 import * as THREE from 'three'
 
 export const ENV_PRESETS = [
@@ -43,8 +43,8 @@ function loadCachedTexture(url) {
 
 // ── Model with optional material overrides ────────────────────────
 
-function Model({ url, materialOverrides = {} }) {
-  const { scene } = useGLTF(url)
+function Model({ url, materialOverrides = {}, animationConfig = null }) {
+  const { scene, animations } = useGLTF(url)
   const { gl } = useThree()
   const maxAniso = useMemo(() => gl?.capabilities?.getMaxAnisotropy?.() ?? 8, [gl])
 
@@ -142,6 +142,43 @@ function Model({ url, materialOverrides = {} }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cloned, JSON.stringify(materialOverrides)])
 
+  // ── Animations ────────────────────────────────────────────────
+  const mixer = useMemo(() => new THREE.AnimationMixer(cloned), [cloned])
+  const actionsRef = useRef([])
+
+  useEffect(() => {
+    actionsRef.current.forEach((a) => a.stop())
+    actionsRef.current = []
+    if (!animationConfig?.enabled || !animations?.length) return
+    const wanted = animationConfig.clipName === '__all__'
+      ? animations
+      : animations.filter((c) => c.name === animationConfig.clipName)
+    const clips = wanted.length > 0 ? wanted : [animations[0]]
+    const loopMode = animationConfig.loop === 'once'
+      ? THREE.LoopOnce
+      : animationConfig.loop === 'pingpong'
+        ? THREE.LoopPingPong
+        : THREE.LoopRepeat
+    const speed = Number(animationConfig.speed) || 1
+    actionsRef.current = clips.map((clip) => {
+      const a = mixer.clipAction(clip)
+      a.reset()
+      a.setLoop(loopMode, Infinity)
+      a.clampWhenFinished = loopMode === THREE.LoopOnce
+      a.timeScale = speed
+      a.play()
+      return a
+    })
+    return () => {
+      actionsRef.current.forEach((a) => a.stop())
+      actionsRef.current = []
+    }
+  }, [mixer, animations, animationConfig?.enabled, animationConfig?.clipName, animationConfig?.loop, animationConfig?.speed])
+
+  useFrame((_, dt) => {
+    if (animationConfig?.enabled) mixer.update(dt)
+  })
+
   return <primitive object={cloned} />
 }
 
@@ -218,7 +255,9 @@ export function SaunaViewer3D({
         <Bounds fit clip margin={1.2}>
           <CameraFit />
           {layers.map((layer) => (
-            <Model key={layer.url} url={layer.url} materialOverrides={layer.materialOverrides ?? {}} />
+            <Model key={layer.url} url={layer.url}
+              materialOverrides={layer.materialOverrides ?? {}}
+              animationConfig={layer.animationConfig ?? null} />
           ))}
         </Bounds>
 

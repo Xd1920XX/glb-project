@@ -3332,6 +3332,36 @@ textarea.field-input { height: auto; min-height: var(--field-h); padding: 8px 12
 
 /* ── Builder sidebar accordions ──────────────────────────────────── */
 
+.anim-editor {
+  margin: 12px 10px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.anim-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--hover-bg);
+  border-bottom: 1px solid var(--border);
+}
+.anim-editor-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.anim-editor-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+}
+.anim-editor-body .vs-label { min-width: 56px; font-size: 12px; }
+
 .bacc {
   border-bottom: 1px solid var(--border);
 }

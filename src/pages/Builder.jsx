@@ -287,12 +287,42 @@ function GlbLayerEditor({ layer, uid: userUid, onChange, onDelete, onMoveUp, onM
   const [showPicker, setShowPicker]     = useState(false)
   const [uploading, setUploading]       = useState(false)
   const [uploadLabel, setUploadLabel]   = useState('')
+  const [scannedNoAnims, setScannedNoAnims] = useState(false)
+
+  // Backfill: existing GLB uploaded before animation support — scan once.
+  useEffect(() => {
+    if (!layer.glbUrl) return
+    if (layer.glbAnimations !== undefined) return
+    let cancelled = false
+    extractGLBMaterials(layer.glbUrl).then((info) => {
+      if (cancelled) return
+      onChange({ ...layer, glbAnimations: info.animations })
+      if (info.animations.length === 0) setScannedNoAnims(true)
+    }).catch(() => {})
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layer.glbUrl])
 
   async function handleSelect({ url, storagePath }) {
-    setUploadLabel('Scanning materials…'); setUploading(true)
+    setUploadLabel('Scanning GLB…'); setUploading(true)
     let glbMaterials = []
-    try { glbMaterials = await extractGLBMaterials(url) } catch { /* non-fatal */ }
-    onChange({ ...layer, glbUrl: url, glbStoragePath: storagePath, glbMaterials, materialOverrides: {} })
+    let glbAnimations = []
+    try {
+      const info = await extractGLBMaterials(url)
+      glbMaterials = info.materials
+      glbAnimations = info.animations
+    } catch { /* non-fatal */ }
+    onChange({
+      ...layer,
+      glbUrl: url,
+      glbStoragePath: storagePath,
+      glbMaterials,
+      glbAnimations,
+      materialOverrides: {},
+      animationConfig: glbAnimations.length > 0
+        ? { enabled: true, clipName: glbAnimations[0].name, loop: 'repeat', speed: 1 }
+        : null,
+    })
     setUploading(false); setUploadLabel('')
   }
 
@@ -326,7 +356,7 @@ function GlbLayerEditor({ layer, uid: userUid, onChange, onDelete, onMoveUp, onM
                 <button className="btn-text-danger" onClick={() => setShowPicker(true)}>Replace</button>
                 <button className="btn-text-danger" onClick={async () => {
                   if (layer.glbStoragePath) await deleteFile(layer.glbStoragePath)
-                  onChange({ ...layer, glbUrl: null, glbStoragePath: null, glbMaterials: [], materialOverrides: {} })
+                  onChange({ ...layer, glbUrl: null, glbStoragePath: null, glbMaterials: [], glbAnimations: [], materialOverrides: {}, animationConfig: null })
                 }}>Remove</button>
               </div>
             : <button className="btn-upload" onClick={() => setShowPicker(true)}>
@@ -343,10 +373,77 @@ function GlbLayerEditor({ layer, uid: userUid, onChange, onDelete, onMoveUp, onM
         />
       )}
 
+      {layer.glbUrl && (layer.glbAnimations?.length ?? 0) > 0 && (
+        <AnimationEditor
+          animations={layer.glbAnimations}
+          config={layer.animationConfig}
+          onChange={(animationConfig) => onChange({ ...layer, animationConfig })}
+        />
+      )}
+      {layer.glbUrl && (layer.glbAnimations?.length ?? 0) === 0 && scannedNoAnims && (
+        <p className="builder-hint" style={{ marginTop: 8 }}>No animations found in this GLB.</p>
+      )}
+
       {showPicker && (
         <MediaPickerModal uid={userUid} accept=".glb"
           onSelect={(f) => { setShowPicker(false); handleSelect(f) }}
           onClose={() => setShowPicker(false)} />
+      )}
+    </div>
+  )
+}
+
+function AnimationEditor({ animations, config, onChange }) {
+  const enabled = !!config?.enabled
+  const clipName = config?.clipName ?? animations[0].name
+  const loop = config?.loop ?? 'repeat'
+  const speed = config?.speed ?? 1
+
+  function update(patch) {
+    onChange({ enabled, clipName, loop, speed, ...config, ...patch })
+  }
+
+  return (
+    <div className="anim-editor">
+      <div className="anim-editor-header">
+        <span className="anim-editor-label">Animation ({animations.length})</span>
+        <label className="vs-toggle">
+          <input type="checkbox" checked={enabled}
+            onChange={(e) => update({ enabled: e.target.checked })} />
+          <span className="vs-toggle-track" />
+        </label>
+      </div>
+      {enabled && (
+        <div className="anim-editor-body">
+          <div className="vs-row">
+            <label className="vs-label">Clip</label>
+            <select className="vs-select" value={clipName}
+              onChange={(e) => update({ clipName: e.target.value })}>
+              {animations.length > 1 && <option value="__all__">All clips</option>}
+              {animations.map((a) => (
+                <option key={a.name} value={a.name}>{a.name} ({a.duration.toFixed(1)}s)</option>
+              ))}
+            </select>
+          </div>
+          <div className="vs-row">
+            <label className="vs-label">Loop</label>
+            <select className="vs-select" value={loop}
+              onChange={(e) => update({ loop: e.target.value })}>
+              <option value="repeat">Repeat</option>
+              <option value="pingpong">Ping-pong</option>
+              <option value="once">Play once</option>
+            </select>
+          </div>
+          <div className="vs-row">
+            <label className="vs-label">Speed</label>
+            <div className="vs-slider-wrap">
+              <input type="range" min="0.1" max="3" step="0.1"
+                value={speed}
+                onChange={(e) => update({ speed: parseFloat(e.target.value) })} />
+              <span className="vs-value">{speed.toFixed(1)}×</span>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
@@ -525,14 +622,14 @@ function MaterialsAccordion({ variant, uid: userUid, onChange }) {
     if (!variant.glbUrl) return
     setScanning(true); setScanError('')
     try {
-      const found = await extractGLBMaterials(variant.glbUrl)
+      const info = await extractGLBMaterials(variant.glbUrl)
       // Merge: keep existing overrides, add newly discovered materials
       const existingIds = new Set(materials.map((m) => m.id))
       const merged = [
         ...materials,
-        ...found.filter((m) => !existingIds.has(m.id)),
+        ...info.materials.filter((m) => !existingIds.has(m.id)),
       ]
-      onChange({ ...variant, glbMaterials: merged })
+      onChange({ ...variant, glbMaterials: merged, glbAnimations: info.animations })
     } catch {
       setScanError('Could not read materials from GLB.')
     } finally {
