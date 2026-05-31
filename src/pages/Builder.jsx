@@ -115,6 +115,15 @@ function VariantEditor({ variant, uid: userUid, onChange, onDelete, onDuplicate,
   const [uploadLabel, setUploadLabel] = useState('')
   const [uploadError, setUploadError] = useState('')
   const [showSwatchPicker, setShowSwatchPicker] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      const stored = localStorage.getItem(`variant-collapsed-${variant.id}`)
+      return stored === '1'
+    } catch { return false }
+  })
+  useEffect(() => {
+    try { localStorage.setItem(`variant-collapsed-${variant.id}`, collapsed ? '1' : '0') } catch { /* ignore */ }
+  }, [collapsed, variant.id])
 
   const swatchType = variant.swatchType ?? 'color'
 
@@ -147,9 +156,13 @@ function VariantEditor({ variant, uid: userUid, onChange, onDelete, onDuplicate,
   }
 
   return (
-    <div className="variant-block">
+    <div className={`variant-block${collapsed ? ' collapsed' : ''}`}>
       {/* Header row: swatch + name + price + delete */}
       <div className="variant-block-header">
+        <button className="variant-collapse-btn" title={collapsed ? 'Expand' : 'Collapse'}
+          onClick={() => setCollapsed((v) => !v)}>
+          <span className={`bacc-chevron${collapsed ? '' : ' open'}`} />
+        </button>
         <div className="variant-swatch-area">
           {swatchType === 'color'
             ? <input type="color" className="color-picker" value={variant.swatch ?? '#888888'}
@@ -177,6 +190,7 @@ function VariantEditor({ variant, uid: userUid, onChange, onDelete, onDuplicate,
         <button className="btn-icon-delete" onClick={onDelete}>✕</button>
       </div>
 
+      {!collapsed && <>
       {/* Group assignment */}
       {variantGroups.length > 0 && (
         <div className="variant-group-row">
@@ -251,6 +265,8 @@ function VariantEditor({ variant, uid: userUid, onChange, onDelete, onDuplicate,
           onChange={(layers) => onChange({ ...variant, glbLayers: layers })}
         />
       )}
+
+      </>}
 
       {/* Media pickers */}
       {showSwatchPicker && (
@@ -1013,20 +1029,41 @@ function RevisionPanel({ configuratorId, ownerId, onRestore, onClose }) {
 
 // ── Sidebar accordion ──────────────────────────────────────────────
 
-function BuilderAccordion({ title, onTitleChange, badge, right, defaultOpen = true, children }) {
-  const [open, setOpen] = useState(defaultOpen)
+function BuilderAccordion({ id, title, onTitleChange, badge, right, defaultOpen = true, children }) {
+  const storageKey = id ? `builder-acc-${id}` : null
+  const [open, setOpen] = useState(() => {
+    if (!storageKey) return defaultOpen
+    try {
+      const stored = localStorage.getItem(storageKey)
+      if (stored === null) return defaultOpen
+      return stored === '1'
+    } catch { return defaultOpen }
+  })
+  useEffect(() => {
+    if (!storageKey) return
+    try { localStorage.setItem(storageKey, open ? '1' : '0') } catch { /* ignore */ }
+  }, [open, storageKey])
+  useEffect(() => {
+    function handler(e) { setOpen(!!e.detail) }
+    window.addEventListener('bacc-set-all', handler)
+    return () => window.removeEventListener('bacc-set-all', handler)
+  }, [])
   return (
     <div className="bacc">
-      <div className="bacc-header">
-        <button className="bacc-toggle" onClick={() => setOpen((v) => !v)} aria-label={open ? 'Collapse' : 'Expand'}>
+      <div className="bacc-header" onClick={() => setOpen((v) => !v)} role="button" tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((v) => !v) } }}>
+        <span className="bacc-toggle" aria-label={open ? 'Collapse' : 'Expand'}>
           <span className={`bacc-chevron${open ? ' open' : ''}`} />
-        </button>
+        </span>
         {onTitleChange
-          ? <input className="bacc-title-input" value={title} onChange={(e) => onTitleChange(e.target.value)} />
+          ? <input className="bacc-title-input" value={title}
+              onChange={(e) => onTitleChange(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()} />
           : <span className="bacc-title">{title}</span>
         }
         {badge > 0 && <span className="bacc-badge">{badge}</span>}
-        {right && <div className="bacc-right">{right}</div>}
+        {right && <div className="bacc-right" onClick={(e) => e.stopPropagation()}>{right}</div>}
       </div>
       {open && <div className="bacc-body">{children}</div>}
     </div>
@@ -1325,7 +1362,14 @@ export default function Builder() {
   const [previewOpen, setPreviewOpen] = useState(false)
   const [inviteOpen, setInviteOpen]   = useState(false)
 
-  const [settingsWidth, setSettingsWidth] = useState(360)
+  const [settingsWidth, setSettingsWidth] = useState(() => {
+    try {
+      const stored = localStorage.getItem('builder-settings-width')
+      const n = stored ? parseInt(stored, 10) : NaN
+      if (Number.isFinite(n) && n >= 280 && n <= 720) return n
+    } catch { /* ignore */ }
+    return 400
+  })
   const resizing    = useRef(false)
   const resizeStart = useRef(null)
 
@@ -1470,7 +1514,9 @@ export default function Builder() {
     function onMouseMove(e) {
       if (!resizing.current) return
       const delta = e.clientX - resizeStart.current.x
-      setSettingsWidth(Math.max(260, Math.min(560, resizeStart.current.w + delta)))
+      const next = Math.max(280, Math.min(720, resizeStart.current.w + delta))
+      setSettingsWidth(next)
+      try { localStorage.setItem('builder-settings-width', String(next)) } catch { /* ignore */ }
     }
     function onMouseUp() { resizing.current = false }
     window.addEventListener('mousemove', onMouseMove)
@@ -1576,8 +1622,20 @@ export default function Builder() {
       <div className="builder-body">
         <aside className="builder-settings" style={{ width: settingsWidth, minWidth: settingsWidth }}>
 
+          <div className="builder-settings-toolbar">
+            <button className="builder-settings-toolbar-btn"
+              onClick={() => window.dispatchEvent(new CustomEvent('bacc-set-all', { detail: true }))}>
+              Expand all
+            </button>
+            <button className="builder-settings-toolbar-btn"
+              onClick={() => window.dispatchEvent(new CustomEvent('bacc-set-all', { detail: false }))}>
+              Collapse all
+            </button>
+          </div>
+
           {/* Exterior variants */}
           <BuilderAccordion
+            id="exterior"
             title={exteriorLabel}
             onTitleChange={setExteriorLabel}
             badge={variants.length}
@@ -1612,6 +1670,7 @@ export default function Builder() {
 
           {/* Interior views */}
           <BuilderAccordion
+            id="interior"
             title={interiorLabel}
             onTitleChange={setInteriorLabel}
             badge={interiors.length}
@@ -1640,17 +1699,18 @@ export default function Builder() {
           </BuilderAccordion>
 
           {/* Background */}
-          <BuilderAccordion title="Background" defaultOpen={false}>
+          <BuilderAccordion id="background" title="Background" defaultOpen={false}>
             <BackgroundEditor bg={background} uid={user.uid} onChange={setBackground} />
           </BuilderAccordion>
 
           {/* Viewer settings */}
-          <BuilderAccordion title="Viewer settings" defaultOpen={false}>
+          <BuilderAccordion id="viewer" title="Viewer settings" defaultOpen={false}>
             <ViewerSettingsEditor settings={viewerSettings} onChange={setViewerSettings} />
           </BuilderAccordion>
 
           {/* Order form */}
           <BuilderAccordion
+            id="order"
             title="Order form"
             defaultOpen={false}
             right={
@@ -1668,7 +1728,7 @@ export default function Builder() {
           </BuilderAccordion>
 
           {/* Style */}
-          <BuilderAccordion title="Style" defaultOpen={false}>
+          <BuilderAccordion id="style" title="Style" defaultOpen={false}>
             <StyleEditor
               theme={theme}
               darkMode={darkMode}
@@ -1679,7 +1739,7 @@ export default function Builder() {
           </BuilderAccordion>
 
           {/* Hotspots */}
-          <BuilderAccordion title="Hotspots" defaultOpen={false} badge={hotspots.length}>
+          <BuilderAccordion id="hotspots" title="Hotspots" defaultOpen={false} badge={hotspots.length}>
             <HotspotsEditor
               hotspots={hotspots}
               onChange={setHotspots}
@@ -1690,6 +1750,7 @@ export default function Builder() {
 
           {/* Watermark */}
           <BuilderAccordion
+            id="watermark"
             title="Watermark"
             defaultOpen={false}
             right={
