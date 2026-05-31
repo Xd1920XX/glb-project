@@ -71,6 +71,10 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
   const [firstPartTouched, setFirstPartTouched] = useState(false)
   // User-selectable lighting preset (when enableLightingControl is on)
   const [lightPresetKey, setLightPresetKey]     = useState(null)
+  // Animation override (when viewerSettings.glbEnableAnimationControls is on)
+  const [animPlaying, setAnimPlaying]   = useState(true)
+  const [animSpeed, setAnimSpeed]       = useState(1)
+  const [animRestartKey, setAnimRestartKey] = useState(0)
 
   // Compute groups
   const allGroups = useMemo(() => computeGroups(variants, variantGroups), [variants, variantGroups])
@@ -237,6 +241,9 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
         ...(enableLightingControl && lightPresetKey && LIGHT_PRESETS[lightPresetKey]
           ? LIGHT_PRESETS[lightPresetKey]
           : {}),
+        animationOverride: vs.glbEnableAnimationControls
+          ? { playing: animPlaying, speed: animSpeed, restartKey: animRestartKey }
+          : null,
       }
       if (show3D && glbLayers.length > 0) {
         return <SaunaViewer3D key={variant.id + '3d'} glbLayers={glbLayers} {...sharedProps} />
@@ -364,6 +371,23 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
                 <option key={k} value={k}>{k[0].toUpperCase() + k.slice(1)}</option>
               ))}
             </select>
+          </div>
+        )}
+        {vs.glbEnableAnimationControls && activeGlbLayers.some((l) => l.animationConfig?.enabled) && (
+          <div className="viewer-anim-controls">
+            <button className="viewer-anim-btn" title={animPlaying ? 'Pause' : 'Play'}
+              onClick={() => setAnimPlaying((v) => !v)}>
+              {animPlaying ? '❚❚' : '▶'}
+            </button>
+            <button className="viewer-anim-btn" title="Restart"
+              onClick={() => { setAnimRestartKey((k) => k + 1); setAnimPlaying(true) }}>
+              ⟲
+            </button>
+            <input className="viewer-anim-speed" type="range" min="0.1" max="3" step="0.1"
+              value={animSpeed}
+              onChange={(e) => setAnimSpeed(parseFloat(e.target.value))}
+              title="Speed" />
+            <span className="viewer-anim-speed-value">{animSpeed.toFixed(1)}×</span>
           </div>
         )}
         <button

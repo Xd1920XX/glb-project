@@ -43,7 +43,7 @@ function loadCachedTexture(url) {
 
 // ── Model with optional material overrides ────────────────────────
 
-function Model({ url, materialOverrides = {}, animationConfig = null }) {
+function Model({ url, materialOverrides = {}, animationConfig = null, animationOverride = null }) {
   const { scene, animations } = useGLTF(url)
   const { gl } = useThree()
   const maxAniso = useMemo(() => gl?.capabilities?.getMaxAnisotropy?.() ?? 8, [gl])
@@ -159,13 +159,13 @@ function Model({ url, materialOverrides = {}, animationConfig = null }) {
       : animationConfig.loop === 'pingpong'
         ? THREE.LoopPingPong
         : THREE.LoopRepeat
-    const speed = Number(animationConfig.speed) || 1
+    const baseSpeed = Number(animationConfig.speed) || 1
     actionsRef.current = clips.map((clip) => {
       const a = mixer.clipAction(clip)
       a.reset()
       a.setLoop(loopMode, Infinity)
       a.clampWhenFinished = loopMode === THREE.LoopOnce
-      a.timeScale = speed
+      a.timeScale = baseSpeed
       a.play()
       return a
     })
@@ -173,7 +173,18 @@ function Model({ url, materialOverrides = {}, animationConfig = null }) {
       actionsRef.current.forEach((a) => a.stop())
       actionsRef.current = []
     }
-  }, [mixer, animations, animationConfig?.enabled, animationConfig?.clipName, animationConfig?.loop, animationConfig?.speed])
+  }, [mixer, animations, animationConfig?.enabled, animationConfig?.clipName, animationConfig?.loop, animationConfig?.speed, animationOverride?.restartKey])
+
+  // React to viewer-side override (play/pause + speed multiplier)
+  useEffect(() => {
+    if (!animationOverride) return
+    const baseSpeed = Number(animationConfig?.speed) || 1
+    const mult = Number(animationOverride.speed) || 1
+    for (const a of actionsRef.current) {
+      a.paused = !animationOverride.playing
+      a.timeScale = baseSpeed * mult
+    }
+  }, [animationOverride, animationConfig?.speed])
 
   useFrame((_, dt) => {
     if (animationConfig?.enabled) mixer.update(dt)
@@ -212,6 +223,7 @@ export function SaunaViewer3D({
   background         = false,
   exposure           = 1,
   surroundLighting   = false,
+  animationOverride  = null,
 }) {
   const env = ENV_PRESETS.includes(environment) ? environment : 'studio'
 
@@ -257,7 +269,8 @@ export function SaunaViewer3D({
           {layers.map((layer) => (
             <Model key={layer.url} url={layer.url}
               materialOverrides={layer.materialOverrides ?? {}}
-              animationConfig={layer.animationConfig ?? null} />
+              animationConfig={layer.animationConfig ?? null}
+              animationOverride={animationOverride} />
           ))}
         </Bounds>
 

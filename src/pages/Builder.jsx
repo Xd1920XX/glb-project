@@ -906,6 +906,18 @@ function ViewerSettingsEditor({ settings, onChange }) {
       </p>
 
       <div className="vs-row">
+        <label className="vs-label">Animation controls</label>
+        <label className="vs-toggle">
+          <input type="checkbox" checked={s.glbEnableAnimationControls ?? false}
+            onChange={(e) => set('glbEnableAnimationControls', e.target.checked)} />
+          <span className="vs-toggle-track" />
+        </label>
+      </div>
+      <p className="builder-hint" style={{ fontSize: 11, marginBottom: 8 }}>
+        Show play/pause/speed controls over the viewer when a layer has animations enabled.
+      </p>
+
+      <div className="vs-row">
         <label className="vs-label">Camera FOV</label>
         <div className="vs-slider-wrap">
           <input type="range" min="20" max="90" step="1"

@@ -442,6 +442,49 @@ body {
 }
 .viewer-light-picker-select option { color: #111; }
 
+.viewer-anim-controls {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(17,17,17,0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 6px 12px;
+  border-radius: 24px;
+  z-index: 10;
+}
+.viewer-anim-btn {
+  all: unset;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background 0.15s;
+}
+.viewer-anim-btn:hover { background: rgba(255,255,255,0.15); }
+.viewer-anim-speed {
+  width: 110px;
+  accent-color: #fff;
+  cursor: pointer;
+}
+.viewer-anim-speed-value {
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  min-width: 32px;
+  text-align: right;
+}
+
 /* ── 3D loader ───────────────────────────────────────────────────── */
 
 .model-loader {
