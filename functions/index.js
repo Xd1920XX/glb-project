@@ -516,3 +516,191 @@ exports.onTeamInviteCreated = functions.firestore
     await sendEmail({ to: inviteeEmail, ...teamInviteEmail(ownerEmail, inviteUrl, projectName) })
     functions.logger.info(`Team invite sent to ${inviteeEmail} (project=${projectName ?? 'all'})`)
   })
+
+// ── Claude chat assistant ─────────────────────────────────────────────
+
+const CLAUDE_MODEL = 'claude-sonnet-4-6'
+
+const CLAUDE_SYSTEM_PROMPT = `You are an AI assistant inside a 3D product configurator builder. The user is editing a configurator that has variants (products), interiors (360° views), background, viewer settings, theme, hotspots, and an order form.
+
+Your job: help the user modify their configurator. Use the provided tools to make changes — never reply with raw JSON for edits. Ask short clarifying questions when the request is ambiguous.
+
+When the user uploads an image, analyze it for: dominant colors, product material/shape, possible variant names. Suggest concrete edits via tools.
+
+Be concise. Use 1-3 sentences plus tool calls. Don't restate the user request.`
+
+const CLAUDE_TOOLS = [
+  {
+    name: 'add_variant',
+    description: 'Add a new product variant to the configurator',
+    input_schema: {
+      type: 'object',
+      properties: {
+        label:  { type: 'string', description: 'Display name shown to end users' },
+        type:   { type: 'string', enum: ['spinner', 'glb'], description: 'spinner = rotation images, glb = 3D model. Default spinner.' },
+        swatch: { type: 'string', description: 'Hex color for the variant swatch, e.g. #c4956a' },
+        price:  { type: 'number', description: 'Optional price in EUR' },
+      },
+      required: ['label'],
+    },
+  },
+  {
+    name: 'update_variant',
+    description: 'Update fields on an existing variant by its id',
+    input_schema: {
+      type: 'object',
+      properties: {
+        variantId: { type: 'string' },
+        fields:    { type: 'object', description: 'Partial variant object to merge. Supported keys: label, swatch, price, type.' },
+      },
+      required: ['variantId', 'fields'],
+    },
+  },
+  {
+    name: 'delete_variant',
+    description: 'Remove a variant',
+    input_schema: {
+      type: 'object',
+      properties: { variantId: { type: 'string' } },
+      required: ['variantId'],
+    },
+  },
+  {
+    name: 'set_background',
+    description: 'Set the viewer background',
+    input_schema: {
+      type: 'object',
+      properties: {
+        type:  { type: 'string', enum: ['none', 'color', 'image'] },
+        color: { type: 'string', description: 'Hex color, required when type is color' },
+      },
+      required: ['type'],
+    },
+  },
+  {
+    name: 'set_theme',
+    description: 'Set the configurator UI theme',
+    input_schema: {
+      type: 'object',
+      properties: {
+        theme:    { type: 'string', enum: ['minimal', 'slate', 'warm', 'forest', 'bold'] },
+        darkMode: { type: 'boolean' },
+      },
+      required: ['theme'],
+    },
+  },
+  {
+    name: 'set_viewer_setting',
+    description: 'Update a single viewer setting field',
+    input_schema: {
+      type: 'object',
+      properties: {
+        key:   { type: 'string', description: 'Setting key, e.g. glbAutoRotate, glbEnableAnimationControls, glbFov, glbEnvironment, glbAllowZoom, glbEnableAR' },
+        value: { description: 'New value — boolean, number, or string depending on key' },
+      },
+      required: ['key', 'value'],
+    },
+  },
+  {
+    name: 'set_order_form_enabled',
+    description: 'Turn the order form tab on or off',
+    input_schema: {
+      type: 'object',
+      properties: { enabled: { type: 'boolean' } },
+      required: ['enabled'],
+    },
+  },
+  {
+    name: 'set_labels',
+    description: 'Rename the Exterior and/or Interior tab labels',
+    input_schema: {
+      type: 'object',
+      properties: {
+        exteriorLabel: { type: 'string' },
+        interiorLabel: { type: 'string' },
+      },
+    },
+  },
+]
+
+function buildConfigSummary(config) {
+  const summary = {
+    name: config.name,
+    exteriorLabel: config.exteriorLabel,
+    interiorLabel: config.interiorLabel,
+    theme: config.theme,
+    darkMode: config.darkMode,
+    background: config.background,
+    variantCount: (config.variants ?? []).length,
+    variants: (config.variants ?? []).map((v) => ({
+      id: v.id,
+      label: v.label,
+      type: v.type,
+      swatch: v.swatch,
+      price: v.price,
+      hasGlb: !!v.glbUrl || (v.glbLayers ?? []).some((l) => l.glbUrl),
+      hasFrames: (v.frames ?? []).length > 0,
+    })),
+    interiorCount: (config.interiors ?? []).length,
+    viewerSettings: config.viewerSettings,
+    orderFormEnabled: !!config.orderForm?.enabled,
+    hotspotCount: (config.hotspots ?? []).length,
+  }
+  return summary
+}
+
+exports.chatWithClaude = functions
+  .runWith({ secrets: ['ANTHROPIC_API_KEY'], timeoutSeconds: 60, memory: '512MB' })
+  .https.onCall(async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'Sign in required')
+    }
+    const apiKey = process.env.ANTHROPIC_API_KEY
+    if (!apiKey) {
+      throw new functions.https.HttpsError('failed-precondition', 'Anthropic API key not configured')
+    }
+
+    const { history = [], userMessage = '', image, config = {} } = data ?? {}
+    if (!userMessage && !image) {
+      throw new functions.https.HttpsError('invalid-argument', 'userMessage or image required')
+    }
+
+    const Anthropic = require('@anthropic-ai/sdk')
+    const client = new Anthropic({ apiKey })
+
+    const userContent = []
+    if (image?.data && image?.mediaType) {
+      userContent.push({
+        type: 'image',
+        source: { type: 'base64', media_type: image.mediaType, data: image.data },
+      })
+    }
+    const configSummary = buildConfigSummary(config)
+    userContent.push({
+      type: 'text',
+      text: `Current configurator state:\n\`\`\`json\n${JSON.stringify(configSummary, null, 2)}\n\`\`\`\n\nUser: ${userMessage}`,
+    })
+
+    try {
+      const response = await client.messages.create({
+        model: CLAUDE_MODEL,
+        max_tokens: 1024,
+        system: [
+          { type: 'text', text: CLAUDE_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
+        ],
+        tools: CLAUDE_TOOLS,
+        messages: [
+          ...history,
+          { role: 'user', content: userContent },
+        ],
+      })
+      return {
+        content: response.content,
+        stopReason: response.stop_reason,
+        usage: response.usage,
+      }
+    } catch (err) {
+      functions.logger.error('Anthropic API error', err.message)
+      throw new functions.https.HttpsError('internal', err.message ?? 'Anthropic API call failed')
+    }
+  })

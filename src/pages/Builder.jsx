@@ -8,6 +8,7 @@ import { ConfiguratorRenderer } from '../components/ConfiguratorRenderer.jsx'
 import { ENV_PRESETS } from '../components/SaunaViewer3D.jsx'
 import { extractGLBMaterials } from '../utils/glbMaterials.js'
 import { MediaPickerModal } from '../components/MediaPickerModal.jsx'
+import { ClaudeChat } from '../components/ClaudeChat.jsx'
 
 const DEFAULT_BG = { type: 'none', color: '#ffffff', imageUrl: null, imagePath: null }
 
@@ -1661,6 +1662,59 @@ export default function Builder() {
 
   const config = { variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark }
 
+  function handleClaudeTool(name, input) {
+    switch (name) {
+      case 'add_variant': {
+        const newVariant = {
+          id: uid(),
+          label: input.label,
+          swatch: input.swatch || '#888888',
+          swatchType: 'color',
+          price: input.price ?? null,
+          type: input.type || 'spinner',
+          frames: [],
+          frameCount: 0,
+          glbLayers: [],
+        }
+        setVariants((v) => [...v, newVariant])
+        return
+      }
+      case 'update_variant': {
+        const allowed = ['label', 'swatch', 'price', 'type']
+        const patch = Object.fromEntries(
+          Object.entries(input.fields ?? {}).filter(([k]) => allowed.includes(k))
+        )
+        setVariants((v) => v.map((x) => x.id === input.variantId ? { ...x, ...patch } : x))
+        return
+      }
+      case 'delete_variant':
+        setVariants((v) => v.filter((x) => x.id !== input.variantId))
+        return
+      case 'set_background': {
+        const patch = { type: input.type }
+        if (input.color) patch.color = input.color
+        setBackground((b) => ({ ...b, ...patch }))
+        return
+      }
+      case 'set_theme':
+        if (input.theme) setTheme(input.theme)
+        if (typeof input.darkMode === 'boolean') setDarkMode(input.darkMode)
+        return
+      case 'set_viewer_setting':
+        setViewerSettings((s) => ({ ...s, [input.key]: input.value }))
+        return
+      case 'set_order_form_enabled':
+        setOrderForm((o) => ({ ...o, enabled: !!input.enabled }))
+        return
+      case 'set_labels':
+        if (input.exteriorLabel) setExteriorLabel(input.exteriorLabel)
+        if (input.interiorLabel) setInteriorLabel(input.interiorLabel)
+        return
+      default:
+        throw new Error(`Unknown tool: ${name}`)
+    }
+  }
+
   return (
     <div className="builder">
       <div className="builder-inner">
@@ -1938,6 +1992,8 @@ export default function Builder() {
           onClose={() => setInviteOpen(false)}
         />
       )}
+
+      <ClaudeChat config={{ ...config, name }} onApplyTool={handleClaudeTool} />
     </div>
   )
 }
