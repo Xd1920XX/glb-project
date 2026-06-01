@@ -649,20 +649,79 @@ function buildConfigSummary(config) {
   return summary
 }
 
+// Per-plan monthly AI turn quota (only enforced when add-on enabled + using platform key)
+const AI_QUOTA_BY_PLAN = {
+  trial:   10,
+  starter: 50,
+  pro:     500,
+  custom:  Infinity,
+}
+
+function currentMonthKey() {
+  const d = new Date()
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
+}
+
+async function loadProfile(uid) {
+  const snap = await db.collection('users').doc(uid).get()
+  return snap.exists ? snap.data() : null
+}
+
+async function getAiUsageDoc(uid, month) {
+  const ref = db.collection('users').doc(uid).collection('aiUsage').doc(month)
+  const snap = await ref.get()
+  return { ref, count: snap.exists ? (snap.data().turnCount ?? 0) : 0 }
+}
+
 exports.chatWithClaude = functions
   .runWith({ secrets: ['ANTHROPIC_API_KEY'], timeoutSeconds: 60, memory: '512MB' })
   .https.onCall(async (data, context) => {
     if (!context.auth) {
       throw new functions.https.HttpsError('unauthenticated', 'Sign in required')
     }
-    const apiKey = process.env.ANTHROPIC_API_KEY
-    if (!apiKey) {
-      throw new functions.https.HttpsError('failed-precondition', 'Anthropic API key not configured')
-    }
 
-    const { history = [], userMessage = '', image, config = {} } = data ?? {}
+    const { history = [], userMessage = '', image, config = {}, userApiKey = '' } = data ?? {}
     if (!userMessage && !image) {
       throw new functions.https.HttpsError('invalid-argument', 'userMessage or image required')
+    }
+
+    const uid = context.auth.uid
+    const profile = await loadProfile(uid)
+    const month = currentMonthKey()
+
+    let apiKey
+    let usingByok = false
+    let usageRef = null
+    let currentCount = 0
+
+    if (userApiKey && userApiKey.startsWith('sk-ant-')) {
+      // BYOK — no quota, no tracking, no platform cost
+      apiKey = userApiKey
+      usingByok = true
+    } else {
+      // Platform key path — require add-on
+      if (!profile?.aiAssistantEnabled) {
+        throw new functions.https.HttpsError(
+          'permission-denied',
+          'AI assistant add-on not active. Enable it in Billing or paste your own Anthropic API key.',
+        )
+      }
+      apiKey = process.env.ANTHROPIC_API_KEY
+      if (!apiKey) {
+        throw new functions.https.HttpsError('failed-precondition', 'Anthropic API key not configured on server')
+      }
+      const sub  = profile.subscriptionStatus ?? 'trial'
+      const plan = sub === 'active' ? (profile.planId ?? 'starter') : 'trial'
+      const quota = AI_QUOTA_BY_PLAN[plan] ?? AI_QUOTA_BY_PLAN.trial
+      const usage = await getAiUsageDoc(uid, month)
+      usageRef = usage.ref
+      currentCount = usage.count
+      if (currentCount >= quota) {
+        throw new functions.https.HttpsError(
+          'resource-exhausted',
+          `Monthly AI turn limit reached (${quota}). Upgrade plan or use your own API key.`,
+        )
+      }
     }
 
     const Anthropic = require('@anthropic-ai/sdk')
@@ -694,13 +753,48 @@ exports.chatWithClaude = functions
           { role: 'user', content: userContent },
         ],
       })
+      if (!usingByok && usageRef) {
+        await usageRef.set({
+          turnCount: admin.firestore.FieldValue.increment(1),
+          tokensIn:  admin.firestore.FieldValue.increment(response.usage?.input_tokens ?? 0),
+          tokensOut: admin.firestore.FieldValue.increment(response.usage?.output_tokens ?? 0),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true })
+      }
+
       return {
         content: response.content,
         stopReason: response.stop_reason,
         usage: response.usage,
+        quota: usingByok ? null : {
+          used:  currentCount + 1,
+          limit: AI_QUOTA_BY_PLAN[
+            (profile?.subscriptionStatus === 'active'
+              ? (profile?.planId ?? 'starter')
+              : 'trial')
+          ] ?? 0,
+        },
       }
     } catch (err) {
       functions.logger.error('Anthropic API error', err.message)
       throw new functions.https.HttpsError('internal', err.message ?? 'Anthropic API call failed')
     }
   })
+
+// Read current AI usage for caller
+exports.getAiUsage = functions.https.onCall(async (_data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Sign in required')
+  const uid = context.auth.uid
+  const profile = await loadProfile(uid)
+  const month = currentMonthKey()
+  const usage = await getAiUsageDoc(uid, month)
+  const sub  = profile?.subscriptionStatus ?? 'trial'
+  const plan = sub === 'active' ? (profile?.planId ?? 'starter') : 'trial'
+  const quota = AI_QUOTA_BY_PLAN[plan] ?? AI_QUOTA_BY_PLAN.trial
+  return {
+    enabled: !!profile?.aiAssistantEnabled,
+    used:    usage.count,
+    limit:   quota === Infinity ? null : quota,
+    month,
+  }
+})

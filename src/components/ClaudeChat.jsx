@@ -1,8 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { httpsCallable } from 'firebase/functions'
 import { functions } from '../firebase/config.js'
 
 const chatWithClaude = httpsCallable(functions, 'chatWithClaude')
+const getAiUsage     = httpsCallable(functions, 'getAiUsage')
+
+const BYOK_STORAGE_KEY = 'anthropic-api-key'
 
 function uid() { return Math.random().toString(36).slice(2) }
 
@@ -33,8 +37,26 @@ export function ClaudeChat({ config, onApplyTool }) {
   const [image, setImage]     = useState(null)
   const [busy, setBusy]       = useState(false)
   const [error, setError]     = useState('')
+  const [quota, setQuota]     = useState(null)
+  const [showSettings, setShowSettings] = useState(false)
+  const [byokKey, setByokKey] = useState(() => {
+    try { return localStorage.getItem(BYOK_STORAGE_KEY) ?? '' } catch { return '' }
+  })
   const listRef = useRef(null)
   const fileRef = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    getAiUsage().then(({ data }) => setQuota(data)).catch(() => {})
+  }, [open])
+
+  function saveByok(value) {
+    setByokKey(value)
+    try {
+      if (value) localStorage.setItem(BYOK_STORAGE_KEY, value)
+      else       localStorage.removeItem(BYOK_STORAGE_KEY)
+    } catch { /* ignore */ }
+  }
 
   useEffect(() => {
     if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight
@@ -73,8 +95,12 @@ export function ClaudeChat({ config, onApplyTool }) {
       if (sendImage) {
         payload.image = { data: sendImage.base64, mediaType: sendImage.mediaType }
       }
+      if (byokKey) {
+        payload.userApiKey = byokKey
+      }
       const { data } = await chatWithClaude(payload)
       const content = data.content ?? []
+      if (data.quota) setQuota((q) => ({ ...q, used: data.quota.used, limit: data.quota.limit }))
 
       const textBlocks = content.filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim()
       const toolBlocks = content.filter((b) => b.type === 'tool_use')
@@ -134,8 +160,44 @@ export function ClaudeChat({ config, onApplyTool }) {
     <div className="claude-chat-panel">
       <div className="claude-chat-header">
         <span className="claude-chat-title">✦ AI assistant</span>
-        <button className="claude-chat-close" onClick={() => setOpen(false)} title="Close">✕</button>
+        <div className="claude-chat-header-actions">
+          {byokKey
+            ? <span className="claude-chat-badge claude-chat-badge--byok" title="Using your own API key">BYOK</span>
+            : quota?.limit != null && (
+              <span className={`claude-chat-badge${quota.used >= quota.limit ? ' claude-chat-badge--over' : ''}`}>
+                {quota.used} / {quota.limit}
+              </span>
+            )}
+          <button className="claude-chat-close" onClick={() => setShowSettings((v) => !v)} title="Settings">⚙</button>
+          <button className="claude-chat-close" onClick={() => setOpen(false)} title="Close">✕</button>
+        </div>
       </div>
+
+      {showSettings && (
+        <div className="claude-chat-settings">
+          <div className="claude-chat-settings-row">
+            <label className="claude-chat-settings-label">Your Anthropic API key (optional)</label>
+            <input
+              type="password"
+              className="claude-chat-settings-input"
+              placeholder="sk-ant-…"
+              value={byokKey}
+              onChange={(e) => saveByok(e.target.value)} />
+            <p className="claude-chat-settings-hint">
+              Stored in this browser only. Bypasses platform quota. Get a key at{' '}
+              <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer">console.anthropic.com</a>.
+            </p>
+          </div>
+          {!byokKey && quota && !quota.enabled && (
+            <div className="claude-chat-settings-row">
+              <p className="claude-chat-settings-hint">
+                AI assistant add-on is not active on your account.{' '}
+                <Link to="/billing">Enable in Billing</Link> (€5/mo) or paste your own key above.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="claude-chat-messages" ref={listRef}>
         {messages.length === 0 && (

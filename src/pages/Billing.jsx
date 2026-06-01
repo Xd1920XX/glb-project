@@ -88,6 +88,9 @@ export default function Billing() {
           : <PlanSelector user={user} setProfile={setProfile} onInvoiceCreated={() => setInvoiceKey((k) => k + 1)} />
         }
 
+        {/* ── AI assistant add-on ── */}
+        <AiAddonSection user={user} profile={profile} setProfile={setProfile} />
+
         {/* ── Invoice history ── */}
         <InvoiceHistory user={user} refreshKey={invoiceKey} />
 
@@ -300,6 +303,53 @@ function PlanSelector({ user, setProfile, defaultPlan, onInvoiceCreated }) {
         </div>
         <div className="billing-subscribe-paypal">
           <PayPalButton key={selected} planPaypalId={planPaypalId} planId={selected} user={user} setProfile={setProfile} onInvoiceCreated={onInvoiceCreated} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── AI assistant add-on ─────────────────────────────────────────────
+
+function AiAddonSection({ user, profile, setProfile }) {
+  const [working, setWorking] = useState(false)
+  const enabled = !!profile?.aiAssistantEnabled
+
+  async function toggle() {
+    setWorking(true)
+    try {
+      await updateUser(user.uid, { aiAssistantEnabled: !enabled })
+      setProfile((p) => ({ ...p, aiAssistantEnabled: !enabled }))
+    } finally {
+      setWorking(false)
+    }
+  }
+
+  return (
+    <div className="billing-section">
+      <h2 className="billing-section-title">AI assistant add-on</h2>
+      <div className="billing-addon-card">
+        <div className="billing-addon-body">
+          <div className="billing-addon-head">
+            <span className="billing-addon-name">✦ AI assistant</span>
+            <span className="billing-addon-price">€5<span>/mo</span></span>
+          </div>
+          <p className="billing-addon-desc">
+            Chat with an AI assistant inside the builder. Upload product photos, ask for color suggestions,
+            add variants and tweak settings by typing. Includes per-plan monthly turn quota.
+          </p>
+          <ul className="billing-addon-features">
+            <li>Trial: 10 turns/mo · Starter: 50 turns/mo · Pro: 500 turns/mo · Custom: unlimited</li>
+            <li>Or use your own Anthropic API key (no quota, no extra charge)</li>
+          </ul>
+        </div>
+        <div className="billing-addon-actions">
+          <button
+            className={enabled ? 'btn-ghost btn-sm' : 'btn-primary btn-sm'}
+            onClick={toggle}
+            disabled={working}>
+            {working ? '…' : enabled ? 'Disable add-on' : 'Enable add-on'}
+          </button>
         </div>
       </div>
     </div>
