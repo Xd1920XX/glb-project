@@ -3,21 +3,25 @@ export const PLANS = [
     id:           'starter',
     label:        'Starter',
     price:        19.99,
+    priceYearly:  199,
     embeds:       3,
     landingPages: 1,
     viewsPerMonth: 5000,
     storageGB:    1,
-    paypalKey:    'VITE_PAYPAL_PLAN_ID_STARTER',
+    paypalKey:        'VITE_PAYPAL_PLAN_ID_STARTER',
+    paypalKeyYearly:  'VITE_PAYPAL_PLAN_ID_STARTER_YEARLY',
   },
   {
     id:           'pro',
     label:        'Pro',
     price:        69.99,
+    priceYearly:  699,
     embeds:       12,
     landingPages: 5,
     viewsPerMonth: 25000,
     storageGB:    5,
-    paypalKey:    'VITE_PAYPAL_PLAN_ID_PRO',
+    paypalKey:        'VITE_PAYPAL_PLAN_ID_PRO',
+    paypalKeyYearly:  'VITE_PAYPAL_PLAN_ID_PRO_YEARLY',
     popular:      true,
   },
   {
@@ -25,6 +29,7 @@ export const PLANS = [
     label:        'Custom',
     price:        null,
     priceLabel:   'From €299',
+    priceYearly:  null,
     embeds:       null,
     landingPages: null,
     viewsPerMonth: null,
@@ -33,6 +38,18 @@ export const PLANS = [
     contactOnly:  true,
   },
 ]
+
+/** Monthly price equivalent when paying yearly */
+export function getYearlyMonthly(plan) {
+  if (plan.priceYearly == null) return null
+  return plan.priceYearly / 12
+}
+
+/** Savings when paying yearly vs monthly */
+export function getYearlySavings(plan) {
+  if (plan.price == null || plan.priceYearly == null) return null
+  return plan.price * 12 - plan.priceYearly
+}
 
 export const TRIAL_DAYS               = 3
 export const TRIAL_EMBED_LIMIT        = 3

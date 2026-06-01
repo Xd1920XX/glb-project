@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { PLANS } from '../config/plans.js'
+import { PLANS, getYearlyMonthly, getYearlySavings } from '../config/plans.js'
 import HeroBackground from '../components/HeroBackground.jsx'
 
 export default function Landing() {
+  const [billingCycle, setBillingCycle] = useState('monthly')
   return (
     <div className="landing">
       <HeroBackground />
@@ -140,10 +142,23 @@ export default function Landing() {
         <div className="section-eyebrow">Pricing</div>
         <h2 className="section-title">Simple, transparent pricing</h2>
         <p className="pricing-sub">7-day free trial on any plan. No credit card required. Cancel any time.</p>
+
+        <div className="pricing-cycle-toggle">
+          <button className={`pricing-cycle-btn${billingCycle === 'monthly' ? ' active' : ''}`}
+            onClick={() => setBillingCycle('monthly')}>Monthly</button>
+          <button className={`pricing-cycle-btn${billingCycle === 'yearly' ? ' active' : ''}`}
+            onClick={() => setBillingCycle('yearly')}>
+            Yearly <span className="pricing-cycle-badge">Save 17%</span>
+          </button>
+        </div>
+
         <div className="pricing-grid">
           {PLANS.map((plan) => {
             const isCustom = plan.contactOnly
             const fmtViews = (n) => n >= 1000 ? `${(n / 1000).toFixed(0)}k` : String(n)
+            const showYearly = billingCycle === 'yearly' && plan.priceYearly != null
+            const yMonthly = getYearlyMonthly(plan)
+            const yearlySave = getYearlySavings(plan)
             return (
               <div key={plan.id} className={`pricing-tier${plan.popular ? ' popular' : ''}${isCustom ? ' custom' : ''}`}>
                 {plan.popular && <div className="pricing-popular-badge">Most popular</div>}
@@ -152,8 +167,13 @@ export default function Landing() {
                   <div className="pricing-tier-price">
                     {isCustom
                       ? <>{plan.priceLabel}<span>/mo</span></>
-                      : <>€{plan.price}<span>/mo</span></>}
+                      : showYearly
+                        ? <>€{yMonthly.toFixed(2)}<span>/mo</span></>
+                        : <>€{plan.price}<span>/mo</span></>}
                   </div>
+                  {!isCustom && showYearly && (
+                    <div className="pricing-tier-yearly-note">Billed €{plan.priceYearly}/yr · save €{yearlySave.toFixed(0)}</div>
+                  )}
                 </div>
                 <div className="pricing-tier-embeds">
                   {isCustom
