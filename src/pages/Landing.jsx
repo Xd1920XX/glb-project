@@ -141,30 +141,41 @@ export default function Landing() {
         <h2 className="section-title">Simple, transparent pricing</h2>
         <p className="pricing-sub">7-day free trial on any plan. No credit card required. Cancel any time.</p>
         <div className="pricing-grid">
-          {PLANS.map((plan) => (
-            <div key={plan.id} className={`pricing-tier${plan.popular ? ' popular' : ''}`}>
-              {plan.popular && <div className="pricing-popular-badge">Most popular</div>}
-              <div className="pricing-tier-header">
-                <div className="pricing-tier-name">{plan.label}</div>
-                <div className="pricing-tier-price">
-                  €{plan.price}<span>/mo</span>
+          {PLANS.map((plan) => {
+            const isCustom = plan.contactOnly
+            const fmtViews = (n) => n >= 1000 ? `${(n / 1000).toFixed(0)}k` : String(n)
+            return (
+              <div key={plan.id} className={`pricing-tier${plan.popular ? ' popular' : ''}${isCustom ? ' custom' : ''}`}>
+                {plan.popular && <div className="pricing-popular-badge">Most popular</div>}
+                <div className="pricing-tier-header">
+                  <div className="pricing-tier-name">{plan.label}</div>
+                  <div className="pricing-tier-price">
+                    {isCustom
+                      ? <>{plan.priceLabel}<span>/mo</span></>
+                      : <>€{plan.price}<span>/mo</span></>}
+                  </div>
                 </div>
+                <div className="pricing-tier-embeds">
+                  {isCustom
+                    ? <strong>Unlimited embeds</strong>
+                    : <><strong>{plan.embeds}</strong> active embed{plan.embeds !== 1 ? 's' : ''}</>}
+                </div>
+                <ul className="pricing-tier-features">
+                  <li>Unlimited configurators</li>
+                  <li>3D GLB + rotation + 360°</li>
+                  <li>{isCustom ? 'Unlimited' : plan.landingPages} landing page{plan.landingPages === 1 ? '' : 's'}</li>
+                  <li>{isCustom ? 'Unlimited views' : `${fmtViews(plan.viewsPerMonth)} views / month`}</li>
+                  <li>{isCustom ? 'Unlimited storage' : `${plan.storageGB} GB asset storage`}</li>
+                  {isCustom && <li>White-label embeds + custom domain</li>}
+                  {isCustom && <li>Priority support &amp; onboarding</li>}
+                  {isCustom && <li>Custom integrations &amp; SLA</li>}
+                </ul>
+                {isCustom
+                  ? <Link to="/contact" className="btn-ghost btn-block">Talk to us</Link>
+                  : <Link to="/signup" className={plan.popular ? 'btn-primary btn-block' : 'btn-ghost btn-block'}>Start free trial</Link>}
               </div>
-              <div className="pricing-tier-embeds">
-                <strong>{plan.embeds}</strong> active embed{plan.embeds !== 1 ? 's' : ''}
-              </div>
-              <ul className="pricing-tier-features">
-                <li>Unlimited configurators</li>
-                <li>Unlimited asset uploads</li>
-                <li>3D GLB + rotation + 360°</li>
-                <li>{plan.landingPages} landing page{plan.landingPages !== 1 ? 's' : ''}</li>
-                <li>{plan.embeds} live embed{plan.embeds !== 1 ? 's' : ''}</li>
-              </ul>
-              <Link to="/signup" className={plan.popular ? 'btn-primary btn-block' : 'btn-ghost btn-block'}>
-                Start free trial
-              </Link>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </section>
 

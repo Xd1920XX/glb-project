@@ -2,35 +2,35 @@ export const PLANS = [
   {
     id:           'starter',
     label:        'Starter',
-    price:        60,
+    price:        19.99,
     embeds:       3,
     landingPages: 1,
+    viewsPerMonth: 5000,
+    storageGB:    1,
     paypalKey:    'VITE_PAYPAL_PLAN_ID_STARTER',
   },
   {
     id:           'pro',
     label:        'Pro',
-    price:        120,
-    embeds:       9,
-    landingPages: 3,
+    price:        69.99,
+    embeds:       12,
+    landingPages: 5,
+    viewsPerMonth: 25000,
+    storageGB:    5,
     paypalKey:    'VITE_PAYPAL_PLAN_ID_PRO',
     popular:      true,
   },
   {
-    id:           'business',
-    label:        'Business',
-    price:        180,
-    embeds:       18,
-    landingPages: 5,
-    paypalKey:    'VITE_PAYPAL_PLAN_ID_BUSINESS',
-  },
-  {
-    id:           'enterprise',
-    label:        'Enterprise',
-    price:        680,
-    embeds:       50,
-    landingPages: 10,
-    paypalKey:    'VITE_PAYPAL_PLAN_ID_ENTERPRISE',
+    id:           'custom',
+    label:        'Custom',
+    price:        null,
+    priceLabel:   'From €299',
+    embeds:       null,
+    landingPages: null,
+    viewsPerMonth: null,
+    storageGB:    null,
+    paypalKey:    null,
+    contactOnly:  true,
   },
 ]
 
@@ -51,20 +51,26 @@ export function getPlan(id) {
   return PLANS.find((p) => p.id === id) ?? PLANS[0]
 }
 
-/** How many embeds this profile is allowed to publish */
+/** How many embeds this profile is allowed to publish. Infinity = unlimited. */
 export function getEmbedLimit(profile) {
   if (!profile) return 0
   const { subscriptionStatus, planId } = profile
   if (subscriptionStatus === 'trial')  return TRIAL_EMBED_LIMIT
-  if (subscriptionStatus === 'active') return getPlan(planId).embeds
+  if (subscriptionStatus === 'active') {
+    const v = getPlan(planId).embeds
+    return v == null ? Infinity : v
+  }
   return 0
 }
 
-/** How many landing pages this profile is allowed to publish */
+/** How many landing pages this profile is allowed to publish. Infinity = unlimited. */
 export function getLandingPageLimit(profile) {
   if (!profile) return 0
   const { subscriptionStatus, planId } = profile
   if (subscriptionStatus === 'trial')  return TRIAL_LANDING_PAGE_LIMIT
-  if (subscriptionStatus === 'active') return getPlan(planId).landingPages
+  if (subscriptionStatus === 'active') {
+    const v = getPlan(planId).landingPages
+    return v == null ? Infinity : v
+  }
   return 0
 }

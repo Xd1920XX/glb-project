@@ -17,8 +17,8 @@ function makeTimestamp(daysAgo) {
 }
 
 describe('PLANS', () => {
-  it('has four plans', () => {
-    expect(PLANS).toHaveLength(4)
+  it('has three plans', () => {
+    expect(PLANS).toHaveLength(3)
   })
 
   it('every plan has required fields', () => {
@@ -33,6 +33,18 @@ describe('PLANS', () => {
   it('pro plan is marked popular', () => {
     const pro = PLANS.find((p) => p.id === 'pro')
     expect(pro.popular).toBe(true)
+  })
+
+  it('custom plan is contact-only with null price', () => {
+    const custom = PLANS.find((p) => p.id === 'custom')
+    expect(custom.contactOnly).toBe(true)
+    expect(custom.price).toBeNull()
+    expect(custom.embeds).toBeNull()
+  })
+
+  it('starter price stays under €20', () => {
+    const starter = PLANS.find((p) => p.id === 'starter')
+    expect(starter.price).toBeLessThan(20)
   })
 })
 
@@ -52,9 +64,9 @@ describe('constants', () => {
 
 describe('getPlan', () => {
   it('returns the correct plan by id', () => {
+    expect(getPlan('starter').id).toBe('starter')
     expect(getPlan('pro').id).toBe('pro')
-    expect(getPlan('business').id).toBe('business')
-    expect(getPlan('enterprise').id).toBe('enterprise')
+    expect(getPlan('custom').id).toBe('custom')
   })
 
   it('returns the first plan when id is unknown', () => {
@@ -137,8 +149,14 @@ describe('getEmbedLimit', () => {
   it('returns correct limit for each active plan', () => {
     for (const plan of PLANS) {
       const profile = { subscriptionStatus: 'active', planId: plan.id }
-      expect(getEmbedLimit(profile)).toBe(plan.embeds)
+      const expected = plan.embeds == null ? Infinity : plan.embeds
+      expect(getEmbedLimit(profile)).toBe(expected)
     }
+  })
+
+  it('returns Infinity for active custom plan', () => {
+    const profile = { subscriptionStatus: 'active', planId: 'custom' }
+    expect(getEmbedLimit(profile)).toBe(Infinity)
   })
 })
 
@@ -152,9 +170,14 @@ describe('getLandingPageLimit', () => {
   })
 
   it('returns plan landingPages for active users', () => {
-    const profile = { subscriptionStatus: 'active', planId: 'business' }
-    const business = getPlan('business')
-    expect(getLandingPageLimit(profile)).toBe(business.landingPages)
+    const profile = { subscriptionStatus: 'active', planId: 'pro' }
+    const pro = getPlan('pro')
+    expect(getLandingPageLimit(profile)).toBe(pro.landingPages)
+  })
+
+  it('returns Infinity for active custom plan', () => {
+    const profile = { subscriptionStatus: 'active', planId: 'custom' }
+    expect(getLandingPageLimit(profile)).toBe(Infinity)
   })
 
   it('returns 0 for cancelled users', () => {

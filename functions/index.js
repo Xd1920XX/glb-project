@@ -277,10 +277,8 @@ const SELLER = {
 }
 
 const PLANS_MAP = {
-  starter:    { label: 'Starter',    price: 60  },
-  pro:        { label: 'Pro',        price: 120 },
-  business:   { label: 'Business',   price: 180 },
-  enterprise: { label: 'Enterprise', price: 680 },
+  starter: { label: 'Starter', price: 19.99 },
+  pro:     { label: 'Pro',     price: 69.99 },
 }
 
 const VAT_RATE = 0.22

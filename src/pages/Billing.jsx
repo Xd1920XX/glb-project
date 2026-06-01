@@ -8,10 +8,8 @@ import { CmsSidebar } from '../components/CmsSidebar.jsx'
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID
 
 const PAYPAL_PLAN_IDS = {
-  starter:    import.meta.env.VITE_PAYPAL_PLAN_ID_STARTER,
-  pro:        import.meta.env.VITE_PAYPAL_PLAN_ID_PRO,
-  business:   import.meta.env.VITE_PAYPAL_PLAN_ID_BUSINESS,
-  enterprise: import.meta.env.VITE_PAYPAL_PLAN_ID_ENTERPRISE,
+  starter: import.meta.env.VITE_PAYPAL_PLAN_ID_STARTER,
+  pro:     import.meta.env.VITE_PAYPAL_PLAN_ID_PRO,
 }
 
 const STATUS_CONFIG = {
@@ -57,7 +55,11 @@ export default function Billing() {
               {sub === 'active' && currentPlan ? currentPlan.label : status.label}
             </span>
             {sub === 'active' && currentPlan && (
-              <span className="billing-status-price">€{currentPlan.price}<span>/mo</span></span>
+              <span className="billing-status-price">
+                {currentPlan.price == null
+                  ? <>{currentPlan.priceLabel ?? 'Custom'}<span>/mo</span></>
+                  : <>€{currentPlan.price}<span>/mo</span></>}
+              </span>
             )}
           </div>
           {sub === 'trial' && daysLeft !== null && (
@@ -68,7 +70,9 @@ export default function Billing() {
             </div>
           )}
           {sub === 'active' && currentPlan && (
-            <div className="billing-trial-note">{currentPlan.embeds} embeds · renews automatically</div>
+            <div className="billing-trial-note">
+              {currentPlan.embeds == null ? 'Unlimited embeds' : `${currentPlan.embeds} embeds`} · renews automatically
+            </div>
           )}
           {sub === 'cancelled' && (
             <div className="billing-trial-note">Your subscription has been cancelled. Re-subscribe below to continue.</div>
@@ -207,9 +211,15 @@ function ActiveSection({ user, profile, setProfile, currentPlan }) {
           <div className="billing-active-plan-row">
             <div>
               <div className="billing-active-plan-name">{currentPlan?.label}</div>
-              <div className="billing-active-plan-price">€{currentPlan?.price}<span>/month</span></div>
+              <div className="billing-active-plan-price">
+                {currentPlan?.price == null
+                  ? <>{currentPlan?.priceLabel ?? 'Custom'}<span>/month</span></>
+                  : <>€{currentPlan?.price}<span>/month</span></>}
+              </div>
             </div>
-            <div className="billing-active-plan-meta">{currentPlan?.embeds} embeds · auto-renews</div>
+            <div className="billing-active-plan-meta">
+              {currentPlan?.embeds == null ? 'Unlimited embeds' : `${currentPlan?.embeds} embeds`} · auto-renews
+            </div>
           </div>
           <div className="billing-active-actions">
             <button className="btn-ghost btn-sm" onClick={() => setChangingPlan(true)}>Change plan</button>
@@ -237,7 +247,9 @@ function ActiveSection({ user, profile, setProfile, currentPlan }) {
 // ── Plan selector ───────────────────────────────────────────────────
 
 function PlanSelector({ user, setProfile, defaultPlan, onInvoiceCreated }) {
-  const [selected, setSelected] = useState(defaultPlan ?? 'pro')
+  const subscribable = PLANS.filter((p) => !p.contactOnly)
+  const initial = subscribable.find((p) => p.id === defaultPlan)?.id ?? 'pro'
+  const [selected, setSelected] = useState(initial)
   const plan         = PLANS.find((p) => p.id === selected)
   const planPaypalId = PAYPAL_PLAN_IDS[selected]
 
@@ -246,19 +258,36 @@ function PlanSelector({ user, setProfile, defaultPlan, onInvoiceCreated }) {
       <h2 className="billing-section-title">Choose a plan</h2>
 
       <div className="billing-plan-grid">
-        {PLANS.map((p) => (
-          <button
-            key={p.id}
-            className={`billing-plan-option${selected === p.id ? ' selected' : ''}${p.popular ? ' popular' : ''}`}
-            onClick={() => setSelected(p.id)}
-          >
-            {p.popular && <span className="billing-plan-badge">Popular</span>}
-            <div className="billing-plan-option-name">{p.label}</div>
-            <div className="billing-plan-option-price">€{p.price}<span>/mo</span></div>
-            <div className="billing-plan-option-divider" />
-            <div className="billing-plan-option-embeds">{p.embeds} embeds</div>
-          </button>
-        ))}
+        {PLANS.map((p) => {
+          const isCustom = p.contactOnly
+          if (isCustom) {
+            return (
+              <Link
+                key={p.id}
+                to="/contact"
+                className={`billing-plan-option custom${p.popular ? ' popular' : ''}`}
+              >
+                <div className="billing-plan-option-name">{p.label}</div>
+                <div className="billing-plan-option-price">{p.priceLabel}<span>/mo</span></div>
+                <div className="billing-plan-option-divider" />
+                <div className="billing-plan-option-embeds">Unlimited embeds</div>
+              </Link>
+            )
+          }
+          return (
+            <button
+              key={p.id}
+              className={`billing-plan-option${selected === p.id ? ' selected' : ''}${p.popular ? ' popular' : ''}`}
+              onClick={() => setSelected(p.id)}
+            >
+              {p.popular && <span className="billing-plan-badge">Popular</span>}
+              <div className="billing-plan-option-name">{p.label}</div>
+              <div className="billing-plan-option-price">€{p.price}<span>/mo</span></div>
+              <div className="billing-plan-option-divider" />
+              <div className="billing-plan-option-embeds">{p.embeds} embeds</div>
+            </button>
+          )
+        })}
       </div>
 
       <div className="billing-subscribe-box">
