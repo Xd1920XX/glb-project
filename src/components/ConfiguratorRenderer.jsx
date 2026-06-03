@@ -488,13 +488,13 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
                     </div>
                   </div>
                 ))}
-                {firstPartTouched && variant?.colorOptions?.length > 0 && (() => {
+                {modelTouched && variant?.colorOptions?.length > 0 && (() => {
                   const sel = variant.colorOptions.find((c) => c.label === colorSel)
                     ?? variant.colorOptions.find((c) => c.id === variant.defaultColorOptionId)
                     ?? variant.colorOptions[0]
                   return (
                     <div className="variant-group-section">
-                      <p className="section-label">Color</p>
+                      <p className="section-label">Frame color</p>
                       <div className="color-grid">
                         {variant.colorOptions.map((c) => (
                           <button key={c.id}
