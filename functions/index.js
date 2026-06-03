@@ -8,9 +8,9 @@ const db = admin.firestore()
 // ── Email setup (Brevo transactional API) ──────────────────────────
 
 const APP_URL    = process.env.APP_URL    || 'https://glbconfigurator.com'
-const FROM_EMAIL = process.env.BREVO_FROM_EMAIL || 'noreply@nordicrender.com'
-const FROM_NAME  = process.env.BREVO_FROM_NAME  || 'Nordic Render OÜ'
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'info@nordicrender.com'
+const FROM_EMAIL = process.env.BREVO_FROM_EMAIL || 'info@glbconfigurator.com'
+const FROM_NAME  = process.env.BREVO_FROM_NAME  || 'GLB Configurator'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'info@glbconfigurator.com'
 
 function parseRecipient(to) {
   if (Array.isArray(to)) return to.map(parseRecipient).flat()
