@@ -1,31 +1,57 @@
 const functions = require('firebase-functions')
 const admin     = require('firebase-admin')
 const axios     = require('axios')
-const sgMail    = require('@sendgrid/mail')
 
 admin.initializeApp()
 const db = admin.firestore()
 
-// ── Email setup ────────────────────────────────────────────────────
+// ── Email setup (Brevo transactional API) ──────────────────────────
 
-function initSendGrid() {
-  const key = process.env.SENDGRID_API_KEY
-  if (key) sgMail.setApiKey(key)
-  return !!key
+const APP_URL    = process.env.APP_URL    || 'https://glbconfigurator.com'
+const FROM_EMAIL = process.env.BREVO_FROM_EMAIL || 'noreply@nordicrender.com'
+const FROM_NAME  = process.env.BREVO_FROM_NAME  || 'Nordic Render OÜ'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'info@nordicrender.com'
+
+function parseRecipient(to) {
+  if (Array.isArray(to)) return to.map(parseRecipient).flat()
+  if (typeof to === 'object' && to?.email) return [{ email: to.email, name: to.name }]
+  const match = /^\s*(.*?)\s*<\s*(.+?)\s*>\s*$/.exec(to ?? '')
+  if (match) return [{ name: match[1], email: match[2] }]
+  return [{ email: String(to ?? '').trim() }]
 }
 
-const FROM     = process.env.SENDGRID_FROM || 'Nordic Render OÜ <noreply@nordicrender.com>'
-const APP_URL  = process.env.APP_URL       || 'https://glbconfigurator.com'
-
-async function sendEmail({ to, subject, html, text }) {
-  if (!initSendGrid()) {
-    functions.logger.warn('SendGrid not configured — skipping email to', to)
+async function sendEmail({ to, subject, html, text, replyTo }) {
+  const apiKey = process.env.BREVO_API_KEY
+  if (!apiKey) {
+    functions.logger.warn('BREVO_API_KEY not configured — skipping email to', to)
     return
   }
+  const recipients = parseRecipient(to).filter((r) => r.email)
+  if (!recipients.length) {
+    functions.logger.warn('sendEmail called without valid recipient'); return
+  }
+  const payload = {
+    sender: { name: FROM_NAME, email: FROM_EMAIL },
+    to: recipients,
+    subject,
+    htmlContent: html,
+    textContent: text,
+  }
+  if (replyTo) {
+    const r = parseRecipient(replyTo)[0]
+    if (r?.email) payload.replyTo = r
+  }
   try {
-    await sgMail.send({ from: FROM, to, subject, html, text })
+    await axios.post('https://api.brevo.com/v3/smtp/email', payload, {
+      headers: {
+        'api-key': apiKey,
+        'content-type': 'application/json',
+        accept: 'application/json',
+      },
+      timeout: 15000,
+    })
   } catch (e) {
-    functions.logger.error('SendGrid send failed', e.response?.body ?? e.message)
+    functions.logger.error('Brevo send failed', e.response?.data ?? e.message)
   }
 }
 
@@ -266,6 +292,162 @@ function teamInviteEmail(ownerEmail, inviteUrl, projectName) {
   }
 }
 
+// Contact form — admin notification
+function contactAdminEmail({ name, email, subject, message }) {
+  const body = `
+    <h1 style="font-size:22px;font-weight:700;color:#111;margin:0 0 8px;">New contact message</h1>
+    <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 24px;">
+      <strong>${name}</strong> &lt;${email}&gt; sent a message via the contact form.
+    </p>
+    ${divider()}
+    <table cellpadding="0" cellspacing="0" style="width:100%;">
+      <tr>
+        <td style="font-size:13px;color:#777;padding-bottom:10px;">Subject</td>
+        <td style="font-size:13px;color:#111;font-weight:600;text-align:right;padding-bottom:10px;">${subject}</td>
+      </tr>
+      <tr>
+        <td style="font-size:13px;color:#777;padding-bottom:10px;">From</td>
+        <td style="font-size:13px;color:#111;text-align:right;padding-bottom:10px;">${name}</td>
+      </tr>
+      <tr>
+        <td style="font-size:13px;color:#777;">Email</td>
+        <td style="font-size:13px;color:#111;text-align:right;"><a href="mailto:${email}" style="color:#111;">${email}</a></td>
+      </tr>
+    </table>
+    ${divider()}
+    <p style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#888;margin:0 0 8px;">Message</p>
+    <p style="font-size:14px;color:#222;line-height:1.6;white-space:pre-wrap;margin:0;">${message}</p>
+  `
+  return {
+    subject: `[Contact] ${subject} — ${name}`,
+    html:    emailWrapper(`${name} sent a message via the contact form.`, body),
+    text:    `New contact message\n\nFrom: ${name} <${email}>\nSubject: ${subject}\n\n${message}`,
+  }
+}
+
+// Contact form — auto-reply to sender
+function contactAutoReplyEmail(name) {
+  const body = `
+    <h1 style="font-size:22px;font-weight:700;color:#111;margin:0 0 8px;">Thanks for reaching out</h1>
+    <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 16px;">
+      Hi ${name}, we received your message and will get back to you within one business day.
+    </p>
+    <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 24px;">
+      In the meantime, feel free to explore the platform — your dashboard has everything you need to start a configurator.
+    </p>
+    ${btn('Open Nordic Render →', APP_URL)}
+  `
+  return {
+    subject: 'We received your message — Nordic Render',
+    html:    emailWrapper('We received your message — we will reply within one business day.', body),
+    text:    `Hi ${name},\n\nWe received your message and will get back to you within one business day.\n\n${APP_URL}`,
+  }
+}
+
+// Model inquiry — admin notification
+function modelInquiryEmail({ name, email, description, ...rest }) {
+  const extraRows = Object.entries(rest)
+    .filter(([, v]) => v !== undefined && v !== null && v !== '')
+    .map(([k, v]) => `
+      <tr>
+        <td style="font-size:13px;color:#777;padding:8px 0;border-bottom:1px solid #f2f1ef;width:40%;">${k}</td>
+        <td style="font-size:13px;color:#111;padding:8px 0;border-bottom:1px solid #f2f1ef;font-weight:500;">${v}</td>
+      </tr>`).join('')
+  const body = `
+    <h1 style="font-size:22px;font-weight:700;color:#111;margin:0 0 8px;">New model inquiry</h1>
+    <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 24px;">
+      <strong>${name}</strong> &lt;${email}&gt; submitted a model inquiry.
+    </p>
+    ${divider()}
+    <p style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#888;margin:0 0 8px;">Description</p>
+    <p style="font-size:14px;color:#222;line-height:1.6;white-space:pre-wrap;margin:0 0 16px;">${description}</p>
+    ${extraRows ? `
+      ${divider()}
+      <table cellpadding="0" cellspacing="0" style="width:100%;">${extraRows}</table>` : ''}
+  `
+  return {
+    subject: `[Model inquiry] ${name}`,
+    html:    emailWrapper(`${name} submitted a model inquiry.`, body),
+    text:    `Model inquiry\n\nFrom: ${name} <${email}>\n\n${description}`,
+  }
+}
+
+// Subscription cancelled
+function subscriptionCancelledEmail(name, planLabel) {
+  const body = `
+    <h1 style="font-size:22px;font-weight:700;color:#111;margin:0 0 8px;">Your subscription is cancelled</h1>
+    <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 24px;">
+      ${name ? `Hi ${name}, ` : ''}your <strong>${planLabel}</strong> subscription has been cancelled. You'll keep access until the end of the current billing period.
+    </p>
+    <p style="font-size:13px;color:#777;margin:0 0 16px;">
+      Changed your mind? You can resubscribe any time — your configurators and media stay in your account.
+    </p>
+    ${btn('Reactivate Plan →', `${APP_URL}/billing`)}
+  `
+  return {
+    subject: 'Your Nordic Render subscription has been cancelled',
+    html:    emailWrapper('Your subscription is cancelled. Resubscribe any time.', body),
+    text:    `Your ${planLabel} subscription has been cancelled.\n\nReactivate: ${APP_URL}/billing`,
+  }
+}
+
+// Payment failed / past due
+function paymentFailedEmail(name, planLabel) {
+  const body = `
+    <h1 style="font-size:22px;font-weight:700;color:#111;margin:0 0 8px;">Payment issue with your subscription</h1>
+    <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 16px;">
+      ${name ? `Hi ${name}, ` : ''}we couldn't process the latest payment for your <strong>${planLabel}</strong> plan.
+    </p>
+    <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 24px;">
+      Update your payment method to avoid losing access. Your published configurators and embeds may be paused if the issue isn't resolved.
+    </p>
+    ${btn('Fix Payment →', `${APP_URL}/billing`)}
+  `
+  return {
+    subject: 'Action required — payment failed for your Nordic Render subscription',
+    html:    emailWrapper('Update your payment method to keep your subscription active.', body),
+    text:    `Payment failed for your ${planLabel} plan.\n\nUpdate: ${APP_URL}/billing`,
+  }
+}
+
+// Trial ending reminder
+function trialEndingEmail(name, trialEndDate) {
+  const body = `
+    <h1 style="font-size:22px;font-weight:700;color:#111;margin:0 0 8px;">Your trial ends tomorrow</h1>
+    <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 16px;">
+      ${name ? `Hi ${name}, ` : ''}your free trial ends on <strong>${trialEndDate}</strong>.
+    </p>
+    <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 24px;">
+      Pick a plan to keep your configurators live. All your data and settings stay exactly as you left them.
+    </p>
+    ${btn('Choose a Plan →', `${APP_URL}/billing`)}
+  `
+  return {
+    subject: 'Your Nordic Render trial ends tomorrow',
+    html:    emailWrapper(`Your free trial ends on ${trialEndDate}.`, body),
+    text:    `Your trial ends on ${trialEndDate}.\n\nChoose a plan: ${APP_URL}/billing`,
+  }
+}
+
+// Trial expired
+function trialExpiredEmail(name) {
+  const body = `
+    <h1 style="font-size:22px;font-weight:700;color:#111;margin:0 0 8px;">Your trial has ended</h1>
+    <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 16px;">
+      ${name ? `Hi ${name}, ` : ''}your free trial of Nordic Render has ended.
+    </p>
+    <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 24px;">
+      Subscribe to a plan to keep building and publishing. Your account stays intact — pick up right where you left off.
+    </p>
+    ${btn('Subscribe Now →', `${APP_URL}/billing`)}
+  `
+  return {
+    subject: 'Your Nordic Render trial has ended',
+    html:    emailWrapper('Your free trial has ended — subscribe to keep building.', body),
+    text:    `Your trial has ended.\n\nSubscribe: ${APP_URL}/billing`,
+  }
+}
+
 // ── Seller info ────────────────────────────────────────────────────
 
 const SELLER = {
@@ -444,13 +626,24 @@ exports.paypalWebhook = functions.https.onRequest(async (req, res) => {
   const update = statusMap[event_type]
   if (update) await userDoc.ref.update(update)
 
-  if (event_type === 'BILLING.SUBSCRIPTION.ACTIVATED') {
-    const planId   = userDoc.data()?.planId
-    const plan     = PLANS_MAP[planId] ?? PLANS_MAP.starter
-    const userData = userDoc.data() ?? {}
-    const name     = userData.name || 'there'
-    const email    = userData.email
-    if (email) await sendEmail({ to: email, ...subscriptionEmail(name, plan.label, plan.price) })
+  const userData = userDoc.data() ?? {}
+  const name     = userData.name || 'there'
+  const email    = userData.email
+  const planId   = userData.planId
+  const plan     = PLANS_MAP[planId] ?? PLANS_MAP.starter
+
+  if (event_type === 'BILLING.SUBSCRIPTION.ACTIVATED' && email) {
+    await sendEmail({ to: email, ...subscriptionEmail(name, plan.label, plan.price) })
+  }
+
+  if ((event_type === 'BILLING.SUBSCRIPTION.CANCELLED'
+       || event_type === 'BILLING.SUBSCRIPTION.EXPIRED') && email) {
+    await sendEmail({ to: email, ...subscriptionCancelledEmail(name, plan.label) })
+  }
+
+  if ((event_type === 'BILLING.SUBSCRIPTION.SUSPENDED'
+       || event_type === 'PAYMENT.SALE.DENIED') && email) {
+    await sendEmail({ to: email, ...paymentFailedEmail(name, plan.label) })
   }
 
   if (event_type === 'PAYMENT.SALE.COMPLETED') {
@@ -515,6 +708,80 @@ exports.onTeamInviteCreated = functions.firestore
     const inviteUrl = `${APP_URL}/join/${code}`
     await sendEmail({ to: inviteeEmail, ...teamInviteEmail(ownerEmail, inviteUrl, projectName) })
     functions.logger.info(`Team invite sent to ${inviteeEmail} (project=${projectName ?? 'all'})`)
+  })
+
+// ── Contact form trigger ───────────────────────────────────────────
+
+exports.onContactMessageCreated = functions.firestore
+  .document('contact_messages/{id}')
+  .onCreate(async (snap) => {
+    const msg = snap.data() ?? {}
+    const { name, email, subject, message } = msg
+    if (!email || !message) return
+
+    await sendEmail({
+      to: ADMIN_EMAIL,
+      replyTo: { name, email },
+      ...contactAdminEmail({ name, email, subject: subject || 'No subject', message }),
+    })
+
+    await sendEmail({ to: { name, email }, ...contactAutoReplyEmail(name || 'there') })
+  })
+
+// ── Model inquiry trigger ──────────────────────────────────────────
+
+exports.onModelInquiryCreated = functions.firestore
+  .document('model_inquiries/{id}')
+  .onCreate(async (snap) => {
+    const inquiry = snap.data() ?? {}
+    if (!inquiry.email || !inquiry.description) return
+    await sendEmail({
+      to: ADMIN_EMAIL,
+      replyTo: { name: inquiry.name, email: inquiry.email },
+      ...modelInquiryEmail(inquiry),
+    })
+  })
+
+// ── Trial reminder + expiry (scheduled daily) ──────────────────────
+
+exports.trialLifecycle = functions.pubsub
+  .schedule('every 24 hours')
+  .timeZone('UTC')
+  .onRun(async () => {
+    const now    = Date.now()
+    const oneDay = 24 * 60 * 60 * 1000
+
+    const snap = await db.collection('users')
+      .where('subscriptionStatus', '==', 'trial').get()
+
+    for (const doc of snap.docs) {
+      const u = doc.data() ?? {}
+      const startMs = u.trialStarted?.toMillis?.()
+      if (!startMs || !u.email) continue
+
+      const trialEndMs = startMs + 3 * oneDay
+      const msUntilEnd = trialEndMs - now
+      const name       = u.name || 'there'
+      const endStr     = new Date(trialEndMs).toLocaleDateString('en-GB',
+        { day: '2-digit', month: 'long', year: 'numeric' })
+
+      // Trial ends in ~24h (between 24h and 48h remaining)
+      if (msUntilEnd > 0 && msUntilEnd <= oneDay && !u.trialEndingNotifiedAt) {
+        await sendEmail({ to: u.email, ...trialEndingEmail(name, endStr) })
+        await doc.ref.update({
+          trialEndingNotifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+        })
+      }
+
+      // Trial ended (and we have not already sent the expired notice)
+      if (msUntilEnd <= 0 && !u.trialExpiredNotifiedAt) {
+        await sendEmail({ to: u.email, ...trialExpiredEmail(name) })
+        await doc.ref.update({
+          subscriptionStatus:      'past_due',
+          trialExpiredNotifiedAt:  admin.firestore.FieldValue.serverTimestamp(),
+        })
+      }
+    }
   })
 
 // ── Claude chat assistant ─────────────────────────────────────────────

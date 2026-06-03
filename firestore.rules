@@ -100,6 +100,14 @@ service cloud.firestore {
                     && request.auth.uid == resource.data.ownerUid;
     }
 
+    // Contact messages: anyone can submit; only admins can read
+    match /contact_messages/{docId} {
+      allow create: if request.resource.data.keys().hasAll(['name', 'email', 'message']);
+      allow read, update, delete: if request.auth != null
+                                  && (request.auth.uid == 'kMZlGUDl3lPFm2VIyc5eyYHhA752'
+                                      || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
+    }
+
     // Model inquiries: anyone can submit; only admins can read
     match /model_inquiries/{docId} {
       allow create: if request.resource.data.keys().hasAll(['name', 'email', 'description']);
