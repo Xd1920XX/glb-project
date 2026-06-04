@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 const KEY        = 'cookie_consent'
 const EXPIRY_MS  = 365 * 24 * 60 * 60 * 1000  // 12 months — GDPR re-consent interval
@@ -24,13 +24,18 @@ function saveConsent(prefs) {
 }
 
 export function CookieBanner() {
+  const { pathname } = useLocation()
+  const isEmbedded = pathname.startsWith('/embed/') || pathname.startsWith('/lp/')
   const [visible,      setVisible]      = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [analytics,    setAnalytics]    = useState(true)
 
   useEffect(() => {
+    if (isEmbedded) return
     if (!loadConsent()) setVisible(true)
-  }, [])
+  }, [isEmbedded])
+
+  if (isEmbedded) return null
 
   function acceptAll() {
     saveConsent({ analytics: true })

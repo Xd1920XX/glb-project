@@ -199,6 +199,26 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ── Live demo ── */}
+      <section className="landing-demo">
+        <div className="landing-demo-inner">
+          <div className="section-eyebrow">Live demo</div>
+          <h2 className="section-title">Try a real configurator</h2>
+          <p className="landing-demo-sub">Rotate the 3D model, switch variants, swap colors — this is the same embed your visitors get.</p>
+          <div className="landing-demo-frame">
+            <iframe
+              src="/embed/ysiLFw8AYWztMxrTt8x4"
+              title="Live configurator demo"
+              loading="lazy"
+              allow="xr-spatial-tracking; fullscreen"
+            />
+          </div>
+          <div className="landing-demo-actions">
+            <Link to="/demo" className="btn-ghost">Open full demo →</Link>
+          </div>
+        </div>
+      </section>
+
       {/* ── CTA ── */}
       <section className="landing-cta">
         <div className="landing-cta-inner">

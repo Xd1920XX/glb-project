@@ -1,54 +1,30 @@
-// The original sauna configurator — now accessible at /demo
-import { useState } from 'react'
-import { ImageSpinner } from './components/ImageSpinner.jsx'
-import { InteriorViewer } from './components/InteriorViewer.jsx'
-import { SaunaViewer3D } from './components/SaunaViewer3D.jsx'
-import { SaunaPanel } from './components/SaunaPanel.jsx'
-import { COLORS, FRAME_COUNT, INTERIORS } from './config/sauna.js'
+import { useEffect, useState } from 'react'
+import { getPublishedConfigurator, trackView } from './firebase/db.js'
+import { ConfiguratorRenderer } from './components/ConfiguratorRenderer.jsx'
+
+const DEMO_ID = 'ysiLFw8AYWztMxrTt8x4'
 
 export default function SaunaDemo() {
-  const [colorId, setColorId] = useState(COLORS[0].id)
-  const [frameIndex, setFrameIndex] = useState(0)
-  const [view, setView] = useState('exterior')
-  const [show3D, setShow3D] = useState(false)
-  const [interiorId, setInteriorId] = useState(INTERIORS[0].id)
-  const [showNextBtn, setShowNextBtn] = useState(true)
+  const [config, setConfig] = useState(undefined)
 
-  const color    = COLORS.find((c) => c.id === colorId)
-  const interior = INTERIORS.find((i) => i.id === interiorId)
+  useEffect(() => {
+    getPublishedConfigurator(DEMO_ID).then((cfg) => {
+      setConfig(cfg)
+      if (cfg) trackView(DEMO_ID)
+    })
+  }, [])
 
-  function handleColorChange(id) { setColorId(id); setShow3D(false) }
-
-  function renderViewer() {
-    if (view === 'interior') return <InteriorViewer key={interior.id} src={interior.path} />
-    if (show3D && color.glb)  return <SaunaViewer3D key={color.id} glb={color.glb} />
+  if (config === undefined) return <div className="embed-loading">Loading…</div>
+  if (!config) {
     return (
-      <ImageSpinner
-        folder={color.folder}
-        frameCount={FRAME_COUNT}
-        frameIndex={frameIndex}
-        onFrameChange={setFrameIndex}
-      />
+      <div className="embed-inactive">
+        <div className="embed-inactive-box">
+          <h2>Demo unavailable</h2>
+          <p>The demo configurator is not published or the subscription is inactive.</p>
+        </div>
+      </div>
     )
   }
 
-  const can3D = (view === 'exterior' || view === 'summary') && color.glb
-  return (
-    <div className="app">
-      <div className="viewer-pane">
-        {renderViewer()}
-        {can3D && (
-          <button className={`view-3d-btn${show3D ? ' active' : ''}`}
-            onClick={() => setShow3D((v) => !v)}>
-            {show3D ? 'Renders' : '3D'}
-          </button>
-        )}
-      </div>
-      <div className="config-pane">
-        <SaunaPanel colorId={colorId} view={view} interiorId={interiorId}
-          onColorChange={handleColorChange} onViewChange={setView} onInteriorChange={setInteriorId}
-          showNextBtn={showNextBtn} />
-      </div>
-    </div>
-  )
+  return <ConfiguratorRenderer config={config} />
 }
