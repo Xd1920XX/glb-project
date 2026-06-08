@@ -448,6 +448,222 @@ function trialExpiredEmail(name) {
   }
 }
 
+// Order customer confirmation (sent to the person who submitted the order form)
+function orderCustomerEmail(customerName, configuratorName, formData) {
+  const rows = Object.entries(formData ?? {})
+    .map(([k, v]) => `
+      <tr>
+        <td style="font-size:13px;color:#777;padding:8px 0;border-bottom:1px solid #f2f1ef;width:40%;">${k}</td>
+        <td style="font-size:13px;color:#111;padding:8px 0;border-bottom:1px solid #f2f1ef;font-weight:500;">${v}</td>
+      </tr>`).join('')
+
+  const body = `
+    <h1 style="font-size:22px;font-weight:700;color:#111;margin:0 0 8px;">Order received</h1>
+    <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 24px;">
+      ${customerName ? `Hi ${customerName}, t` : 'T'}hanks for your order — we received your details for <strong>${configuratorName}</strong> and will be in touch shortly.
+    </p>
+    ${rows ? `
+      ${divider()}
+      <p style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#888;margin:0 0 12px;">Your details</p>
+      <table cellpadding="0" cellspacing="0" style="width:100%;">${rows}</table>` : ''}
+  `
+  return {
+    subject: `Order received — ${configuratorName}`,
+    html:    emailWrapper(`We received your order for ${configuratorName}.`, body),
+    text:    `Order received for ${configuratorName}.\n\n${Object.entries(formData ?? {}).map(([k, v]) => `${k}: ${v}`).join('\n')}`,
+  }
+}
+
+// Team invite accepted (sent to inviting workspace owner)
+function teamInviteAcceptedEmail(inviteeEmail, projectName) {
+  const scope = projectName ? `<strong>${projectName}</strong>` : 'your workspace'
+  const body = `
+    <h1 style="font-size:22px;font-weight:700;color:#111;margin:0 0 8px;">Invite accepted</h1>
+    <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 24px;">
+      <strong>${inviteeEmail}</strong> joined ${scope}.
+    </p>
+    ${btn('Open Team →', `${APP_URL}/team`)}
+  `
+  return {
+    subject: `${inviteeEmail} joined your team`,
+    html:    emailWrapper(`${inviteeEmail} accepted your invite.`, body),
+    text:    `${inviteeEmail} accepted your invite.\n\nTeam: ${APP_URL}/team`,
+  }
+}
+
+// Plan changed (upgrade/downgrade)
+function subscriptionChangedEmail(name, oldLabel, newLabel, newPrice) {
+  const body = `
+    <h1 style="font-size:22px;font-weight:700;color:#111;margin:0 0 8px;">Plan updated</h1>
+    <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 24px;">
+      ${name ? `Hi ${name}, ` : ''}your plan changed from <strong>${oldLabel}</strong> to <strong>${newLabel}</strong>.
+    </p>
+    ${divider()}
+    <table cellpadding="0" cellspacing="0" style="width:100%;">
+      <tr>
+        <td style="font-size:13px;color:#777;padding-bottom:10px;">New plan</td>
+        <td style="font-size:13px;color:#111;font-weight:600;text-align:right;padding-bottom:10px;">${newLabel}</td>
+      </tr>
+      <tr>
+        <td style="font-size:13px;color:#777;">Amount</td>
+        <td style="font-size:13px;color:#111;font-weight:600;text-align:right;">€${newPrice} / month</td>
+      </tr>
+    </table>
+    ${btn('View Billing →', `${APP_URL}/billing`)}
+  `
+  return {
+    subject: `Plan changed — now on ${newLabel}`,
+    html:    emailWrapper(`Your plan switched to ${newLabel}.`, body),
+    text:    `Plan changed: ${oldLabel} → ${newLabel} (€${newPrice}/month).\n\nBilling: ${APP_URL}/billing`,
+  }
+}
+
+// First-publish congratulations
+function configuratorPublishedEmail(name, configuratorName, configuratorId) {
+  const embedUrl = `${APP_URL}/embed/${configuratorId}`
+  const snippet  = `<iframe src="${embedUrl}" width="100%" height="640" frameborder="0"></iframe>`
+  const escapedSnippet = snippet.replace(/</g, '&lt;')
+  const body = `
+    <h1 style="font-size:22px;font-weight:700;color:#111;margin:0 0 8px;">Your configurator is live</h1>
+    <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 24px;">
+      ${name ? `Nice work, ${name}. ` : ''}<strong>${configuratorName}</strong> is now published and ready to embed.
+    </p>
+    <p style="font-size:13px;font-weight:600;color:#111;margin:0 0 8px;">Embed URL</p>
+    <p style="font-size:13px;color:#111;word-break:break-all;margin:0 0 16px;font-family:monospace;background:#f7f6f4;padding:10px;border-radius:6px;">${embedUrl}</p>
+    <p style="font-size:13px;font-weight:600;color:#111;margin:0 0 8px;">Embed snippet</p>
+    <p style="font-size:12px;color:#111;font-family:monospace;background:#f7f6f4;padding:10px;border-radius:6px;margin:0 0 16px;word-break:break-all;">${escapedSnippet}</p>
+    ${btn('Open Builder →', `${APP_URL}/builder/${configuratorId}`)}
+  `
+  return {
+    subject: `${configuratorName} is now live`,
+    html:    emailWrapper(`${configuratorName} is published. Embed it anywhere.`, body),
+    text:    `${configuratorName} is now live.\n\nEmbed URL: ${embedUrl}\n\nBuilder: ${APP_URL}/builder/${configuratorId}`,
+  }
+}
+
+// Account deleted confirmation
+function accountDeletedEmail(name) {
+  const body = `
+    <h1 style="font-size:22px;font-weight:700;color:#111;margin:0 0 8px;">Account deleted</h1>
+    <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 16px;">
+      ${name ? `Hi ${name}, y` : 'Y'}our Nordic Render account has been deleted. All published configurators and embeds are now offline.
+    </p>
+    <p style="font-size:13px;color:#777;margin:0 0 16px;">
+      If this wasn't you, please contact support immediately.
+    </p>
+  `
+  return {
+    subject: 'Your Nordic Render account has been deleted',
+    html:    emailWrapper('Your account has been deleted.', body),
+    text:    `Your Nordic Render account has been deleted.${name ? ` (${name})` : ''}\n\nIf this wasn't you, contact support.`,
+  }
+}
+
+// Renewal reminder (sent ~3 days before next charge)
+function renewalReminderEmail(name, planLabel, planPrice, renewalDate) {
+  const body = `
+    <h1 style="font-size:22px;font-weight:700;color:#111;margin:0 0 8px;">Subscription renews soon</h1>
+    <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 16px;">
+      ${name ? `Hi ${name}, ` : ''}your <strong>${planLabel}</strong> subscription will renew on <strong>${renewalDate}</strong> for <strong>€${planPrice}</strong>.
+    </p>
+    <p style="font-size:13px;color:#777;margin:0 0 16px;">
+      No action needed — payment is automatic. Cancel any time from billing.
+    </p>
+    ${btn('Manage Billing →', `${APP_URL}/billing`)}
+  `
+  return {
+    subject: `Your ${planLabel} subscription renews on ${renewalDate}`,
+    html:    emailWrapper(`Renewal reminder: €${planPrice} on ${renewalDate}.`, body),
+    text:    `Your ${planLabel} subscription renews on ${renewalDate} (€${planPrice}).\n\nBilling: ${APP_URL}/billing`,
+  }
+}
+
+// Embed / landing-page limit warning
+function limitWarningEmail(name, kind, used, limit, atLimit) {
+  const noun = kind === 'embed' ? 'embed' : 'landing page'
+  const nounPlural = kind === 'embed' ? 'embeds' : 'landing pages'
+  const heading = atLimit ? `You've hit your ${noun} limit` : `You're approaching your ${noun} limit`
+  const blurb = atLimit
+    ? `You've used <strong>${used} of ${limit}</strong> ${nounPlural}. To publish more, upgrade your plan.`
+    : `You've used <strong>${used} of ${limit}</strong> ${nounPlural}. You'll hit the cap soon — upgrade to keep publishing.`
+  const body = `
+    <h1 style="font-size:22px;font-weight:700;color:#111;margin:0 0 8px;">${heading}</h1>
+    <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 24px;">
+      ${name ? `Hi ${name}, ` : ''}${blurb}
+    </p>
+    ${btn('Upgrade Plan →', `${APP_URL}/billing`)}
+  `
+  return {
+    subject: atLimit
+      ? `${noun.charAt(0).toUpperCase() + noun.slice(1)} limit reached`
+      : `${used}/${limit} ${nounPlural} used`,
+    html: emailWrapper(`${used}/${limit} ${nounPlural} used.`, body),
+    text: `${heading.replace(/<[^>]+>/g, '')}.\n\n${used}/${limit} ${nounPlural} used.\n\nUpgrade: ${APP_URL}/billing`,
+  }
+}
+
+// AI assistant quota warning (80% of monthly turns)
+function aiQuotaWarningEmail(name, used, limit) {
+  const body = `
+    <h1 style="font-size:22px;font-weight:700;color:#111;margin:0 0 8px;">AI assistant — quota warning</h1>
+    <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 24px;">
+      ${name ? `Hi ${name}, ` : ''}you've used <strong>${used} of ${limit}</strong> AI turns this month.
+    </p>
+    <p style="font-size:13px;color:#777;margin:0 0 16px;">
+      When you hit the cap, you can keep using the assistant by pasting your own Anthropic API key, or upgrade your plan for a higher quota.
+    </p>
+    ${btn('Manage Billing →', `${APP_URL}/billing`)}
+  `
+  return {
+    subject: `AI assistant — ${used}/${limit} turns used this month`,
+    html:    emailWrapper(`AI quota: ${used}/${limit} this month.`, body),
+    text:    `AI quota: ${used}/${limit} turns used this month.\n\nBilling: ${APP_URL}/billing`,
+  }
+}
+
+// Trial inactivity nudge (day 2, user hasn't created any configurator)
+function trialInactiveEmail(name) {
+  const body = `
+    <h1 style="font-size:22px;font-weight:700;color:#111;margin:0 0 8px;">Need a hand getting started?</h1>
+    <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 16px;">
+      ${name ? `Hi ${name}, ` : ''}you signed up for Nordic Render but haven't built your first configurator yet.
+    </p>
+    <p style="font-size:13px;color:#777;margin:0 0 16px;">
+      Trials last 3 days. Start now to make the most of yours — most users have something published within 15 minutes.
+    </p>
+    ${btn('Start Building →', `${APP_URL}/dashboard`)}
+  `
+  return {
+    subject: 'Start your first configurator — your trial is ticking',
+    html:    emailWrapper('Get your first configurator live in 15 minutes.', body),
+    text:    `Need a hand getting started?\n\n${APP_URL}/dashboard`,
+  }
+}
+
+// Weekly digest
+function weeklyDigestEmail(name, stats) {
+  const { orders = 0, periodStart, periodEnd } = stats
+  const body = `
+    <h1 style="font-size:22px;font-weight:700;color:#111;margin:0 0 8px;">Your weekly summary</h1>
+    <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 24px;">
+      ${name ? `Hi ${name}, h` : 'H'}ere's what happened in your workspace from <strong>${periodStart}</strong> to <strong>${periodEnd}</strong>.
+    </p>
+    ${divider()}
+    <table cellpadding="0" cellspacing="0" style="width:100%;">
+      <tr>
+        <td style="font-size:13px;color:#777;">New orders</td>
+        <td style="font-size:18px;color:#111;font-weight:700;text-align:right;">${orders}</td>
+      </tr>
+    </table>
+    ${btn('Open Dashboard →', `${APP_URL}/dashboard`)}
+  `
+  return {
+    subject: `Your weekly summary — ${orders} new orders`,
+    html:    emailWrapper(`This week: ${orders} new orders.`, body),
+    text:    `Weekly summary (${periodStart} – ${periodEnd}):\n\nNew orders: ${orders}\n\n${APP_URL}/dashboard`,
+  }
+}
+
 // ── Seller info ────────────────────────────────────────────────────
 
 const SELLER = {
@@ -461,6 +677,39 @@ const SELLER = {
 const PLANS_MAP = {
   starter: { label: 'Starter', price: 19.99 },
   pro:     { label: 'Pro',     price: 69.99 },
+}
+
+// Mirror of src/config/plans.js — keep in sync if the canonical plans change
+const PLAN_LIMITS = {
+  starter: { embeds: 3,  landingPages: 1 },
+  pro:     { embeds: 12, landingPages: 5 },
+  custom:  { embeds: Infinity, landingPages: Infinity },
+}
+const TRIAL_EMBED_LIMIT        = 3
+const TRIAL_LANDING_PAGE_LIMIT = 1
+
+function getLimit(profile, kind) {
+  if (!profile) return 0
+  const { subscriptionStatus, planId } = profile
+  if (subscriptionStatus === 'trial') {
+    return kind === 'embed' ? TRIAL_EMBED_LIMIT : TRIAL_LANDING_PAGE_LIMIT
+  }
+  if (subscriptionStatus === 'active') {
+    const limits = PLAN_LIMITS[planId]
+    if (!limits) return 0
+    return kind === 'embed' ? limits.embeds : limits.landingPages
+  }
+  return 0
+}
+
+// Best-effort: find an email-shaped string in a free-form order formData
+function pickEmailFromFormData(formData) {
+  for (const v of Object.values(formData ?? {})) {
+    if (typeof v !== 'string') continue
+    const trimmed = v.trim()
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return trimmed
+  }
+  return null
 }
 
 const VAT_RATE = 0.22
@@ -679,14 +928,25 @@ exports.onOrderCreated = functions.firestore
     const cfgSnap = await db.collection('configurators').doc(configuratorId).get()
     if (!cfgSnap.exists) return
 
-    const cfg               = cfgSnap.data()
-    const notificationEmail = cfg.orderForm?.notificationEmail
-    if (!notificationEmail) return
-
+    const cfg  = cfgSnap.data()
     const name = configuratorName ?? cfg.name
-    await sendEmail({ to: notificationEmail, ...orderEmail(name, variantId, formData) })
 
-    functions.logger.info(`Order notification sent to ${notificationEmail}`)
+    const notificationEmail = cfg.orderForm?.notificationEmail
+    if (notificationEmail) {
+      await sendEmail({ to: notificationEmail, ...orderEmail(name, variantId, formData) })
+      functions.logger.info(`Order notification sent to ${notificationEmail}`)
+    }
+
+    // Best-effort customer confirmation when the order form collected an email
+    const customerEmail = pickEmailFromFormData(formData)
+    if (customerEmail) {
+      const customerName = formData.name || formData.fullName || ''
+      await sendEmail({
+        to: { name: customerName, email: customerEmail },
+        ...orderCustomerEmail(customerName, name, formData),
+      })
+      functions.logger.info(`Order confirmation sent to customer ${customerEmail}`)
+    }
   })
 
 // Email a team invite when a new teamInvites doc is created
@@ -759,11 +1019,26 @@ exports.trialLifecycle = functions.pubsub
       const startMs = u.trialStarted?.toMillis?.()
       if (!startMs || !u.email) continue
 
-      const trialEndMs = startMs + 3 * oneDay
-      const msUntilEnd = trialEndMs - now
-      const name       = u.name || 'there'
-      const endStr     = new Date(trialEndMs).toLocaleDateString('en-GB',
+      const trialEndMs   = startMs + 3 * oneDay
+      const msUntilEnd   = trialEndMs - now
+      const msSinceStart = now - startMs
+      const name         = u.name || 'there'
+      const endStr       = new Date(trialEndMs).toLocaleDateString('en-GB',
         { day: '2-digit', month: 'long', year: 'numeric' })
+
+      // Day-2 inactivity nudge (no configurator created yet)
+      if (msSinceStart >= oneDay
+          && msSinceStart < 2 * oneDay
+          && !u.trialInactiveNotifiedAt) {
+        const cfgSnap = await db.collection('configurators')
+          .where('ownerId', '==', doc.id).limit(1).get()
+        if (cfgSnap.empty) {
+          await sendEmail({ to: u.email, ...trialInactiveEmail(name) })
+          await doc.ref.update({
+            trialInactiveNotifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+          })
+        }
+      }
 
       // Trial ends in ~24h (between 24h and 48h remaining)
       if (msUntilEnd > 0 && msUntilEnd <= oneDay && !u.trialEndingNotifiedAt) {
@@ -781,6 +1056,224 @@ exports.trialLifecycle = functions.pubsub
           trialExpiredNotifiedAt:  admin.firestore.FieldValue.serverTimestamp(),
         })
       }
+    }
+  })
+
+// ── Invite accepted (team owner notification) ──────────────────────
+
+exports.onTeamInviteUpdated = functions.firestore
+  .document('teamInvites/{code}')
+  .onUpdate(async (change) => {
+    const before = change.before.data() ?? {}
+    const after  = change.after.data() ?? {}
+    if (before.status === after.status) return
+    if (after.status !== 'accepted') return
+
+    const { ownerUid, configuratorId, inviteeEmail } = after
+    if (!ownerUid || !inviteeEmail) return
+
+    const ownerSnap  = await db.collection('users').doc(ownerUid).get()
+    const ownerEmail = ownerSnap.data()?.email
+    if (!ownerEmail) return
+
+    let projectName = null
+    if (configuratorId) {
+      try {
+        const cfg = await db.collection('configurators').doc(configuratorId).get()
+        if (cfg.exists) projectName = cfg.data().name ?? null
+      } catch (e) { functions.logger.warn('Could not load configurator for invite-accepted', e.message) }
+    }
+
+    await sendEmail({ to: ownerEmail, ...teamInviteAcceptedEmail(inviteeEmail, projectName) })
+    functions.logger.info(`Invite-accepted email sent to ${ownerEmail}`)
+  })
+
+// ── Plan change detection (subscription upgrade/downgrade) ─────────
+
+exports.onUserUpdated = functions.firestore
+  .document('users/{uid}')
+  .onUpdate(async (change) => {
+    const before = change.before.data() ?? {}
+    const after  = change.after.data() ?? {}
+
+    if (after.subscriptionStatus !== 'active') return
+    if (!before.planId || !after.planId) return
+    if (before.planId === after.planId) return
+
+    const oldPlan = PLANS_MAP[before.planId] ?? { label: before.planId, price: 0 }
+    const newPlan = PLANS_MAP[after.planId]  ?? { label: after.planId,  price: 0 }
+    const email   = after.email
+    const name    = after.name || 'there'
+    if (!email) return
+
+    await sendEmail({ to: email, ...subscriptionChangedEmail(name, oldPlan.label, newPlan.label, newPlan.price) })
+  })
+
+// ── First publish + embed limit warning ────────────────────────────
+
+async function maybeSendLimitWarning(uid, user, kind) {
+  const limit = getLimit(user, kind)
+  if (!isFinite(limit) || limit <= 0) return
+
+  const collection = kind === 'embed' ? 'configurators' : 'landingPages'
+  const snap = await db.collection(collection)
+    .where('ownerId', '==', uid)
+    .where('published', '==', true)
+    .get()
+  const used = snap.size
+  const pct  = used / limit
+  const email = user.email
+  if (!email) return
+
+  const fullFlag = `${kind}LimitNotifiedAtFull`
+  const warnFlag = `${kind}LimitNotifiedAt80`
+  const name = user.name || 'there'
+
+  if (used >= limit && !user[fullFlag]) {
+    await sendEmail({ to: email, ...limitWarningEmail(name, kind, used, limit, true) })
+    await db.collection('users').doc(uid).update({
+      [fullFlag]: admin.firestore.FieldValue.serverTimestamp(),
+    })
+  } else if (pct >= 0.8 && used < limit && !user[warnFlag]) {
+    await sendEmail({ to: email, ...limitWarningEmail(name, kind, used, limit, false) })
+    await db.collection('users').doc(uid).update({
+      [warnFlag]: admin.firestore.FieldValue.serverTimestamp(),
+    })
+  }
+}
+
+exports.onConfiguratorUpdated = functions.firestore
+  .document('configurators/{cid}')
+  .onUpdate(async (change, context) => {
+    const before = change.before.data() ?? {}
+    const after  = change.after.data() ?? {}
+    const cid    = context.params.cid
+
+    const justPublished = !before.published && after.published
+    if (!justPublished) return
+
+    const ownerUid = after.ownerId
+    if (!ownerUid) return
+    const userSnap = await db.collection('users').doc(ownerUid).get()
+    const user = userSnap.data() ?? {}
+
+    if (!after.firstPublishedNotifiedAt && user.email) {
+      const name = user.name || 'there'
+      await sendEmail({
+        to: user.email,
+        ...configuratorPublishedEmail(name, after.name || 'Untitled', cid),
+      })
+      await change.after.ref.update({
+        firstPublishedNotifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+      })
+    }
+
+    await maybeSendLimitWarning(ownerUid, user, 'embed')
+  })
+
+exports.onLandingPageUpdated = functions.firestore
+  .document('landingPages/{lid}')
+  .onUpdate(async (change) => {
+    const before = change.before.data() ?? {}
+    const after  = change.after.data() ?? {}
+    if (!(!before.published && after.published)) return
+
+    const ownerUid = after.ownerId
+    if (!ownerUid) return
+    const userSnap = await db.collection('users').doc(ownerUid).get()
+    const user = userSnap.data() ?? {}
+
+    await maybeSendLimitWarning(ownerUid, user, 'landing')
+  })
+
+// ── Account deletion ───────────────────────────────────────────────
+
+exports.onUserDeleted = functions.auth.user().onDelete(async (user) => {
+  if (!user.email) return
+  const name = user.displayName || ''
+  await sendEmail({ to: user.email, ...accountDeletedEmail(name) })
+})
+
+// ── Renewal reminder (~3 days before next charge) ──────────────────
+
+exports.renewalReminders = functions.pubsub
+  .schedule('every 24 hours')
+  .timeZone('UTC')
+  .onRun(async () => {
+    const now    = Date.now()
+    const oneDay = 24 * 60 * 60 * 1000
+    const monthMs = 30 * oneDay
+    const reminderWindow = 3 * oneDay
+
+    const snap = await db.collection('users')
+      .where('subscriptionStatus', '==', 'active').get()
+
+    for (const doc of snap.docs) {
+      const u = doc.data() ?? {}
+      const lastMs = u.lastPaymentAt?.toMillis?.()
+      if (!lastMs || !u.email) continue
+
+      const nextMs  = lastMs + monthMs
+      const msUntil = nextMs - now
+      if (msUntil <= 0 || msUntil > reminderWindow) continue
+
+      // Track per-billing-cycle so the user only gets one reminder per renewal
+      const cycleKey = `renewalRemindedFor_${Math.floor(lastMs)}`
+      if (u[cycleKey]) continue
+
+      const plan = PLANS_MAP[u.planId] ?? PLANS_MAP.starter
+      const renewalDate = new Date(nextMs).toLocaleDateString('en-GB',
+        { day: '2-digit', month: 'long', year: 'numeric' })
+      const name = u.name || 'there'
+
+      await sendEmail({
+        to: u.email,
+        ...renewalReminderEmail(name, plan.label, plan.price, renewalDate),
+      })
+      await doc.ref.update({
+        [cycleKey]: admin.firestore.FieldValue.serverTimestamp(),
+      })
+    }
+  })
+
+// ── Weekly digest (orders in the past 7 days) ──────────────────────
+
+exports.weeklyDigest = functions.pubsub
+  .schedule('every monday 09:00')
+  .timeZone('UTC')
+  .onRun(async () => {
+    const now           = Date.now()
+    const oneDay        = 24 * 60 * 60 * 1000
+    const periodStartMs = now - 7 * oneDay
+    const periodStart   = new Date(periodStartMs).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+    const periodEnd     = new Date(now).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+
+    const usersSnap = await db.collection('users')
+      .where('subscriptionStatus', 'in', ['trial', 'active']).get()
+
+    for (const doc of usersSnap.docs) {
+      const u = doc.data() ?? {}
+      if (!u.email) continue
+
+      // Relies on orders carrying a Firestore Timestamp `createdAt` field
+      let orders = 0
+      try {
+        const ordersSnap = await db.collection('orders')
+          .where('ownerId', '==', doc.id)
+          .where('createdAt', '>=', admin.firestore.Timestamp.fromMillis(periodStartMs))
+          .get()
+        orders = ordersSnap.size
+      } catch (e) {
+        functions.logger.warn('Weekly digest orders query failed', e.message)
+      }
+
+      if (orders === 0) continue
+
+      const name = u.name || 'there'
+      await sendEmail({
+        to: u.email,
+        ...weeklyDigestEmail(name, { orders, periodStart, periodEnd }),
+      })
     }
   })
 
@@ -1027,6 +1520,23 @@ exports.chatWithClaude = functions
           tokensOut: admin.firestore.FieldValue.increment(response.usage?.output_tokens ?? 0),
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         }, { merge: true })
+
+        // Send 80%-quota warning once per month
+        const newCount = currentCount + 1
+        const plan = (profile?.subscriptionStatus === 'active'
+          ? (profile?.planId ?? 'starter')
+          : 'trial')
+        const quotaLimit = AI_QUOTA_BY_PLAN[plan] ?? AI_QUOTA_BY_PLAN.trial
+        if (isFinite(quotaLimit)
+            && newCount === Math.floor(quotaLimit * 0.8)
+            && profile?.email) {
+          const warnFlagDoc = db.collection('users').doc(uid).collection('aiUsage').doc(month)
+          await warnFlagDoc.set({ warned80At: admin.firestore.FieldValue.serverTimestamp() }, { merge: true })
+          await sendEmail({
+            to: profile.email,
+            ...aiQuotaWarningEmail(profile.name || 'there', newCount, quotaLimit),
+          })
+        }
       }
 
       return {
