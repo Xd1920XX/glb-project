@@ -118,6 +118,11 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
     for (const g of variantForPreload.partOptions ?? []) {
       for (const o of g.options ?? []) {
         if (o.glbUrl) urls.add(o.glbUrl)
+        if (o.byLayer) {
+          for (const data of Object.values(o.byLayer)) {
+            if (data?.glbUrl) urls.add(data.glbUrl)
+          }
+        }
       }
     }
     for (const url of urls) {
@@ -189,13 +194,16 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
         const opt = resolveOption(grp)
         if (!opt) return l
         if (opt.hidden) return null
-        if (!opt.glbUrl) return l
+        // Per-layer override map for groups that target multiple layers with one selection
+        const data = opt.byLayer?.[l.label] ?? opt
+        if (!data.glbUrl && !data.visibleNodes && !data.materialOverrides) return l
         return {
           ...l,
-          label: opt.layerLabel ?? opt.label ?? l.label,
-          glbUrl: opt.glbUrl,
-          glbStoragePath: opt.glbStoragePath,
-          materialOverrides: { ...(opt.materialOverrides ?? {}), ...(l.materialOverrides ?? {}) },
+          label: data.layerLabel ?? opt.layerLabel ?? opt.label ?? l.label,
+          glbUrl: data.glbUrl ?? l.glbUrl,
+          glbStoragePath: data.glbStoragePath ?? l.glbStoragePath,
+          visibleNodes: data.visibleNodes ?? l.visibleNodes,
+          materialOverrides: { ...(data.materialOverrides ?? {}), ...(l.materialOverrides ?? {}) },
         }
       }
       return l
@@ -205,9 +213,11 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
           .map(resolvePartLayer)
           .filter((l) => l && isLayerVisible(l) && l.glbUrl)
           .map((l) => ({
+            id: l.id,
             url: l.glbUrl,
             materialOverrides: { ...(l.materialOverrides ?? {}), ...colorOverrides },
             animationConfig: l.animationConfig ?? null,
+            visibleNodes: l.visibleNodes ?? null,
           }))
       : variant.glbUrl
         ? [{ url: variant.glbUrl, materialOverrides: variant.materialOverrides ?? {}, animationConfig: variant.animationConfig ?? null }]

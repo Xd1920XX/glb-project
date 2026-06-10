@@ -43,7 +43,7 @@ function loadCachedTexture(url) {
 
 // ── Model with optional material overrides ────────────────────────
 
-function Model({ url, materialOverrides = {}, animationConfig = null, animationOverride = null }) {
+function Model({ url, materialOverrides = {}, animationConfig = null, animationOverride = null, visibleNodes = null }) {
   const { scene, animations } = useGLTF(url)
   const { gl } = useThree()
   const maxAniso = useMemo(() => gl?.capabilities?.getMaxAnisotropy?.() ?? 8, [gl])
@@ -141,6 +141,17 @@ function Model({ url, materialOverrides = {}, animationConfig = null, animationO
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cloned, JSON.stringify(materialOverrides)])
+
+  // ── Node visibility filter ─────────────────────────────────────
+  // visibleNodes is null/empty → all nodes visible.
+  // Otherwise: a mesh is visible iff its name contains any of the patterns.
+  useEffect(() => {
+    const patterns = visibleNodes && visibleNodes.length > 0 ? visibleNodes : null
+    cloned.traverse((node) => {
+      if (!node.isMesh) return
+      node.visible = patterns ? patterns.some((p) => node.name.includes(p)) : true
+    })
+  }, [cloned, JSON.stringify(visibleNodes)]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Animations ────────────────────────────────────────────────
   const mixer = useMemo(() => new THREE.AnimationMixer(cloned), [cloned])
@@ -266,10 +277,11 @@ export function SaunaViewer3D({
 
         <Bounds fit clip margin={1.2}>
           <CameraFit />
-          {layers.map((layer) => (
-            <Model key={layer.url} url={layer.url}
+          {layers.map((layer, idx) => (
+            <Model key={layer.id ?? `${idx}:${layer.url}`} url={layer.url}
               materialOverrides={layer.materialOverrides ?? {}}
               animationConfig={layer.animationConfig ?? null}
+              visibleNodes={layer.visibleNodes ?? null}
               animationOverride={animationOverride} />
           ))}
         </Bounds>
