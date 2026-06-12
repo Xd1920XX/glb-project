@@ -8,8 +8,8 @@ export default function EmbedView() {
   const { id } = useParams()
   const { search } = useLocation()
   const [config, setConfig] = useState(undefined) // undefined = loading
-  const [initialSelection, setInitialSelection] = useState(null)
-  const [stateLoading, setStateLoading] = useState(false)
+  // undefined = pending resolution, null = resolved with no selection, object = resolved
+  const [initialSelection, setInitialSelection] = useState(undefined)
 
   useEffect(() => {
     getPublishedConfigurator(id).then((cfg) => {
@@ -19,29 +19,29 @@ export default function EmbedView() {
   }, [id])
 
   // Resolve initial selection: ?order=ID first (most authoritative), then plain query params.
+  // Must complete BEFORE ConfiguratorRenderer mounts — its useState initializers only run once.
   useEffect(() => {
     if (!config) return
+    setInitialSelection(undefined)
     const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search)
     const orderId = params.get('order')
+    const fromQuery = parseSelectionFromQuery(search)
     if (orderId) {
-      setStateLoading(true)
       getOrder(orderId)
         .then((order) => {
           if (order && order.configuratorId === id) {
             setInitialSelection(selectionFromOrder(order, config))
           } else {
-            // Fall back to query params if order not found / mismatch
-            setInitialSelection(parseSelectionFromQuery(search))
+            setInitialSelection(fromQuery)
           }
         })
-        .catch(() => setInitialSelection(parseSelectionFromQuery(search)))
-        .finally(() => setStateLoading(false))
+        .catch(() => setInitialSelection(fromQuery))
       return
     }
-    setInitialSelection(parseSelectionFromQuery(search))
+    setInitialSelection(fromQuery)
   }, [config, search, id])
 
-  if (config === undefined || stateLoading) return <div className="embed-loading">Loading…</div>
+  if (config === undefined) return <div className="embed-loading">Loading…</div>
 
   if (!config) {
     return (
@@ -54,8 +54,17 @@ export default function EmbedView() {
     )
   }
 
+  // Wait for selection resolution before mounting renderer.
+  // ConfiguratorRenderer reads initialSelection in useState initializers (runs once only),
+  // so we must not mount until the parsed value is available.
+  if (initialSelection === undefined) return <div className="embed-loading">Loading…</div>
+
+  // Key the renderer by selection identity so changes to ?order= or query params re-mount fresh state.
+  const renderKey = JSON.stringify(initialSelection)
+
   return (
     <ConfiguratorRenderer
+      key={renderKey}
       config={config}
       initialSelection={initialSelection}
       enableEmbedApi

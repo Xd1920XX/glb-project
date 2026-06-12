@@ -85,6 +85,7 @@ export function parseSelectionFromQuery(searchString) {
   const selection = {}
   const variants = {}
   const partOptions = {}
+  const layers = {}
 
   for (const [key, value] of params.entries()) {
     if (key === 'variant') {
@@ -102,13 +103,46 @@ export function parseSelectionFromQuery(searchString) {
       selection.interiorId = value
     } else if (key === 'view') {
       if (['exterior', 'interior', 'order'].includes(value)) selection.view = value
+    } else if (key.startsWith('layer.') || key.startsWith('layer[')) {
+      const m = key.match(/layer[.[]([^\]]+)\]?$/)
+      if (m) layers[m[1]] = value === 'true' || value === '1' || value === 'on'
     }
   }
 
   if (Object.keys(variants).length) selection.variants = variants
   if (Object.keys(partOptions).length) selection.partOptions = partOptions
+  if (Object.keys(layers).length) selection.layers = layers
 
   return Object.keys(selection).length ? selection : null
+}
+
+/**
+ * Build a flat (human-readable) query string from a Selection object.
+ * Prefer this over `selectionToQuery` when sharing readable links.
+ */
+export function selectionToFlatQuery(selection) {
+  if (!selection) return ''
+  const params = new URLSearchParams()
+  if (selection.variants) {
+    for (const [gid, vid] of Object.entries(selection.variants)) {
+      if (vid != null) params.set(`variants.${gid}`, vid)
+    }
+  }
+  if (selection.color) params.set('color', selection.color)
+  if (selection.partOptions) {
+    for (const [label, opt] of Object.entries(selection.partOptions)) {
+      if (opt != null) params.set(`part.${label}`, opt)
+    }
+  }
+  if (selection.interiorId) params.set('interior', selection.interiorId)
+  if (selection.view) params.set('view', selection.view)
+  if (selection.layers) {
+    for (const [lid, on] of Object.entries(selection.layers)) {
+      params.set(`layer.${lid}`, on ? 'true' : 'false')
+    }
+  }
+  const qs = params.toString()
+  return qs ? '?' + qs : ''
 }
 
 /**

@@ -50,6 +50,11 @@
     <h2>From glbc:ready</h2>
     <div id="ready-data" style="font-size:12px; color:#666">Waiting for glbc:ready event…</div>
 
+    <h2>Current URL (live)</h2>
+    <div class="url-box" id="live-url" style="user-select:all; cursor:text">—</div>
+    <button class="secondary" onclick="copyLiveUrl()">Copy URL</button>
+    <button class="secondary" onclick="openLiveUrl()">Open in new tab</button>
+
     <h2>Variants / Colors / Parts</h2>
     <div id="quick-buttons"></div>
 
@@ -105,6 +110,7 @@ function loadFrame(qs = '') {
   log.innerHTML = ''
   readyPayload = null
   currentSelection = null
+  $('live-url').textContent = `${origin}/embed/${cfg}${qs}`
 }
 
 function postToFrame(type, payload) {
@@ -256,6 +262,52 @@ function renderLayerButtons() {
   }
 }
 
+function buildLiveUrl() {
+  const cfg = $('cfgId').value.trim()
+  const origin = $('origin').value.trim().replace(/\/+$/, '')
+  if (!cfg || !currentSelection) return `${origin}/embed/${cfg}`
+  const params = new URLSearchParams()
+  if (currentSelection.variants) {
+    for (const [gid, vid] of Object.entries(currentSelection.variants)) {
+      if (vid) params.set(`variants.${gid}`, vid)
+    }
+  }
+  if (currentSelection.color) params.set('color', currentSelection.color)
+  if (currentSelection.partOptions) {
+    for (const [label, opt] of Object.entries(currentSelection.partOptions)) {
+      if (opt) params.set(`part.${label}`, opt)
+    }
+  }
+  if (currentSelection.interiorId) params.set('interior', currentSelection.interiorId)
+  if (currentSelection.view) params.set('view', currentSelection.view)
+  if (currentSelection.layers) {
+    for (const [lid, on] of Object.entries(currentSelection.layers)) {
+      params.set(`layer.${lid}`, on ? 'true' : 'false')
+    }
+  }
+  const qs = params.toString()
+  return `${origin}/embed/${cfg}${qs ? '?' + qs : ''}`
+}
+
+function updateLiveUrl() {
+  $('live-url').textContent = buildLiveUrl()
+}
+
+function copyLiveUrl(e) {
+  const url = buildLiveUrl()
+  const btn = e?.currentTarget
+  navigator.clipboard.writeText(url).then(() => {
+    if (!btn) return
+    const orig = btn.textContent
+    btn.textContent = 'Copied!'
+    setTimeout(() => btn.textContent = orig, 1200)
+  })
+}
+
+function openLiveUrl() {
+  window.open(buildLiveUrl(), '_blank')
+}
+
 window.addEventListener('message', (event) => {
   const data = event.data
   if (!data || typeof data.type !== 'string' || !data.type.startsWith('glbc:')) return
@@ -270,11 +322,13 @@ window.addEventListener('message', (event) => {
       <div><strong>Groups:</strong> ${data.payload.groups.length} · <strong>Interiors:</strong> ${(data.payload.interiors||[]).length} · <strong>Tabs:</strong> ${(data.payload.tabs||[]).join(', ')}</div>
     `
     renderEverything()
+    updateLiveUrl()
   }
 
   if (data.type === 'glbc:selectionChanged') {
     currentSelection = data.payload.selection
     renderEverything()
+    updateLiveUrl()
   }
 
   if (data.type === 'glbc:orderSubmitted') {
