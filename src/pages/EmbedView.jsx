@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useLocation } from 'react-router-dom'
 import { getPublishedConfigurator, trackView, getOrder } from '../firebase/db.js'
 import { ConfiguratorRenderer } from '../components/ConfiguratorRenderer.jsx'
 import { parseSelectionFromQuery, selectionFromOrder } from '../embed/embedApi.js'
+import { applyConfigTranslations } from '../utils/configTranslations.js'
 
 export default function EmbedView() {
   const { id } = useParams()
@@ -59,13 +60,27 @@ export default function EmbedView() {
   // so we must not mount until the parsed value is available.
   if (initialSelection === undefined) return <div className="embed-loading">Loading…</div>
 
-  // Key the renderer by selection identity so changes to ?order= or query params re-mount fresh state.
-  const renderKey = JSON.stringify(initialSelection)
+  return <TranslatedRenderer config={config} initialSelection={initialSelection} search={search} />
+}
+
+function TranslatedRenderer({ config, initialSelection, search }) {
+  const lang = useMemo(() => {
+    const p = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search)
+    return p.get('lang') || null
+  }, [search])
+
+  const translatedConfig = useMemo(
+    () => applyConfigTranslations(config, lang),
+    [config, lang]
+  )
+
+  // Key the renderer by selection + lang so changes re-mount fresh state.
+  const renderKey = `${lang || 'default'}::${JSON.stringify(initialSelection)}`
 
   return (
     <ConfiguratorRenderer
       key={renderKey}
-      config={config}
+      config={translatedConfig}
       initialSelection={initialSelection}
       enableEmbedApi
     />

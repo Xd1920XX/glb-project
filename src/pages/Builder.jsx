@@ -1739,6 +1739,12 @@ export default function Builder() {
             <button className="btn-ghost btn-sm builder-desktop-only" onClick={() => setPreviewOpen(true)}>
               Preview
             </button>
+            <Link to={`/builder/${id}/translations`} className="btn-ghost btn-sm builder-desktop-only">
+              Translations
+            </Link>
+            <Link to={`/builder/${id}/api-demo`} className="btn-ghost btn-sm builder-desktop-only">
+              API Demo
+            </Link>
             <button className="btn-ghost btn-sm builder-desktop-only" onClick={() => setInviteOpen(true)}>
               Invite
             </button>

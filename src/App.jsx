@@ -8,6 +8,8 @@ import Login          from './pages/Login.jsx'
 import Signup         from './pages/Signup.jsx'
 import Dashboard      from './pages/Dashboard.jsx'
 import Builder        from './pages/Builder.jsx'
+import BuilderTranslations from './pages/BuilderTranslations.jsx'
+import BuilderApiDemo  from './pages/BuilderApiDemo.jsx'
 import Billing        from './pages/Billing.jsx'
 import Media          from './pages/Media.jsx'
 import Orders         from './pages/Orders.jsx'
@@ -43,7 +45,9 @@ export default function App() {
         <Route path="/embed/:id"        element={<EmbedView />} />
         <Route path="/lp/:id"           element={<LandingView />} />
         <Route path="/dashboard"        element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/builder/:id"      element={<ProtectedRoute><Builder /></ProtectedRoute>} />
+        <Route path="/builder/:id"                  element={<ProtectedRoute><Builder /></ProtectedRoute>} />
+        <Route path="/builder/:id/translations"     element={<ProtectedRoute><BuilderTranslations /></ProtectedRoute>} />
+        <Route path="/builder/:id/api-demo"         element={<ProtectedRoute><BuilderApiDemo /></ProtectedRoute>} />
         <Route path="/billing"          element={<ProtectedRoute><Billing /></ProtectedRoute>} />
         <Route path="/media"            element={<ProtectedRoute><Media /></ProtectedRoute>} />
         <Route path="/orders"           element={<ProtectedRoute><Orders /></ProtectedRoute>} />
