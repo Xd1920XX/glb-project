@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+<meta charset="UTF-8">
+<title>Embed API Test — glbconfigurator</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; margin: 0; background: #f5f5f5; color: #1a1a1a; }
+  .layout { display: grid; grid-template-columns: 1fr 420px; gap: 12px; padding: 12px; height: 100vh; }
+  iframe { width: 100%; height: 100%; border: 1px solid #ccc; background: white; border-radius: 6px; }
+  .panel { background: white; border: 1px solid #ccc; border-radius: 6px; padding: 14px; overflow-y: auto; }
+  h1 { font-size: 16px; margin: 0 0 10px 0; }
+  h2 { font-size: 12px; margin: 14px 0 4px 0; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
+  button { all: unset; padding: 5px 9px; background: #2563eb; color: white; border-radius: 4px; font-size: 11.5px; cursor: pointer; margin: 2px 3px 2px 0; display: inline-flex; align-items: center; gap: 5px; }
+  button:hover { background: #1d4ed8; }
+  button.secondary { background: #6b7280; }
+  button.secondary:hover { background: #4b5563; }
+  button.toggle.on { background: #16a34a; }
+  button.toggle.off { background: #9ca3af; }
+  input, textarea { width: 100%; padding: 5px 7px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 12px; margin-bottom: 6px; font-family: monospace; }
+  pre { background: #1a1a1a; color: #d1d5db; padding: 10px; border-radius: 4px; font-size: 11px; line-height: 1.5; max-height: 220px; overflow: auto; margin: 0; white-space: pre-wrap; word-break: break-all; }
+  .log-entry { border-bottom: 1px solid #333; padding-bottom: 6px; margin-bottom: 6px; }
+  .log-entry:last-child { border-bottom: none; }
+  .log-type { color: #fbbf24; font-weight: bold; }
+  .group-card { background: #f9fafb; padding: 7px 9px; margin-bottom: 5px; border-radius: 4px; font-size: 12px; }
+  .group-card strong { display: block; margin-bottom: 4px; font-size: 10.5px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
+  .subcard { background: #fff; border: 1px solid #e5e7eb; padding: 5px 7px; margin: 4px 0; border-radius: 3px; }
+  code { background: #fef3c7; padding: 1px 4px; border-radius: 2px; font-size: 10.5px; }
+  .swatch-dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.2); display: inline-block; vertical-align: middle; }
+  .snapshot-preview { width: 100%; border: 1px solid #ccc; border-radius: 4px; margin-top: 6px; }
+  .url-box { background: #f3f4f6; padding: 6px 8px; border-radius: 4px; font-family: monospace; font-size: 10.5px; word-break: break-all; margin: 4px 0; }
+  .tip { font-size: 11px; color: #6b7280; font-style: italic; margin: 3px 0; }
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <iframe id="frame" src=""></iframe>
+
+  <div class="panel">
+    <h1>Embed API tester</h1>
+
+    <label style="font-size:12px;color:#555">Configurator ID:</label>
+    <input id="cfgId" value="rKHn7BL33yy1WR7qYxaX">
+    <label style="font-size:12px;color:#555">Embed origin:</label>
+    <input id="origin" value="http://localhost:5173">
+    <button onclick="loadFrame()">Load iframe</button>
+    <button class="secondary" onclick="loadFrame('?view=order')">+ view=order</button>
+
+    <h2>From glbc:ready</h2>
+    <div id="ready-data" style="font-size:12px; color:#666">Waiting for glbc:ready event…</div>
+
+    <h2>Variants / Colors / Parts</h2>
+    <div id="quick-buttons"></div>
+
+    <h2>View tab</h2>
+    <div id="view-buttons"></div>
+
+    <h2>Interiors</h2>
+    <div id="interior-buttons"></div>
+
+    <h2>Layer toggles (active variant)</h2>
+    <div id="layer-buttons"></div>
+
+    <h2>Custom postMessage</h2>
+    <textarea id="custom-payload" placeholder='{"selection":{"color":"Natural"}}' style="height:60px"></textarea>
+    <button onclick="sendCustom('setSelection')">setSelection</button>
+    <button onclick="sendCustom('patchSelection')">patchSelection</button>
+
+    <h2>Event log (latest 20)</h2>
+    <pre id="log"></pre>
+
+    <h2>Last orderSubmitted</h2>
+    <div id="order-result" style="font-size:12px; color:#666">No order submitted yet.</div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id)
+const frame = $('frame')
+const log = $('log')
+
+let readyPayload = null
+let currentSelection = null
+
+function appendLog(type, payload) {
+  const entry = document.createElement('div')
+  entry.className = 'log-entry'
+  entry.innerHTML = `<div class="log-type">${type}</div><div>${JSON.stringify(payload, null, 2)}</div>`
+  log.insertBefore(entry, log.firstChild)
+  while (log.children.length > 20) log.removeChild(log.lastChild)
+}
+
+function loadFrame(qs = '') {
+  const cfg = $('cfgId').value.trim()
+  const origin = $('origin').value.trim().replace(/\/+$/, '')
+  if (!cfg) return alert('Sisesta configurator ID')
+  frame.src = `${origin}/embed/${cfg}${qs}`
+  $('ready-data').textContent = 'Waiting for glbc:ready event…'
+  $('quick-buttons').innerHTML = ''
+  $('view-buttons').innerHTML = ''
+  $('interior-buttons').innerHTML = ''
+  $('layer-buttons').innerHTML = ''
+  $('order-result').textContent = 'No order submitted yet.'
+  log.innerHTML = ''
+  readyPayload = null
+  currentSelection = null
+}
+
+function postToFrame(type, payload) {
+  if (!frame.contentWindow) return
+  frame.contentWindow.postMessage({ type: 'glbc:' + type, payload }, '*')
+}
+
+function sendCustom(type) {
+  let payload
+  try { payload = JSON.parse($('custom-payload').value) }
+  catch (e) { return alert('Invalid JSON: ' + e.message) }
+  postToFrame(type, payload)
+}
+
+function makeBtn(label, onClick, opts = {}) {
+  const b = document.createElement('button')
+  if (opts.swatch) {
+    const dot = document.createElement('span')
+    dot.className = 'swatch-dot'
+    dot.style.background = opts.swatch
+    b.appendChild(dot)
+  }
+  b.appendChild(document.createTextNode(label))
+  if (opts.title) b.title = opts.title
+  if (opts.className) b.className += ' ' + opts.className
+  b.onclick = onClick
+  return b
+}
+
+function getActiveVariant() {
+  if (!readyPayload || !currentSelection?.variants) return null
+  for (const g of readyPayload.groups) {
+    const vid = currentSelection.variants[g.id]
+    if (!vid) continue
+    const v = g.variants.find((x) => x.id === vid)
+    if (v) return { group: g, variant: v }
+  }
+  return null
+}
+
+function renderEverything() {
+  if (!readyPayload) return
+  renderQuickButtons(readyPayload.groups)
+  renderViewButtons(readyPayload.tabs || ['exterior', 'interior', 'order'])
+  renderInteriorButtons(readyPayload.interiors || [])
+  renderLayerButtons()
+}
+
+function renderQuickButtons(groups) {
+  const wrap = $('quick-buttons')
+  wrap.innerHTML = ''
+  if (!groups || !groups.length) { wrap.textContent = 'No groups in this configurator.'; return }
+
+  // Variants per group
+  for (const g of groups) {
+    const card = document.createElement('div')
+    card.className = 'group-card'
+    card.innerHTML = `<strong>${g.label || 'Default group'} <span style="text-transform:none;color:#9ca3af">— variants (${g.variants.length})</span></strong>`
+    for (const v of g.variants) {
+      const sel = currentSelection?.variants?.[g.id] === v.id
+      card.appendChild(makeBtn(v.label, () =>
+        postToFrame('patchSelection', { selection: { variants: { [g.id]: v.id } } }),
+        { title: v.id, className: sel ? '' : 'secondary' }
+      ))
+    }
+    wrap.appendChild(card)
+  }
+
+  // Color + part options for the *currently selected* variant
+  const active = getActiveVariant()
+  if (active) {
+    const v = active.variant
+    if (v.colorOptions?.length) {
+      const card = document.createElement('div')
+      card.className = 'group-card'
+      card.innerHTML = `<strong>Colors <span style="text-transform:none;color:#9ca3af">— for ${v.label}</span></strong>`
+      for (const c of v.colorOptions) {
+        const sel = currentSelection?.color === c.label
+        card.appendChild(makeBtn(c.label, () =>
+          postToFrame('patchSelection', { selection: { color: c.label } }),
+          { swatch: c.swatch, title: c.id, className: sel ? '' : 'secondary' }
+        ))
+      }
+      wrap.appendChild(card)
+    }
+
+    for (const grp of (v.partOptions || [])) {
+      const card = document.createElement('div')
+      card.className = 'group-card'
+      card.innerHTML = `<strong>${grp.label} <span style="text-transform:none;color:#9ca3af">— part group</span></strong>`
+      for (const o of (grp.options || [])) {
+        const sel = currentSelection?.partOptions?.[grp.label] === o.label
+        card.appendChild(makeBtn(o.label, () =>
+          postToFrame('patchSelection', { selection: { partOptions: { [grp.label]: o.label } } }),
+          { swatch: o.swatch, title: o.id, className: sel ? '' : 'secondary' }
+        ))
+      }
+      wrap.appendChild(card)
+    }
+  } else if (groups.length) {
+    const note = document.createElement('div')
+    note.className = 'tip'
+    note.textContent = 'Pick a variant first to reveal colors and part options.'
+    wrap.appendChild(note)
+  }
+}
+
+function renderViewButtons(tabs) {
+  const wrap = $('view-buttons')
+  wrap.innerHTML = ''
+  for (const v of tabs) {
+    const sel = currentSelection?.view === v
+    wrap.appendChild(makeBtn(v, () =>
+      postToFrame('patchSelection', { selection: { view: v } }),
+      { className: sel ? '' : 'secondary' }
+    ))
+  }
+}
+
+function renderInteriorButtons(interiors) {
+  const wrap = $('interior-buttons')
+  wrap.innerHTML = ''
+  if (!interiors.length) { wrap.innerHTML = '<div class="tip">No interiors in this configurator.</div>'; return }
+  for (const i of interiors) {
+    const sel = currentSelection?.interiorId === i.id
+    wrap.appendChild(makeBtn(i.label, () =>
+      postToFrame('patchSelection', { selection: { interiorId: i.id, view: 'interior' } }),
+      { title: i.id, className: sel ? '' : 'secondary' }
+    ))
+  }
+}
+
+function renderLayerButtons() {
+  const wrap = $('layer-buttons')
+  wrap.innerHTML = ''
+  const active = getActiveVariant()
+  if (!active || !active.variant.layers?.length) {
+    wrap.innerHTML = '<div class="tip">No togglable layers on the active variant.</div>'
+    return
+  }
+  const layers = active.variant.layers
+  const currentLayers = currentSelection?.layers || {}
+  for (const l of layers) {
+    const on = currentLayers[l.id] ?? l.defaultOn
+    wrap.appendChild(makeBtn(`${l.label} ${on ? 'ON' : 'OFF'}`, () =>
+      postToFrame('patchSelection', { selection: { layers: { [l.id]: !on } } }),
+      { title: l.id, className: 'toggle ' + (on ? 'on' : 'off') }
+    ))
+  }
+}
+
+window.addEventListener('message', (event) => {
+  const data = event.data
+  if (!data || typeof data.type !== 'string' || !data.type.startsWith('glbc:')) return
+  appendLog(data.type, data.payload)
+
+  if (data.type === 'glbc:ready') {
+    readyPayload = data.payload
+    $('ready-data').innerHTML = `
+      <div><strong>Config:</strong> ${data.payload.name || '(unnamed)'} (<code>${data.payload.configId}</code>)</div>
+      <div><strong>Has order form:</strong> ${data.payload.hasOrder ? 'yes' : 'no'}</div>
+      <div><strong>Has interiors:</strong> ${data.payload.hasInteriors ? 'yes' : 'no'}</div>
+      <div><strong>Groups:</strong> ${data.payload.groups.length} · <strong>Interiors:</strong> ${(data.payload.interiors||[]).length} · <strong>Tabs:</strong> ${(data.payload.tabs||[]).join(', ')}</div>
+    `
+    renderEverything()
+  }
+
+  if (data.type === 'glbc:selectionChanged') {
+    currentSelection = data.payload.selection
+    renderEverything()
+  }
+
+  if (data.type === 'glbc:orderSubmitted') {
+    const p = data.payload
+    $('order-result').innerHTML = `
+      <div><strong>Order ID:</strong> <code>${p.orderId || 'null'}</code></div>
+      <div><strong>State URL:</strong></div>
+      <div class="url-box">${p.stateUrl || '(none)'}</div>
+      <div><strong>Snapshot URL:</strong></div>
+      <div class="url-box">${p.snapshotUrl || '(uploading or unavailable)'}</div>
+      ${p.snapshotUrl ? `<img class="snapshot-preview" src="${p.snapshotUrl}" alt="snapshot">` : ''}
+    `
+  }
+})
+
+loadFrame()
+</script>
+
+</body>
+</html>

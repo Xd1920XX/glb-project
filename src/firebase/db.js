@@ -180,7 +180,7 @@ export async function duplicateConfigurator(uid, source) {
 
 // Orders
 export async function saveOrder(configuratorId, ownerId, { variantId, interiorId, formData, selections, configuratorName }) {
-  await addDoc(collection(db, 'orders'), {
+  const docRef = await addDoc(collection(db, 'orders'), {
     configuratorId,
     ownerId,
     variantId: variantId ?? null,
@@ -190,6 +190,16 @@ export async function saveOrder(configuratorId, ownerId, { variantId, interiorId
     configuratorName: configuratorName ?? '',
     createdAt: serverTimestamp(),
   })
+  return docRef.id
+}
+
+export async function getOrder(id) {
+  const snap = await getDoc(doc(db, 'orders', id))
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null
+}
+
+export async function updateOrder(id, patch) {
+  await updateDoc(doc(db, 'orders', id), patch)
 }
 
 export async function getUserOrders(uid) {

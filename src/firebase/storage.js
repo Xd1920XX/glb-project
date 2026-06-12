@@ -57,6 +57,28 @@ export async function listUserFiles(uid) {
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 }
 
+/**
+ * Upload a snapshot blob for an order. Returns { url, storagePath }.
+ * Stored at orders/{configuratorId}/{orderId}.png — readable by the configurator owner.
+ */
+export function uploadOrderSnapshot(configuratorId, orderId, blob) {
+  return new Promise((resolve, reject) => {
+    const path = `orders/${configuratorId}/${orderId}.png`
+    const storageRef = ref(storage, path)
+    const task = uploadBytesResumable(storageRef, blob, {
+      contentType: 'image/png',
+    })
+    task.on('state_changed', null, reject, async () => {
+      try {
+        const url = await getDownloadURL(task.snapshot.ref)
+        resolve({ url, storagePath: path })
+      } catch (err) {
+        reject(err)
+      }
+    })
+  })
+}
+
 export async function deleteFile(storagePath) {
   try {
     await deleteObject(ref(storage, storagePath))

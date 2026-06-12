@@ -1,9 +1,11 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useGLTF } from '@react-three/drei'
 import { InteriorViewer } from './InteriorViewer.jsx'
 import { SaunaViewer3D, LIGHT_PRESETS } from './SaunaViewer3D.jsx'
 import { ARButton } from './ARButton.jsx'
-import { saveOrder } from '../firebase/db.js'
+import { saveOrder, updateOrder } from '../firebase/db.js'
+import { uploadOrderSnapshot } from '../firebase/storage.js'
+import { postToParent, onParentMessage, resolveSelectionAgainstConfig, selectionToQuery } from '../embed/embedApi.js'
 
 // ── Group helpers ────────────────────────────────────────────────────
 
@@ -38,8 +40,14 @@ function computeVisibleGroups(groups, selectedByGroup) {
  * Generic configurator renderer.
  * config = { variants, interiors, background, viewerSettings, variantGroups, hotspots, watermark }
  */
-export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotPlace = null }) {
+export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotPlace = null, initialSelection = null, enableEmbedApi = false }) {
   const { variants = [], interiors = [], background, viewerSettings = {}, exteriorLabel, interiorLabel, orderForm, theme = 'minimal', darkMode = false, themeColors = {}, variantGroups = [], hotspots = [], watermark, hideInteriorTab = false, hide3DButton = false, enableLightingControl = false } = config
+
+  const resolvedInitial = useMemo(
+    () => initialSelection ? resolveSelectionAgainstConfig({ ...initialSelection }, config) : null,
+    [initialSelection, config]
+  )
+  const viewerPaneRef = useRef(null)
 
   const extLabel = exteriorLabel || 'Exterior'
   const intLabel = interiorLabel || 'Interior'
@@ -51,24 +59,27 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
     ...(orderForm?.enabled                        ? ['order']    : []),
   ]
 
-  const [view, setView]               = useState(tabs[0] ?? 'exterior')
-  const [selectedByGroup, setSelectedByGroup] = useState({})
+  const [view, setView]               = useState(resolvedInitial?.view && tabs.includes(resolvedInitial.view) ? resolvedInitial.view : (tabs[0] ?? 'exterior'))
+  const [selectedByGroup, setSelectedByGroup] = useState(resolvedInitial?.variants ?? {})
   const [activeGroupId, setActiveGroupId]     = useState(null)
   const [frameIndex, setFrameIndex]   = useState(0)
   const [show3D, setShow3D]           = useState(false)
-  const [interiorId, setInteriorId]   = useState(interiors[0]?.id ?? null)
+  const [interiorId, setInteriorId]   = useState(resolvedInitial?.interiorId ?? interiors[0]?.id ?? null)
   const [orderData, setOrderData]     = useState({})
   const [orderSubmitted, setOrderSubmitted] = useState(false)
   const [layerVisByVariant, setLayerVisByVariant] = useState({})
   // partSel + colorSel persist across variant switches.
   // partSel:  group.label → option.label
   // colorSel: color.label (e.g. 'Natural' | 'Dark')
-  const [partSel, setPartSel] = useState({})
-  const [colorSel, setColorSel] = useState(null)
+  const [partSel, setPartSel] = useState(resolvedInitial?.partOptions ?? {})
+  const [colorSel, setColorSel] = useState(resolvedInitial?.color ?? null)
   // Progressive disclosure: hide partOptions until model picked,
   // show only first partOption group until that's picked too.
-  const [modelTouched, setModelTouched]         = useState(false)
-  const [firstPartTouched, setFirstPartTouched] = useState(false)
+  // If an external selection is provided (via URL/postMessage/order link),
+  // skip disclosure gates so all chosen state is rendered immediately.
+  const hasInitialSel = !!resolvedInitial
+  const [modelTouched, setModelTouched]         = useState(hasInitialSel)
+  const [firstPartTouched, setFirstPartTouched] = useState(hasInitialSel)
   // User-selectable lighting preset (when enableLightingControl is on)
   const [lightPresetKey, setLightPresetKey]     = useState(null)
   // Animation override (when viewerSettings.glbEnableAnimationControls is on)
@@ -140,6 +151,90 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
   }, [modelTouched, firstPartTouched, variantForPreload])
   const variant  = variants.find((v) => v.id === primaryVariantId) ?? null
   const interior = interiors.find((i) => i.id === interiorId)
+
+  // ── Embed API: current selection snapshot, postMessage in/out ─────
+  const currentSelection = useMemo(() => ({
+    variants: selectedByGroup,
+    color: colorSel,
+    partOptions: partSel,
+    interiorId,
+    view,
+    layers: variant ? (layerVisByVariant[variant.id] ?? {}) : {},
+  }), [selectedByGroup, colorSel, partSel, interiorId, view, layerVisByVariant, variant])
+
+  // Emit ready event once on mount (or when config changes)
+  const readyEmittedRef = useRef(false)
+  useEffect(() => {
+    if (!enableEmbedApi || readyEmittedRef.current) return
+    readyEmittedRef.current = true
+    postToParent('ready', {
+      configId: config.id ?? null,
+      name: config.name ?? '',
+      groups: (allGroups ?? []).map((g) => ({
+        id: g.id,
+        label: g.label,
+        variants: g.variants.map((v) => ({
+          id: v.id,
+          label: v.label,
+          colorOptions: (v.colorOptions ?? []).map((c) => ({
+            id: c.id, label: c.label, swatch: c.swatch ?? null,
+          })),
+          partOptions: (v.partOptions ?? []).map((grp) => ({
+            id: grp.id,
+            label: grp.label,
+            options: (grp.options ?? []).map((o) => ({
+              id: o.id, label: o.label, swatch: o.swatch ?? null,
+            })),
+          })),
+          layers: (v.glbLayers ?? []).filter((l) => l.togglable).map((l) => ({
+            id: l.id, label: l.label, defaultOn: l.defaultOn ?? true,
+          })),
+        })),
+      })),
+      interiors: interiors.map((i) => ({ id: i.id, label: i.label })),
+      tabs,
+      hasOrder: !!orderForm?.enabled,
+      hasInteriors: interiors.length > 0,
+      orderFormFields: (orderForm?.fields ?? []).filter((f) => f.enabled !== false).map((f) => ({
+        id: f.id, label: f.label, type: f.type, required: !!f.required,
+      })),
+    })
+  }, [enableEmbedApi, config.id, config.name, allGroups, orderForm, interiors, tabs])
+
+  // Emit selection-changed event when state changes (after ready)
+  useEffect(() => {
+    if (!enableEmbedApi || !readyEmittedRef.current) return
+    postToParent('selectionChanged', { selection: currentSelection })
+  }, [enableEmbedApi, currentSelection])
+
+  // Listen for incoming setSelection / patchSelection from parent
+  useEffect(() => {
+    if (!enableEmbedApi) return
+    return onParentMessage((type, payload) => {
+      if (type !== 'setSelection' && type !== 'patchSelection') return
+      const incoming = resolveSelectionAgainstConfig({ ...(payload?.selection || payload || {}) }, config)
+      if (!incoming) return
+      const merge = type === 'patchSelection'
+      if (incoming.variants) {
+        setSelectedByGroup((prev) => merge ? { ...prev, ...incoming.variants } : { ...incoming.variants })
+        // When variants change externally, treat as a model interaction
+        setModelTouched(true)
+      }
+      if ('color' in incoming) setColorSel(incoming.color ?? null)
+      if (incoming.partOptions) {
+        setPartSel((prev) => merge ? { ...prev, ...incoming.partOptions } : { ...incoming.partOptions })
+        setFirstPartTouched(true)
+      }
+      if ('interiorId' in incoming && incoming.interiorId) setInteriorId(incoming.interiorId)
+      if (incoming.view && tabs.includes(incoming.view)) setView(incoming.view)
+      if (incoming.layers && variant) {
+        setLayerVisByVariant((prev) => ({
+          ...prev,
+          [variant.id]: merge ? { ...(prev[variant.id] ?? {}), ...incoming.layers } : { ...incoming.layers },
+        }))
+      }
+    })
+  }, [enableEmbedApi, config, tabs, variant])
 
   // Background style for viewer pane
   const viewerStyle = {}
@@ -282,8 +377,36 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
     !!variant?.glbUrl
   )
 
+  const captureCanvasBlob = useCallback(async () => {
+    const pane = viewerPaneRef.current
+    if (!pane) return null
+    const canvas = pane.querySelector('canvas')
+    if (canvas) {
+      return await new Promise((resolve) => {
+        try { canvas.toBlob((blob) => resolve(blob), 'image/png') }
+        catch { resolve(null) }
+      })
+    }
+    // For non-WebGL viewers (spinner / interior pano), try the visible <img>.
+    const img = pane.querySelector('img')
+    if (img?.src) {
+      try {
+        const res = await fetch(img.src)
+        return await res.blob()
+      } catch { return null }
+    }
+    return null
+  }, [])
+
   async function handleOrderSubmit(e) {
     e.preventDefault()
+    // Capture snapshot BEFORE save — viewer must still be mounted.
+    const snapshotBlob = await captureCanvasBlob()
+
+    let orderId = null
+    let snapshotUrl = null
+    let selectionsPayload = null
+
     if (config.id && config.ownerId) {
       try {
         // Selections: model groups + color + every partOption group
@@ -324,16 +447,45 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
             return acc
           }, {}),
         }
+        selectionsPayload = selections
 
-        await saveOrder(config.id, config.ownerId, {
+        orderId = await saveOrder(config.id, config.ownerId, {
           variantId: allSelections || (variant?.label ?? primaryVariantId),
           interiorId: hideInteriorTab ? null : (interior?.label ?? interiorId),
           formData: orderData,
           selections,
           configuratorName: config.name ?? '',
         })
+
+        // Upload snapshot if we captured one — non-blocking failure
+        if (orderId && snapshotBlob) {
+          try {
+            const { url } = await uploadOrderSnapshot(config.id, orderId, snapshotBlob)
+            snapshotUrl = url
+            await updateOrder(orderId, { snapshotUrl: url })
+          } catch (err) {
+            console.warn('snapshot upload failed', err)
+          }
+        }
       } catch { /* non-fatal */ }
     }
+
+    // Emit to parent (Sortaider WP) — even if save failed, surface form data
+    if (enableEmbedApi) {
+      const origin = typeof window !== 'undefined' ? window.location.origin : ''
+      const stateUrl = orderId && config.id
+        ? `${origin}/embed/${config.id}?order=${orderId}`
+        : (config.id ? `${origin}/embed/${config.id}${selectionToQuery(currentSelection)}` : null)
+      postToParent('orderSubmitted', {
+        orderId,
+        snapshotUrl,
+        stateUrl,
+        selection: currentSelection,
+        selections: selectionsPayload,
+        formData: orderData,
+      })
+    }
+
     setOrderSubmitted(true)
   }
 
@@ -351,6 +503,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
       }}
     >
       <div
+        ref={viewerPaneRef}
         className={`viewer-pane${hotspotPlaceId ? ' hotspot-place-mode' : ''}`}
         style={viewerStyle}
         onClick={hotspotPlaceId ? (e) => {
