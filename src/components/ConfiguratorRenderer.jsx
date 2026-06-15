@@ -313,6 +313,10 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
             materialOverrides: { ...(l.materialOverrides ?? {}), ...colorOverrides },
             animationConfig: l.animationConfig ?? null,
             visibleNodes: l.visibleNodes ?? null,
+            offset: l.offset ?? null,
+            rotation: l.rotation ?? null,
+            scale: l.scale ?? null,
+            autoCenter: l.autoCenter ?? false,
           }))
       : variant.glbUrl
         ? [{ url: variant.glbUrl, materialOverrides: variant.materialOverrides ?? {}, animationConfig: variant.animationConfig ?? null }]

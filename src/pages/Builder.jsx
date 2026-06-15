@@ -284,6 +284,88 @@ function VariantEditor({ variant, uid: userUid, onChange, onDelete, onDuplicate,
 
 // ── GLB layers editor ──────────────────────────────────────────────
 
+function LayerTransformEditor({ layer, onChange }) {
+  const [open, setOpen] = useState(false)
+  const offset = layer.offset ?? { x: 0, y: 0, z: 0 }
+  const rotation = layer.rotation ?? { x: 0, y: 0, z: 0 }
+  const scaleVal = typeof layer.scale === 'number' ? layer.scale : (layer.scale?.x ?? 1)
+  const autoCenter = !!layer.autoCenter
+
+  const setOffset = (axis, v) => onChange({ ...layer, offset: { ...offset, [axis]: Number(v) || 0 } })
+  const setRotation = (axis, v) => onChange({ ...layer, rotation: { ...rotation, [axis]: Number(v) || 0 } })
+  const setScale = (v) => onChange({ ...layer, scale: Number(v) || 1 })
+  const setAutoCenter = (v) => onChange({ ...layer, autoCenter: !!v })
+
+  function reset() {
+    const { offset: _o, rotation: _r, scale: _s, autoCenter: _a, ...rest } = layer
+    void _o; void _r; void _s; void _a
+    onChange(rest)
+  }
+
+  const hasAny = !!(layer.offset || layer.rotation || (layer.scale != null && layer.scale !== 1) || layer.autoCenter)
+
+  return (
+    <div className="layer-transform" style={{ paddingLeft: 28, marginTop: 6 }}>
+      <button className="btn-link" style={{ all: 'unset', cursor: 'pointer', fontSize: 12, color: 'var(--text-muted)' }}
+        onClick={() => setOpen((v) => !v)}>
+        {open ? '▾' : '▸'} Position & Centering {hasAny && <span style={{ color: '#16a34a' }}>●</span>}
+      </button>
+
+      {open && (
+        <div style={{ marginTop: 8, padding: 10, background: 'var(--hover-bg)', borderRadius: 6, fontSize: 12 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, cursor: 'pointer' }}>
+            <input type="checkbox" checked={autoCenter} onChange={(e) => setAutoCenter(e.target.checked)} />
+            <span>Auto-center this layer (recenters its own bounding box at origin)</span>
+          </label>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '70px repeat(3, 1fr)', gap: 6, alignItems: 'center', marginBottom: 6 }}>
+            <span style={{ color: 'var(--text-muted)' }}>Offset</span>
+            <AxisInput axis="X" value={offset.x} onChange={(v) => setOffset('x', v)} step={0.05} />
+            <AxisInput axis="Y" value={offset.y} onChange={(v) => setOffset('y', v)} step={0.05} />
+            <AxisInput axis="Z" value={offset.z} onChange={(v) => setOffset('z', v)} step={0.05} />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '70px repeat(3, 1fr)', gap: 6, alignItems: 'center', marginBottom: 6 }}>
+            <span style={{ color: 'var(--text-muted)' }}>Rotation°</span>
+            <AxisInput axis="X" value={rotation.x} onChange={(v) => setRotation('x', v)} step={5} />
+            <AxisInput axis="Y" value={rotation.y} onChange={(v) => setRotation('y', v)} step={5} />
+            <AxisInput axis="Z" value={rotation.z} onChange={(v) => setRotation('z', v)} step={5} />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: 6, alignItems: 'center', marginBottom: 6 }}>
+            <span style={{ color: 'var(--text-muted)' }}>Scale</span>
+            <AxisInput axis="" value={scaleVal} onChange={setScale} step={0.05} min={0.01} />
+          </div>
+
+          {hasAny && (
+            <button className="btn-text-danger" style={{ fontSize: 11 }} onClick={reset}>Reset transform</button>
+          )}
+          <p className="builder-hint" style={{ marginTop: 8, fontSize: 11 }}>
+            Tip: Auto-center is best when the layer should be standalone-centered. Use Offset to align stacked layers (e.g. cushion on top of body) manually.
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AxisInput({ axis, value, onChange, step = 1, min = -1000 }) {
+  return (
+    <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      {axis && <span style={{ fontSize: 11, color: 'var(--text-muted)', minWidth: 12 }}>{axis}</span>}
+      <input
+        type="number"
+        step={step}
+        min={min}
+        className="field-input inline"
+        style={{ width: '100%', padding: '4px 6px', fontSize: 12 }}
+        value={value ?? 0}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </label>
+  )
+}
+
 function GlbLayerEditor({ layer, uid: userUid, onChange, onDelete, onMoveUp, onMoveDown }) {
   const [showPicker, setShowPicker]     = useState(false)
   const [uploading, setUploading]       = useState(false)
@@ -372,6 +454,10 @@ function GlbLayerEditor({ layer, uid: userUid, onChange, onDelete, onMoveUp, onM
           uid={userUid}
           onChange={(updated) => onChange({ ...layer, glbMaterials: updated.glbMaterials, materialOverrides: updated.materialOverrides })}
         />
+      )}
+
+      {layer.glbUrl && (
+        <LayerTransformEditor layer={layer} onChange={onChange} />
       )}
 
       {layer.glbUrl && (layer.glbAnimations?.length ?? 0) > 0 && (

@@ -43,7 +43,7 @@ function loadCachedTexture(url) {
 
 // ── Model with optional material overrides ────────────────────────
 
-function Model({ url, materialOverrides = {}, animationConfig = null, animationOverride = null, visibleNodes = null }) {
+function Model({ url, materialOverrides = {}, animationConfig = null, animationOverride = null, visibleNodes = null, offset = null, rotation = null, scale = null, autoCenter = false }) {
   const { scene, animations } = useGLTF(url)
   const { gl } = useThree()
   const maxAniso = useMemo(() => gl?.capabilities?.getMaxAnisotropy?.() ?? 8, [gl])
@@ -201,7 +201,35 @@ function Model({ url, materialOverrides = {}, animationConfig = null, animationO
     if (animationConfig?.enabled) mixer.update(dt)
   })
 
-  return <primitive object={cloned} />
+  // Auto-center: shift the model so its bounding-box centre sits at the origin.
+  // Runs once per cloned scene.
+  useLayoutEffect(() => {
+    if (!autoCenter) return
+    const box = new THREE.Box3().setFromObject(cloned)
+    if (!isFinite(box.min.x)) return
+    const c = new THREE.Vector3()
+    box.getCenter(c)
+    cloned.position.sub(c)
+  }, [cloned, autoCenter])
+
+  // Group transform from CMS-side offset/rotation/scale.
+  const pos = offset ? [Number(offset.x) || 0, Number(offset.y) || 0, Number(offset.z) || 0] : [0, 0, 0]
+  const rot = rotation
+    ? [
+        (Number(rotation.x) || 0) * Math.PI / 180,
+        (Number(rotation.y) || 0) * Math.PI / 180,
+        (Number(rotation.z) || 0) * Math.PI / 180,
+      ]
+    : [0, 0, 0]
+  const scl = scale != null
+    ? (typeof scale === 'number' ? [scale, scale, scale] : [Number(scale.x) || 1, Number(scale.y) || 1, Number(scale.z) || 1])
+    : [1, 1, 1]
+
+  return (
+    <group position={pos} rotation={rot} scale={scl}>
+      <primitive object={cloned} />
+    </group>
+  )
 }
 
 // ── Camera auto-fit ───────────────────────────────────────────────
@@ -282,6 +310,10 @@ export function SaunaViewer3D({
               materialOverrides={layer.materialOverrides ?? {}}
               animationConfig={layer.animationConfig ?? null}
               visibleNodes={layer.visibleNodes ?? null}
+              offset={layer.offset ?? null}
+              rotation={layer.rotation ?? null}
+              scale={layer.scale ?? null}
+              autoCenter={layer.autoCenter ?? false}
               animationOverride={animationOverride} />
           ))}
         </Bounds>
