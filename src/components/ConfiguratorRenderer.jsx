@@ -313,10 +313,6 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
             materialOverrides: { ...(l.materialOverrides ?? {}), ...colorOverrides },
             animationConfig: l.animationConfig ?? null,
             visibleNodes: l.visibleNodes ?? null,
-            offset: l.offset ?? null,
-            rotation: l.rotation ?? null,
-            scale: l.scale ?? null,
-            autoCenter: l.autoCenter ?? false,
           }))
       : variant.glbUrl
         ? [{ url: variant.glbUrl, materialOverrides: variant.materialOverrides ?? {}, animationConfig: variant.animationConfig ?? null }]
@@ -355,10 +351,10 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
           : null,
       }
       if (show3D && glbLayers.length > 0) {
-        return <SaunaViewer3D key={variant.id + '3d'} glbLayers={glbLayers} {...sharedProps} />
+        return <SaunaViewer3D key={variant.id + '3d'} glbLayers={glbLayers} stackTransform={variant.transform ?? null} {...sharedProps} />
       }
       if (variant.type === 'glb' && glbLayers.length > 0) {
-        return <SaunaViewer3D key={variant.id} glbLayers={glbLayers} {...sharedProps} />
+        return <SaunaViewer3D key={variant.id} glbLayers={glbLayers} stackTransform={variant.transform ?? null} {...sharedProps} />
       }
       if (variant.type === 'spinner' && variant.frames?.length) {
         return (

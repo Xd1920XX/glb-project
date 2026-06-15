@@ -43,7 +43,7 @@ function loadCachedTexture(url) {
 
 // ── Model with optional material overrides ────────────────────────
 
-function Model({ url, materialOverrides = {}, animationConfig = null, animationOverride = null, visibleNodes = null, offset = null, rotation = null, scale = null, autoCenter = false }) {
+function Model({ url, materialOverrides = {}, animationConfig = null, animationOverride = null, visibleNodes = null, onSceneRef = null }) {
   const { scene, animations } = useGLTF(url)
   const { gl } = useThree()
   const maxAniso = useMemo(() => gl?.capabilities?.getMaxAnisotropy?.() ?? 8, [gl])
@@ -201,21 +201,24 @@ function Model({ url, materialOverrides = {}, animationConfig = null, animationO
     if (animationConfig?.enabled) mixer.update(dt)
   })
 
-  // Auto-center: shift the model so its bounding-box centre sits at the origin.
-  // Always restores the GLB's intrinsic position first, then applies the shift
-  // only when enabled — so toggling off undoes the centering.
-  useLayoutEffect(() => {
-    if (cloned.userData._origPos === undefined) {
-      cloned.userData._origPos = cloned.position.clone()
-    }
-    cloned.position.copy(cloned.userData._origPos)
-    if (!autoCenter) return
-    const box = new THREE.Box3().setFromObject(cloned)
-    if (!isFinite(box.min.x)) return
-    const c = new THREE.Vector3()
-    box.getCenter(c)
-    cloned.position.sub(c)
-  }, [cloned, autoCenter])
+  // Expose the cloned scene so the parent stack can compute a shared bounding box.
+  useEffect(() => {
+    onSceneRef?.(cloned)
+    return () => onSceneRef?.(null)
+  }, [cloned, onSceneRef])
+
+  return <primitive object={cloned} />
+}
+
+// Wraps all GLB layers of a variant inside ONE group so transform applies to the entire stack.
+function GlbStack({ layers, animationOverride, transform }) {
+  const groupRef = useRef(null)
+  const sceneMapRef = useRef(new Map())
+
+  const offset = transform?.offset ?? null
+  const rotation = transform?.rotation ?? null
+  const scaleProp = transform?.scale ?? null
+  const autoCenter = !!transform?.autoCenter
 
   // Group transform from CMS-side offset/rotation/scale.
   const pos = offset ? [Number(offset.x) || 0, Number(offset.y) || 0, Number(offset.z) || 0] : [0, 0, 0]
@@ -226,13 +229,52 @@ function Model({ url, materialOverrides = {}, animationConfig = null, animationO
         (Number(rotation.z) || 0) * Math.PI / 180,
       ]
     : [0, 0, 0]
-  const scl = scale != null
-    ? (typeof scale === 'number' ? [scale, scale, scale] : [Number(scale.x) || 1, Number(scale.y) || 1, Number(scale.z) || 1])
+  const scl = scaleProp != null
+    ? (typeof scaleProp === 'number' ? [scaleProp, scaleProp, scaleProp] : [Number(scaleProp.x) || 1, Number(scaleProp.y) || 1, Number(scaleProp.z) || 1])
     : [1, 1, 1]
 
+  // Auto-center: compute a SHARED bounding box across all loaded layers, then
+  // shift the wrapping group so the combined centre sits at the origin.
+  // Preserves layer alignment because every layer moves together.
+  useLayoutEffect(() => {
+    const grp = groupRef.current
+    if (!grp) return
+    if (grp.userData._origPos === undefined) grp.userData._origPos = grp.position.clone()
+    grp.position.copy(grp.userData._origPos)
+    if (!autoCenter) return
+    const scenes = Array.from(sceneMapRef.current.values()).filter(Boolean)
+    if (scenes.length === 0) return
+    const box = new THREE.Box3()
+    let any = false
+    for (const s of scenes) {
+      const sb = new THREE.Box3().setFromObject(s)
+      if (isFinite(sb.min.x)) { box.union(sb); any = true }
+    }
+    if (!any) return
+    const c = new THREE.Vector3()
+    box.getCenter(c)
+    grp.position.sub(c)
+  // Recompute when toggle changes OR when the set of layers changes (so re-loads pick up new bbox)
+  }, [autoCenter, layers])
+
+  function setSceneFor(layerKey, scene) {
+    if (scene == null) sceneMapRef.current.delete(layerKey)
+    else sceneMapRef.current.set(layerKey, scene)
+  }
+
   return (
-    <group position={pos} rotation={rot} scale={scl}>
-      <primitive object={cloned} />
+    <group ref={groupRef} position={pos} rotation={rot} scale={scl}>
+      {layers.map((layer, idx) => {
+        const key = layer.id ?? `${idx}:${layer.url}`
+        return (
+          <Model key={key} url={layer.url}
+            materialOverrides={layer.materialOverrides ?? {}}
+            animationConfig={layer.animationConfig ?? null}
+            visibleNodes={layer.visibleNodes ?? null}
+            animationOverride={animationOverride}
+            onSceneRef={(s) => setSceneFor(key, s)} />
+        )
+      })}
     </group>
   )
 }
@@ -250,6 +292,7 @@ function CameraFit() {
 export function SaunaViewer3D({
   glb,               // backward compat: single GLB URL
   glbLayers,         // new: array of { url, materialOverrides }
+  stackTransform     = null, // per-variant transform applied to the whole stack
   materialOverrides  = {},
   autoRotate         = false,
   autoRotateSpeed    = 1,
@@ -310,17 +353,7 @@ export function SaunaViewer3D({
 
         <Bounds fit clip margin={1.2}>
           <CameraFit />
-          {layers.map((layer, idx) => (
-            <Model key={layer.id ?? `${idx}:${layer.url}`} url={layer.url}
-              materialOverrides={layer.materialOverrides ?? {}}
-              animationConfig={layer.animationConfig ?? null}
-              visibleNodes={layer.visibleNodes ?? null}
-              offset={layer.offset ?? null}
-              rotation={layer.rotation ?? null}
-              scale={layer.scale ?? null}
-              autoCenter={layer.autoCenter ?? false}
-              animationOverride={animationOverride} />
-          ))}
+          <GlbStack layers={layers} animationOverride={animationOverride} transform={stackTransform} />
         </Bounds>
 
         <OrbitControls

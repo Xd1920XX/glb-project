@@ -260,11 +260,18 @@ function VariantEditor({ variant, uid: userUid, onChange, onDelete, onDuplicate,
 
       {/* GLB layers */}
       {variant.type === 'glb' && (
-        <GlbLayersEditor
-          layers={variant.glbLayers ?? []}
-          uid={userUid}
-          onChange={(layers) => onChange({ ...variant, glbLayers: layers })}
-        />
+        <>
+          <GlbLayersEditor
+            layers={variant.glbLayers ?? []}
+            uid={userUid}
+            onChange={(layers) => onChange({ ...variant, glbLayers: layers })}
+          />
+          {(variant.glbLayers?.length ?? 0) > 0 && (
+            <StackTransformEditor
+              transform={variant.transform}
+              onChange={(transform) => onChange({ ...variant, transform })} />
+          )}
+        </>
       )}
 
       </>}
@@ -284,38 +291,37 @@ function VariantEditor({ variant, uid: userUid, onChange, onDelete, onDuplicate,
 
 // ── GLB layers editor ──────────────────────────────────────────────
 
-function LayerTransformEditor({ layer, onChange }) {
+function StackTransformEditor({ transform, onChange }) {
+  const t = transform ?? {}
   const [open, setOpen] = useState(false)
-  const offset = layer.offset ?? { x: 0, y: 0, z: 0 }
-  const rotation = layer.rotation ?? { x: 0, y: 0, z: 0 }
-  const scaleVal = typeof layer.scale === 'number' ? layer.scale : (layer.scale?.x ?? 1)
-  const autoCenter = !!layer.autoCenter
+  const offset = t.offset ?? { x: 0, y: 0, z: 0 }
+  const rotation = t.rotation ?? { x: 0, y: 0, z: 0 }
+  const scaleVal = typeof t.scale === 'number' ? t.scale : (t.scale?.x ?? 1)
+  const autoCenter = !!t.autoCenter
 
-  const setOffset = (axis, v) => onChange({ ...layer, offset: { ...offset, [axis]: Number(v) || 0 } })
-  const setRotation = (axis, v) => onChange({ ...layer, rotation: { ...rotation, [axis]: Number(v) || 0 } })
-  const setScale = (v) => onChange({ ...layer, scale: Number(v) || 1 })
-  const setAutoCenter = (v) => onChange({ ...layer, autoCenter: !!v })
+  const setOffset = (axis, v) => onChange({ ...t, offset: { ...offset, [axis]: Number(v) || 0 } })
+  const setRotation = (axis, v) => onChange({ ...t, rotation: { ...rotation, [axis]: Number(v) || 0 } })
+  const setScale = (v) => onChange({ ...t, scale: Number(v) || 1 })
+  const setAutoCenter = (v) => onChange({ ...t, autoCenter: !!v })
 
   function reset() {
-    const { offset: _o, rotation: _r, scale: _s, autoCenter: _a, ...rest } = layer
-    void _o; void _r; void _s; void _a
-    onChange(rest)
+    onChange(null)
   }
 
-  const hasAny = !!(layer.offset || layer.rotation || (layer.scale != null && layer.scale !== 1) || layer.autoCenter)
+  const hasAny = !!(t.offset || t.rotation || (t.scale != null && t.scale !== 1) || t.autoCenter)
 
   return (
-    <div className="layer-transform" style={{ paddingLeft: 28, marginTop: 6 }}>
+    <div className="layer-transform" style={{ marginTop: 10 }}>
       <button className="btn-link" style={{ all: 'unset', cursor: 'pointer', fontSize: 12, color: 'var(--text-muted)' }}
         onClick={() => setOpen((v) => !v)}>
-        {open ? '▾' : '▸'} Position & Centering {hasAny && <span style={{ color: '#16a34a' }}>●</span>}
+        {open ? '▾' : '▸'} Stack Position & Centering {hasAny && <span style={{ color: '#16a34a' }}>●</span>}
       </button>
 
       {open && (
         <div style={{ marginTop: 8, padding: 10, background: 'var(--hover-bg)', borderRadius: 6, fontSize: 12 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, cursor: 'pointer' }}>
             <input type="checkbox" checked={autoCenter} onChange={(e) => setAutoCenter(e.target.checked)} />
-            <span>Auto-center this layer (recenters its own bounding box at origin)</span>
+            <span>Auto-center entire stack (combined bounding box → origin)</span>
           </label>
 
           <div style={{ display: 'grid', gridTemplateColumns: '70px repeat(3, 1fr)', gap: 6, alignItems: 'center', marginBottom: 6 }}>
@@ -325,11 +331,18 @@ function LayerTransformEditor({ layer, onChange }) {
             <AxisInput axis="Z" value={offset.z} onChange={(v) => setOffset('z', v)} step={0.05} />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '70px repeat(3, 1fr)', gap: 6, alignItems: 'center', marginBottom: 6 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '70px repeat(3, 1fr)', gap: 6, alignItems: 'center', marginBottom: 4 }}>
             <span style={{ color: 'var(--text-muted)' }}>Rotation°</span>
             <AxisInput axis="X" value={rotation.x} onChange={(v) => setRotation('x', v)} step={5} />
             <AxisInput axis="Y" value={rotation.y} onChange={(v) => setRotation('y', v)} step={5} />
             <AxisInput axis="Z" value={rotation.z} onChange={(v) => setRotation('z', v)} step={5} />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '70px repeat(3, 1fr)', gap: 6, alignItems: 'center', marginBottom: 8 }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>Quick rotate</span>
+            <RotateButtons axis="x" current={rotation.x} onChange={(v) => setRotation('x', v)} />
+            <RotateButtons axis="y" current={rotation.y} onChange={(v) => setRotation('y', v)} />
+            <RotateButtons axis="z" current={rotation.z} onChange={(v) => setRotation('z', v)} />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: 6, alignItems: 'center', marginBottom: 6 }}>
@@ -341,10 +354,28 @@ function LayerTransformEditor({ layer, onChange }) {
             <button className="btn-text-danger" style={{ fontSize: 11 }} onClick={reset}>Reset transform</button>
           )}
           <p className="builder-hint" style={{ marginTop: 8, fontSize: 11 }}>
-            Tip: Auto-center is best when the layer should be standalone-centered. Use Offset to align stacked layers (e.g. cushion on top of body) manually.
+            Applies to all GLB layers in this variant as a single group. Auto-center uses the combined bounding box so layer alignment is preserved.
           </p>
         </div>
       )}
+    </div>
+  )
+}
+
+function RotateButtons({ axis, current, onChange }) {
+  function snap(deg) {
+    let next = ((Number(current) || 0) + deg) % 360
+    if (next > 180) next -= 360
+    if (next <= -180) next += 360
+    onChange(next)
+  }
+  const btnStyle = { all: 'unset', cursor: 'pointer', padding: '3px 6px', borderRadius: 3, background: 'var(--surface)', border: '1px solid var(--border)', fontSize: 10, fontWeight: 500, color: 'var(--text)' }
+  return (
+    <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+      <span style={{ fontSize: 11, color: 'var(--text-muted)', minWidth: 12 }}>{axis.toUpperCase()}</span>
+      <button title={`Rotate ${axis.toUpperCase()} -90°`} style={btnStyle} onClick={() => snap(-90)}>-90°</button>
+      <button title={`Rotate ${axis.toUpperCase()} +90°`} style={btnStyle} onClick={() => snap(90)}>+90°</button>
+      <button title={`Rotate ${axis.toUpperCase()} 180°`} style={btnStyle} onClick={() => snap(180)}>180°</button>
     </div>
   )
 }
@@ -454,10 +485,6 @@ function GlbLayerEditor({ layer, uid: userUid, onChange, onDelete, onMoveUp, onM
           uid={userUid}
           onChange={(updated) => onChange({ ...layer, glbMaterials: updated.glbMaterials, materialOverrides: updated.materialOverrides })}
         />
-      )}
-
-      {layer.glbUrl && (
-        <LayerTransformEditor layer={layer} onChange={onChange} />
       )}
 
       {layer.glbUrl && (layer.glbAnimations?.length ?? 0) > 0 && (
