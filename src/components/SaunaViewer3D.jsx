@@ -281,9 +281,9 @@ function GlbStack({ layers, animationOverride, transform }) {
 
 // ── Camera auto-fit ───────────────────────────────────────────────
 
-function CameraFit() {
+function CameraFit({ deps = [] }) {
   const bounds = useBounds()
-  useLayoutEffect(() => { bounds.refresh().fit() }, []) // eslint-disable-line
+  useLayoutEffect(() => { bounds.refresh().fit() }, deps) // eslint-disable-line
   return null
 }
 
@@ -352,8 +352,8 @@ export function SaunaViewer3D({
         )}
 
         <Bounds fit clip margin={1.2}>
-          <CameraFit />
           <GlbStack layers={layers} animationOverride={animationOverride} transform={stackTransform} />
+          <CameraFit deps={[layers.map((l) => l.url).join('|'), JSON.stringify(stackTransform)]} />
         </Bounds>
 
         <OrbitControls
