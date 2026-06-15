@@ -10,14 +10,28 @@
  *       variantGroups?: { [groupId]: { label?: string } },
  *       variants?: { [variantId]: {
  *         label?: string,
- *         colorOptions?: { [colorId]: { label?: string } },
+ *         swatchImageUrl?:  string,          // assets — per-locale swatch image
+ *         swatchStoragePath?: string,
+ *         colorOptions?: { [colorId]: {
+ *           label?: string,
+ *           swatchImageUrl?:   string,        // per-locale color swatch
+ *           swatchStoragePath?: string,
+ *         } },
  *         partOptions?:  { [partGroupId]: {
  *           label?: string,
- *           options?: { [optionId]: { label?: string } },
+ *           options?: { [optionId]: {
+ *             label?: string,
+ *             swatchImageUrl?:    string,     // per-locale part swatch
+ *             swatchStoragePath?: string,
+ *           } },
  *         } },
- *         glbLayers?: { [layerId]: { label?: string } },
+ *         glbLayers?: { [layerId]: {
+ *           label?: string,
+ *           glbUrl?:         string,          // assets — per-locale GLB file
+ *           glbStoragePath?: string,
+ *         } },
  *       } },
- *       interiors?:    { [interiorId]: { label?: string } },
+ *       interiors?:    { [interiorId]: { label?: string, panoramaUrl?: string, panoramaStoragePath?: string } },
  *       hotspots?:     { [hotspotId]: { label?: string, description?: string } },
  *       orderForm?: {
  *         submitLabel?: string,
@@ -27,11 +41,25 @@
  *     }
  *   }
  *
- * Missing keys fall back to the original string in the config root.
+ * Missing keys fall back to the original value in the config root.
  */
 
 function pick(translation, fallback) {
   return (typeof translation === 'string' && translation.trim()) ? translation : fallback
+}
+
+// Apply both label + per-locale swatch overrides to a single option-like node.
+function overlayOption(item, T) {
+  if (!T) return item
+  const out = { ...item }
+  if (T.label) out.label = pick(T.label, item.label)
+  if (T.swatchImageUrl) {
+    out.swatchImageUrl = pick(T.swatchImageUrl, item.swatchImageUrl)
+    if (T.swatchStoragePath) out.swatchStoragePath = T.swatchStoragePath
+    // When a translated swatch image is provided, ensure swatchType resolves to image
+    if (!out.swatchType || out.swatchType === 'image') out.swatchType = 'image'
+  }
+  return out
 }
 
 /**
@@ -62,12 +90,9 @@ export function applyConfigTranslations(config, locale) {
     out.variants = config.variants.map((v) => {
       const TV = T.variants?.[v.id]
       if (!TV) return v
-      const nv = { ...v, label: pick(TV.label, v.label) }
+      let nv = overlayOption(v, TV)
       if (Array.isArray(v.colorOptions)) {
-        nv.colorOptions = v.colorOptions.map((c) => {
-          const TC = TV.colorOptions?.[c.id]
-          return TC ? { ...c, label: pick(TC.label, c.label) } : c
-        })
+        nv.colorOptions = v.colorOptions.map((c) => overlayOption(c, TV.colorOptions?.[c.id]))
       }
       if (Array.isArray(v.partOptions)) {
         nv.partOptions = v.partOptions.map((grp) => {
@@ -75,10 +100,7 @@ export function applyConfigTranslations(config, locale) {
           if (!TPG) return grp
           const ng = { ...grp, label: pick(TPG.label, grp.label) }
           if (Array.isArray(grp.options)) {
-            ng.options = grp.options.map((o) => {
-              const TPO = TPG.options?.[o.id]
-              return TPO ? { ...o, label: pick(TPO.label, o.label) } : o
-            })
+            ng.options = grp.options.map((o) => overlayOption(o, TPG.options?.[o.id]))
           }
           return ng
         })
@@ -86,7 +108,13 @@ export function applyConfigTranslations(config, locale) {
       if (Array.isArray(v.glbLayers)) {
         nv.glbLayers = v.glbLayers.map((l) => {
           const TL = TV.glbLayers?.[l.id]
-          return TL ? { ...l, label: pick(TL.label, l.label) } : l
+          if (!TL) return l
+          const nl = { ...l, label: pick(TL.label, l.label) }
+          if (TL.glbUrl) {
+            nl.glbUrl = TL.glbUrl
+            if (TL.glbStoragePath) nl.glbStoragePath = TL.glbStoragePath
+          }
+          return nl
         })
       }
       return nv
@@ -96,7 +124,13 @@ export function applyConfigTranslations(config, locale) {
   if (Array.isArray(config.interiors)) {
     out.interiors = config.interiors.map((i) => {
       const TI = T.interiors?.[i.id]
-      return TI ? { ...i, label: pick(TI.label, i.label) } : i
+      if (!TI) return i
+      const ni = { ...i, label: pick(TI.label, i.label) }
+      if (TI.panoramaUrl) {
+        ni.panoramaUrl = TI.panoramaUrl
+        if (TI.panoramaStoragePath) ni.panoramaStoragePath = TI.panoramaStoragePath
+      }
+      return ni
     })
   }
 
@@ -151,15 +185,27 @@ export function extractTranslatable(config) {
     variants: (config.variants ?? []).map((v) => ({
       id: v.id,
       label: v.label ?? '',
-      colorOptions: (v.colorOptions ?? []).map((c) => ({ id: c.id, label: c.label ?? '' })),
+      swatchImageUrl: v.swatchImageUrl ?? '',
+      colorOptions: (v.colorOptions ?? []).map((c) => ({
+        id: c.id, label: c.label ?? '', swatchImageUrl: c.swatchImageUrl ?? '',
+      })),
       partOptions: (v.partOptions ?? []).map((g) => ({
         id: g.id,
         label: g.label ?? '',
-        options: (g.options ?? []).map((o) => ({ id: o.id, label: o.label ?? '' })),
+        options: (g.options ?? []).map((o) => ({
+          id: o.id, label: o.label ?? '', swatchImageUrl: o.swatchImageUrl ?? '',
+        })),
       })),
-      glbLayers: (v.glbLayers ?? []).filter((l) => l.togglable).map((l) => ({ id: l.id, label: l.label ?? '' })),
+      glbLayers: (v.glbLayers ?? []).map((l) => ({
+        id: l.id,
+        label: l.label ?? '',
+        glbUrl: l.glbUrl ?? '',
+        togglable: !!l.togglable,
+      })),
     })),
-    interiors: (config.interiors ?? []).map((i) => ({ id: i.id, label: i.label ?? '' })),
+    interiors: (config.interiors ?? []).map((i) => ({
+      id: i.id, label: i.label ?? '', panoramaUrl: i.panoramaUrl ?? '',
+    })),
     hotspots:  (config.hotspots  ?? []).map((h) => ({ id: h.id, label: h.label ?? '', description: h.description ?? '' })),
     orderForm: config.orderForm ? {
       submitLabel:    config.orderForm.submitLabel ?? '',

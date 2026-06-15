@@ -202,8 +202,13 @@ function Model({ url, materialOverrides = {}, animationConfig = null, animationO
   })
 
   // Auto-center: shift the model so its bounding-box centre sits at the origin.
-  // Runs once per cloned scene.
+  // Always restores the GLB's intrinsic position first, then applies the shift
+  // only when enabled — so toggling off undoes the centering.
   useLayoutEffect(() => {
+    if (cloned.userData._origPos === undefined) {
+      cloned.userData._origPos = cloned.position.clone()
+    }
+    cloned.position.copy(cloned.userData._origPos)
     if (!autoCenter) return
     const box = new THREE.Box3().setFromObject(cloned)
     if (!isFinite(box.min.x)) return

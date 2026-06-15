@@ -1598,6 +1598,13 @@ textarea.field-input { height: auto; min-height: var(--field-h); padding: 8px 12
 .tr-partgroup:last-child { border-bottom: none; }
 
 .tr-row { display: grid; grid-template-columns: 180px 1fr 1.2fr; gap: 10px; margin-bottom: 6px; align-items: center; font-size: 13px; }
+.tr-row--asset { align-items: center; }
+.tr-asset-cell { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.tr-layer-block, .tr-color-block, .tr-option-block {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+  padding: 10px 12px; margin-bottom: 8px;
+}
+.tr-layer-block:last-child, .tr-color-block:last-child, .tr-option-block:last-child { margin-bottom: 0; }
 .tr-label { color: var(--text-muted); }
 .tr-original { color: var(--text); padding: 4px 8px; background: var(--hover-bg); border-radius: 4px; min-height: 26px; display: flex; align-items: center; font-style: italic; }
 .tr-input { padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-size: 13px; font-family: inherit; }

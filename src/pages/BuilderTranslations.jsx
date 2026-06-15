@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { getConfigurator, saveConfigurator } from '../firebase/db.js'
 import { CmsSidebar } from '../components/CmsSidebar.jsx'
+import { MediaPickerModal } from '../components/MediaPickerModal.jsx'
 import { extractTranslatable } from '../utils/configTranslations.js'
 import { LOCALES } from '../i18n/index.jsx'
 
@@ -17,6 +18,49 @@ function FieldRow({ label, original, value, onChange, multiline = false }) {
         ? <textarea className="tr-input tr-input--multiline" value={value} onChange={(e) => onChange(e.target.value)} placeholder="Translation…" />
         : <input className="tr-input" value={value} onChange={(e) => onChange(e.target.value)} placeholder="Translation…" />
       }
+    </div>
+  )
+}
+
+function fileBasename(url) {
+  if (!url) return ''
+  try { return decodeURIComponent(url.split('/').pop().split('?')[0]) } catch { return url.split('/').pop() }
+}
+
+function AssetRow({ label, accept, original, value, storagePath, onChange, onClear, uid, kind = 'file' }) {
+  const [picker, setPicker] = useState(false)
+  const has = !!value
+  const previewable = kind === 'image' && value
+  return (
+    <div className="tr-row tr-row--asset">
+      <div className="tr-label">{label}</div>
+      <div className="tr-original" title="Original asset">
+        {original
+          ? (kind === 'image'
+              ? <img src={original} alt="" style={{ maxHeight: 40, maxWidth: 60, borderRadius: 3 }} />
+              : <code style={{ fontSize: 11 }}>{fileBasename(original)}</code>)
+          : <em style={{ opacity: 0.4 }}>(no original)</em>}
+      </div>
+      <div className="tr-asset-cell">
+        {previewable && (
+          <img src={value} alt="" style={{ maxHeight: 40, maxWidth: 60, borderRadius: 3, marginRight: 8 }} />
+        )}
+        {has && kind !== 'image' && <code style={{ fontSize: 11, marginRight: 8 }}>{fileBasename(value)}</code>}
+        <button className="btn-ghost" style={{ fontSize: 11, padding: '4px 8px' }} onClick={() => setPicker(true)}>
+          {has ? 'Replace' : 'Choose…'}
+        </button>
+        {has && (
+          <button className="btn-ghost" style={{ fontSize: 11, padding: '4px 8px', marginLeft: 4, color: '#dc2626' }} onClick={onClear}>
+            Clear
+          </button>
+        )}
+      </div>
+      {picker && (
+        <MediaPickerModal uid={uid} accept={accept}
+          onSelect={(f) => { setPicker(false); onChange(f.url, f.storagePath) }}
+          onClose={() => setPicker(false)} />
+      )}
+      {storagePath && false && null /* storagePath kept on parent state but not surfaced */}
     </div>
   )
 }
@@ -201,14 +245,69 @@ export default function BuilderTranslations() {
                     value={getNested(T, ['variants', v.id, 'label']) ?? ''}
                     onChange={(val) => setNested(['variants', v.id, 'label'], val)} />
 
+                  {v.swatchImageUrl !== undefined && (
+                    <AssetRow label="Variant swatch image" kind="image" accept="image/*" uid={user.uid}
+                      original={v.swatchImageUrl}
+                      value={getNested(T, ['variants', v.id, 'swatchImageUrl']) ?? ''}
+                      storagePath={getNested(T, ['variants', v.id, 'swatchStoragePath']) ?? ''}
+                      onChange={(url, path) => {
+                        setNested(['variants', v.id, 'swatchImageUrl'], url)
+                        setNested(['variants', v.id, 'swatchStoragePath'], path || '')
+                      }}
+                      onClear={() => {
+                        setNested(['variants', v.id, 'swatchImageUrl'], '')
+                        setNested(['variants', v.id, 'swatchStoragePath'], '')
+                      }} />
+                  )}
+
+                  {v.glbLayers.length > 0 && (
+                    <div className="tr-subgroup">
+                      <h4>GLB layers</h4>
+                      {v.glbLayers.map((l) => (
+                        <div key={l.id} className="tr-layer-block">
+                          <FieldRow label={`Layer name: ${l.label || l.id}`}
+                            original={l.label}
+                            value={getNested(T, ['variants', v.id, 'glbLayers', l.id, 'label']) ?? ''}
+                            onChange={(val) => setNested(['variants', v.id, 'glbLayers', l.id, 'label'], val)} />
+                          <AssetRow label="GLB file (this language)" accept=".glb" uid={user.uid}
+                            original={l.glbUrl}
+                            value={getNested(T, ['variants', v.id, 'glbLayers', l.id, 'glbUrl']) ?? ''}
+                            storagePath={getNested(T, ['variants', v.id, 'glbLayers', l.id, 'glbStoragePath']) ?? ''}
+                            onChange={(url, path) => {
+                              setNested(['variants', v.id, 'glbLayers', l.id, 'glbUrl'], url)
+                              setNested(['variants', v.id, 'glbLayers', l.id, 'glbStoragePath'], path || '')
+                            }}
+                            onClear={() => {
+                              setNested(['variants', v.id, 'glbLayers', l.id, 'glbUrl'], '')
+                              setNested(['variants', v.id, 'glbLayers', l.id, 'glbStoragePath'], '')
+                            }} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {v.colorOptions.length > 0 && (
                     <div className="tr-subgroup">
                       <h4>Colors</h4>
                       {v.colorOptions.map((c) => (
-                        <FieldRow key={c.id} label={`Color: ${c.label || c.id}`}
-                          original={c.label}
-                          value={getNested(T, ['variants', v.id, 'colorOptions', c.id, 'label']) ?? ''}
-                          onChange={(val) => setNested(['variants', v.id, 'colorOptions', c.id, 'label'], val)} />
+                        <div key={c.id} className="tr-color-block">
+                          <FieldRow label={`Color: ${c.label || c.id}`}
+                            original={c.label}
+                            value={getNested(T, ['variants', v.id, 'colorOptions', c.id, 'label']) ?? ''}
+                            onChange={(val) => setNested(['variants', v.id, 'colorOptions', c.id, 'label'], val)} />
+                          <AssetRow label="Swatch image" kind="image" accept="image/*" uid={user.uid}
+                            original={c.swatchImageUrl}
+                            value={getNested(T, ['variants', v.id, 'colorOptions', c.id, 'swatchImageUrl']) ?? ''}
+                            storagePath={getNested(T, ['variants', v.id, 'colorOptions', c.id, 'swatchStoragePath']) ?? ''}
+                            onChange={(url, path) => {
+                              setNested(['variants', v.id, 'colorOptions', c.id, 'swatchImageUrl'], url)
+                              setNested(['variants', v.id, 'colorOptions', c.id, 'swatchStoragePath'], path || '')
+                            }}
+                            onClear={() => {
+                              setNested(['variants', v.id, 'colorOptions', c.id, 'swatchImageUrl'], '')
+                              setNested(['variants', v.id, 'colorOptions', c.id, 'swatchStoragePath'], '')
+                            }} />
+                        </div>
                       ))}
                     </div>
                   )}
@@ -223,24 +322,26 @@ export default function BuilderTranslations() {
                             value={getNested(T, ['variants', v.id, 'partOptions', g.id, 'label']) ?? ''}
                             onChange={(val) => setNested(['variants', v.id, 'partOptions', g.id, 'label'], val)} />
                           {g.options.map((o) => (
-                            <FieldRow key={o.id} label={`Option: ${o.label || o.id}`}
-                              original={o.label}
-                              value={getNested(T, ['variants', v.id, 'partOptions', g.id, 'options', o.id, 'label']) ?? ''}
-                              onChange={(val) => setNested(['variants', v.id, 'partOptions', g.id, 'options', o.id, 'label'], val)} />
+                            <div key={o.id} className="tr-option-block">
+                              <FieldRow label={`Option: ${o.label || o.id}`}
+                                original={o.label}
+                                value={getNested(T, ['variants', v.id, 'partOptions', g.id, 'options', o.id, 'label']) ?? ''}
+                                onChange={(val) => setNested(['variants', v.id, 'partOptions', g.id, 'options', o.id, 'label'], val)} />
+                              <AssetRow label="Option swatch image" kind="image" accept="image/*" uid={user.uid}
+                                original={o.swatchImageUrl}
+                                value={getNested(T, ['variants', v.id, 'partOptions', g.id, 'options', o.id, 'swatchImageUrl']) ?? ''}
+                                storagePath={getNested(T, ['variants', v.id, 'partOptions', g.id, 'options', o.id, 'swatchStoragePath']) ?? ''}
+                                onChange={(url, path) => {
+                                  setNested(['variants', v.id, 'partOptions', g.id, 'options', o.id, 'swatchImageUrl'], url)
+                                  setNested(['variants', v.id, 'partOptions', g.id, 'options', o.id, 'swatchStoragePath'], path || '')
+                                }}
+                                onClear={() => {
+                                  setNested(['variants', v.id, 'partOptions', g.id, 'options', o.id, 'swatchImageUrl'], '')
+                                  setNested(['variants', v.id, 'partOptions', g.id, 'options', o.id, 'swatchStoragePath'], '')
+                                }} />
+                            </div>
                           ))}
                         </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {v.glbLayers.length > 0 && (
-                    <div className="tr-subgroup">
-                      <h4>Layer toggles</h4>
-                      {v.glbLayers.map((l) => (
-                        <FieldRow key={l.id} label={`Layer: ${l.label || l.id}`}
-                          original={l.label}
-                          value={getNested(T, ['variants', v.id, 'glbLayers', l.id, 'label']) ?? ''}
-                          onChange={(val) => setNested(['variants', v.id, 'glbLayers', l.id, 'label'], val)} />
                       ))}
                     </div>
                   )}
@@ -253,10 +354,24 @@ export default function BuilderTranslations() {
             <section className="tr-section">
               <h3>Interiors</h3>
               {fields.interiors.map((i) => (
-                <FieldRow key={i.id} label={`Interior: ${i.label || i.id}`}
-                  original={i.label}
-                  value={getNested(T, ['interiors', i.id, 'label']) ?? ''}
-                  onChange={(v) => setNested(['interiors', i.id, 'label'], v)} />
+                <div key={i.id} className="tr-color-block">
+                  <FieldRow label={`Interior: ${i.label || i.id}`}
+                    original={i.label}
+                    value={getNested(T, ['interiors', i.id, 'label']) ?? ''}
+                    onChange={(v) => setNested(['interiors', i.id, 'label'], v)} />
+                  <AssetRow label="Panorama (this language)" kind="image" accept="image/*" uid={user.uid}
+                    original={i.panoramaUrl}
+                    value={getNested(T, ['interiors', i.id, 'panoramaUrl']) ?? ''}
+                    storagePath={getNested(T, ['interiors', i.id, 'panoramaStoragePath']) ?? ''}
+                    onChange={(url, path) => {
+                      setNested(['interiors', i.id, 'panoramaUrl'], url)
+                      setNested(['interiors', i.id, 'panoramaStoragePath'], path || '')
+                    }}
+                    onClear={() => {
+                      setNested(['interiors', i.id, 'panoramaUrl'], '')
+                      setNested(['interiors', i.id, 'panoramaStoragePath'], '')
+                    }} />
+                </div>
               ))}
             </section>
           )}
