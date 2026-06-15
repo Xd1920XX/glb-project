@@ -1,5 +1,5 @@
 import { Canvas, useThree, useFrame } from '@react-three/fiber'
-import { useGLTF, OrbitControls, Bounds, useBounds, Environment, ContactShadows, Grid } from '@react-three/drei'
+import { useGLTF, OrbitControls, Bounds, useBounds, Environment, ContactShadows, Grid, Stats } from '@react-three/drei'
 import { Suspense, useLayoutEffect, useMemo, useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 
@@ -53,7 +53,7 @@ function loadCachedTexture(url) {
 
 // ── Model with optional material overrides ────────────────────────
 
-function Model({ url, materialOverrides = {}, animationConfig = null, animationOverride = null, visibleNodes = null, onSceneRef = null, castShadow = true, receiveShadow = true, wireframe = false, layerTransform = null }) {
+function Model({ url, materialOverrides = {}, animationConfig = null, animationOverride = null, visibleNodes = null, onSceneRef = null, castShadow = true, receiveShadow = true, wireframe = false, renderMode = 'solid', xrayOpacity = 0.35, flatShading = false, layerTransform = null, crossfade = 0 }) {
   const { scene, animations } = useGLTF(url)
   const { gl } = useThree()
   const maxAniso = useMemo(() => gl?.capabilities?.getMaxAnisotropy?.() ?? 8, [gl])
@@ -184,18 +184,37 @@ function Model({ url, materialOverrides = {}, animationConfig = null, animationO
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cloned, JSON.stringify(materialOverrides)])
 
-  // ── Shadow + wireframe toggles ─────────────────────────────────
+  // ── Shadow + wireframe + render mode + flat shading ────────────
   useEffect(() => {
+    const isXray = renderMode === 'xray'
+    const isWire = renderMode === 'wireframe' || !!wireframe
     cloned.traverse((node) => {
       if (!node.isMesh) return
       node.castShadow = castShadow
       node.receiveShadow = receiveShadow
       const mats = Array.isArray(node.material) ? node.material : [node.material]
       mats.forEach((mat) => {
-        if ('wireframe' in mat) mat.wireframe = !!wireframe
+        if ('wireframe' in mat) mat.wireframe = isWire
+        if (mat.userData._origOpacity === undefined) {
+          mat.userData._origOpacity = mat.opacity ?? 1
+          mat.userData._origTransparent = !!mat.transparent
+        }
+        if (isXray) {
+          mat.transparent = true
+          mat.opacity = Math.max(0, Math.min(1, Number(xrayOpacity) || 0.35))
+          mat.depthWrite = false
+        } else {
+          mat.transparent = mat.userData._origTransparent
+          mat.opacity = mat.userData._origOpacity
+          mat.depthWrite = true
+        }
+        if ('flatShading' in mat) {
+          mat.flatShading = !!flatShading
+        }
+        mat.needsUpdate = true
       })
     })
-  }, [cloned, castShadow, receiveShadow, wireframe])
+  }, [cloned, castShadow, receiveShadow, wireframe, renderMode, xrayOpacity, flatShading])
 
   // ── Node visibility filter ─────────────────────────────────────
   // visibleNodes is null/empty → all nodes visible.
@@ -213,9 +232,14 @@ function Model({ url, materialOverrides = {}, animationConfig = null, animationO
   const actionsRef = useRef([])
 
   useEffect(() => {
-    actionsRef.current.forEach((a) => a.stop())
-    actionsRef.current = []
-    if (!animationConfig?.enabled || !animations?.length) return
+    const prevActions = actionsRef.current
+    const fade = Number(crossfade) || 0
+    if (!animationConfig?.enabled || !animations?.length) {
+      if (fade > 0) prevActions.forEach((a) => a.fadeOut(fade))
+      else prevActions.forEach((a) => a.stop())
+      actionsRef.current = []
+      return
+    }
     const wanted = animationConfig.clipName === '__all__'
       ? animations
       : animations.filter((c) => c.name === animationConfig.clipName)
@@ -227,21 +251,30 @@ function Model({ url, materialOverrides = {}, animationConfig = null, animationO
         : THREE.LoopRepeat
     const baseSpeed = Number(animationConfig.speed) || 1
     const dir = animationConfig.reverse ? -1 : 1
-    actionsRef.current = clips.map((clip) => {
+    const newActions = clips.map((clip) => {
       const a = mixer.clipAction(clip)
       a.reset()
       a.setLoop(loopMode, Infinity)
       a.clampWhenFinished = loopMode === THREE.LoopOnce
       a.timeScale = baseSpeed * dir
       if (dir < 0) a.time = clip.duration
-      a.play()
+      if (fade > 0) {
+        a.setEffectiveWeight(0)
+        a.play()
+        a.fadeIn(fade)
+      } else {
+        a.play()
+      }
       return a
     })
+    if (fade > 0) prevActions.forEach((a) => a.fadeOut(fade))
+    else prevActions.forEach((a) => a.stop())
+    actionsRef.current = newActions
     return () => {
       actionsRef.current.forEach((a) => a.stop())
       actionsRef.current = []
     }
-  }, [mixer, animations, animationConfig?.enabled, animationConfig?.clipName, animationConfig?.loop, animationConfig?.speed, animationConfig?.reverse, animationOverride?.restartKey])
+  }, [mixer, animations, animationConfig?.enabled, animationConfig?.clipName, animationConfig?.loop, animationConfig?.speed, animationConfig?.reverse, animationOverride?.restartKey, crossfade])
 
   // React to viewer-side override (play/pause + speed multiplier)
   useEffect(() => {
@@ -290,7 +323,7 @@ function Model({ url, materialOverrides = {}, animationConfig = null, animationO
 }
 
 // Wraps all GLB layers of a variant inside ONE group so transform applies to the entire stack.
-function GlbStack({ layers, animationOverride, transform, wireframe = false, globalCastShadow = true, globalReceiveShadow = true }) {
+function GlbStack({ layers, animationOverride, transform, wireframe = false, renderMode = 'solid', xrayOpacity = 0.35, flatShading = false, crossfade = 0, globalCastShadow = true, globalReceiveShadow = true }) {
   const groupRef = useRef(null)
   const sceneMapRef = useRef(new Map())
 
@@ -355,6 +388,10 @@ function GlbStack({ layers, animationOverride, transform, wireframe = false, glo
             castShadow={layer.castShadow !== false && globalCastShadow}
             receiveShadow={layer.receiveShadow !== false && globalReceiveShadow}
             wireframe={wireframe}
+            renderMode={renderMode}
+            xrayOpacity={xrayOpacity}
+            flatShading={flatShading}
+            crossfade={crossfade}
             onSceneRef={(s) => setSceneFor(key, s)} />
         )
       })}
@@ -433,6 +470,74 @@ function CameraPoseInit({ deps, defaultYaw, defaultPitch, initialCameraPosition,
   return null
 }
 
+// Custom auto-rotate — supports x/y/z axis + idle delay + external pause.
+function CustomAutoRotate({ enabled, axis = 'y', speedDegPerSec = 30, pausedRef, idleDelayMs = 0, lastInteractRef }) {
+  const camera = useThree((s) => s.camera)
+  const controls = useThree((s) => s.controls)
+  const last = useRef(performance.now())
+  useFrame(() => {
+    if (!enabled || !controls) return
+    const now = performance.now()
+    const dt = (now - last.current) / 1000
+    last.current = now
+    if (pausedRef?.current) return
+    if (idleDelayMs > 0 && lastInteractRef?.current && (now - lastInteractRef.current) < idleDelayMs) return
+    const ang = ((Number(speedDegPerSec) || 0) * Math.PI / 180) * dt
+    if (ang === 0) return
+    const offset = new THREE.Vector3().subVectors(camera.position, controls.target)
+    const ax = axis === 'x' ? new THREE.Vector3(1, 0, 0)
+      : axis === 'z' ? new THREE.Vector3(0, 0, 1)
+      : new THREE.Vector3(0, 1, 0)
+    offset.applyAxisAngle(ax, ang)
+    camera.position.copy(controls.target).add(offset)
+    camera.lookAt(controls.target)
+    controls.update?.()
+  })
+  return null
+}
+
+// Track user input start time to support auto-rotate idle delay.
+function InteractWatcher({ lastInteractRef }) {
+  const controls = useThree((s) => s.controls)
+  useEffect(() => {
+    if (!controls) return
+    const onStart = () => { if (lastInteractRef) lastInteractRef.current = performance.now() }
+    controls.addEventListener?.('start', onStart)
+    return () => controls.removeEventListener?.('start', onStart)
+  }, [controls, lastInteractRef])
+  return null
+}
+
+// Per-variant FOV / zoom adjustment after Bounds fit.
+function ZoomAdjust({ deps, initialZoomMul }) {
+  const camera = useThree((s) => s.camera)
+  const controls = useThree((s) => s.controls)
+  useLayoutEffect(() => {
+    if (!controls || !initialZoomMul || initialZoomMul === 1) return
+    const offset = new THREE.Vector3().subVectors(camera.position, controls.target)
+    offset.multiplyScalar(Number(initialZoomMul) || 1)
+    camera.position.copy(controls.target).add(offset)
+    controls.update?.()
+  }, deps) // eslint-disable-line
+  return null
+}
+
+// Fog scene effect.
+function SceneFog({ enabled, color = '#ffffff', density = 0.02, near, far, type = 'exp2' }) {
+  const scene = useThree((s) => s.scene)
+  useEffect(() => {
+    if (!enabled) {
+      scene.fog = null
+      return
+    }
+    scene.fog = type === 'linear'
+      ? new THREE.Fog(color, Number(near) || 1, Number(far) || 50)
+      : new THREE.FogExp2(color, Number(density) || 0.02)
+    return () => { scene.fog = null }
+  }, [scene, enabled, color, density, near, far, type])
+  return null
+}
+
 // Snap OrbitControls rotation to a step (degrees) on pointer release.
 function RotationSnap({ stepDeg }) {
   const controls = useThree((s) => s.controls)
@@ -476,10 +581,10 @@ export function SaunaViewer3D({
   exposure           = 1,
   surroundLighting   = false,
   animationOverride  = null,
-  // ── new (orbit controls) ──
+  // ── orbit controls ──
   enablePan          = false,
-  minPolarDeg        = 22.5,   // PI/8
-  maxPolarDeg        = 81.8,   // PI/2.2
+  minPolarDeg        = 22.5,
+  maxPolarDeg        = 81.8,
   minAzimuthDeg      = null,
   maxAzimuthDeg      = null,
   minDistance        = 2,
@@ -487,18 +592,22 @@ export function SaunaViewer3D({
   rotateSpeed        = 1,
   dampingFactor      = 0.07,
   snapRotationDeg    = 0,
-  // ── new (camera) ──
+  // ── camera ──
   orthographic       = false,
   initialCameraPosition = null,
   targetOffset       = null,
   defaultYaw         = 0,
   defaultPitch       = 0,
-  // ── new (render) ──
+  initialZoomMul     = 1,
+  // ── render ──
   backgroundColor    = null,
   toneMapping        = 'aces',
   dpr                = 2,
   wireframe          = false,
-  // ── new (ground + shadows) ──
+  renderMode         = 'solid',     // 'solid' | 'wireframe' | 'xray'
+  xrayOpacity        = 0.35,
+  flatShading        = false,
+  // ── ground + shadows ──
   contactShadows     = false,
   contactShadowOpacity = 0.55,
   contactShadowBlur  = 2.2,
@@ -506,6 +615,29 @@ export function SaunaViewer3D({
   groundColor        = '#cccccc',
   gridHelper         = false,
   showResetView      = false,
+  // ── auto-rotate behaviour ──
+  autoRotateAxis     = 'y',
+  pauseAutoRotateOnHover = true,
+  autoRotateIdleDelayMs  = 0,
+  // ── light colors ──
+  ambientColor       = '#ffffff',
+  keyColor           = '#ffffff',
+  fillColor          = '#ffffff',
+  shadowMapSize      = 1024,
+  shadowRadius       = 1,
+  // ── fog ──
+  fogEnabled         = false,
+  fogColor           = '#ffffff',
+  fogDensity         = 0.02,
+  fogType            = 'exp2',
+  fogNear            = 1,
+  fogFar             = 50,
+  // ── UX overlays ──
+  showFps            = false,
+  showScreenshotButton = false,
+  cursorStyle        = 'grab',
+  // ── animation extras ──
+  animationCrossfade = 0,
 }) {
   const env = ENV_PRESETS.includes(environment) ? environment : 'studio'
 
@@ -518,15 +650,50 @@ export function SaunaViewer3D({
   const dprClamped = Math.max(0.5, Math.min(3, Number(dpr) || 2))
 
   const fitDeps = useMemo(
-    () => [layers.map((l) => l.url).join('|'), JSON.stringify(stackTransform), JSON.stringify(initialCameraPosition), JSON.stringify(targetOffset), defaultYaw, defaultPitch],
-    [layers, stackTransform, initialCameraPosition, targetOffset, defaultYaw, defaultPitch],
+    () => [layers.map((l) => l.url).join('|'), JSON.stringify(stackTransform), JSON.stringify(initialCameraPosition), JSON.stringify(targetOffset), defaultYaw, defaultPitch, initialZoomMul, fov],
+    [layers, stackTransform, initialCameraPosition, targetOffset, defaultYaw, defaultPitch, initialZoomMul, fov],
   )
   const [resetCounter, setResetCounter] = useResetCounter()
   const fitDepsWithReset = useMemo(() => [...fitDeps, resetCounter], [fitDeps, resetCounter])
 
-  const showOverlay = showResetView
+  const wrapperRef = useRef(null)
+  const hoveredRef = useRef(false)
+  const lastInteractRef = useRef(0)
+  const pausedRef = useRef(false)
+  const [, forceCursorRender] = useState(0)
+  const draggingRef = useRef(false)
+
+  const setHover = (v) => {
+    hoveredRef.current = v
+    pausedRef.current = pauseAutoRotateOnHover && v
+  }
+
+  function downloadScreenshot() {
+    const canvas = wrapperRef.current?.querySelector('canvas')
+    if (!canvas) return
+    canvas.toBlob((blob) => {
+      if (!blob) return
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `viewer-${Date.now()}.png`
+      document.body.appendChild(a); a.click(); a.remove()
+      URL.revokeObjectURL(url)
+    })
+  }
+
+  const useCustomAutoRotate = autoRotate && autoRotateAxis !== 'y'
+  const orbitAutoRotate = autoRotate && autoRotateAxis === 'y'
+
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+    <div
+      ref={wrapperRef}
+      style={{ width: '100%', height: '100%', position: 'relative', cursor: draggingRef.current ? 'grabbing' : cursorStyle }}
+      onPointerEnter={() => setHover(true)}
+      onPointerLeave={() => setHover(false)}
+      onPointerDown={() => { draggingRef.current = true; forceCursorRender((n) => n + 1) }}
+      onPointerUp={() => { draggingRef.current = false; forceCursorRender((n) => n + 1) }}
+    >
     <Canvas
       shadows={!surroundLighting && shadows}
       dpr={[1, dprClamped]}
@@ -547,20 +714,30 @@ export function SaunaViewer3D({
       {backgroundColor && <color attach="background" args={[backgroundColor]} />}
       <Suspense fallback={null}>
         <Environment preset={env} background={background && !backgroundColor} environmentIntensity={envIntensity} />
-        <ambientLight intensity={ambientIntensity} />
+        <ambientLight intensity={ambientIntensity} color={ambientColor} />
         {surroundLighting ? (
           <>
-            <directionalLight position={[ 6,  6,  6]} intensity={keyIntensity * 0.6} />
-            <directionalLight position={[-6,  6,  6]} intensity={keyIntensity * 0.6} />
-            <directionalLight position={[ 6,  6, -6]} intensity={keyIntensity * 0.6} />
-            <directionalLight position={[-6,  6, -6]} intensity={keyIntensity * 0.6} />
+            <directionalLight color={keyColor} position={[ 6,  6,  6]} intensity={keyIntensity * 0.6} />
+            <directionalLight color={keyColor} position={[-6,  6,  6]} intensity={keyIntensity * 0.6} />
+            <directionalLight color={keyColor} position={[ 6,  6, -6]} intensity={keyIntensity * 0.6} />
+            <directionalLight color={keyColor} position={[-6,  6, -6]} intensity={keyIntensity * 0.6} />
           </>
         ) : (
           <>
-            <directionalLight position={keyPosition}  intensity={keyIntensity}  castShadow={shadows} shadow-mapSize={[1024, 1024]} />
-            <directionalLight position={fillPosition} intensity={fillIntensity} />
+            <directionalLight
+              color={keyColor}
+              position={keyPosition}
+              intensity={keyIntensity}
+              castShadow={shadows}
+              shadow-mapSize={[Number(shadowMapSize) || 1024, Number(shadowMapSize) || 1024]}
+              shadow-radius={Number(shadowRadius) || 1}
+              shadow-bias={-0.0005}
+            />
+            <directionalLight color={fillColor} position={fillPosition} intensity={fillIntensity} />
           </>
         )}
+
+        <SceneFog enabled={fogEnabled} color={fogColor} density={fogDensity} near={fogNear} far={fogFar} type={fogType} />
 
         <Bounds fit clip margin={1.2}>
           <GlbStack
@@ -568,6 +745,10 @@ export function SaunaViewer3D({
             animationOverride={animationOverride}
             transform={stackTransform}
             wireframe={wireframe}
+            renderMode={renderMode}
+            xrayOpacity={xrayOpacity}
+            flatShading={flatShading}
+            crossfade={animationCrossfade}
             globalCastShadow={shadows}
             globalReceiveShadow={shadows}
           />
@@ -580,6 +761,16 @@ export function SaunaViewer3D({
           defaultPitch={defaultPitch}
           initialCameraPosition={initialCameraPosition}
           targetOffset={targetOffset}
+        />
+        <ZoomAdjust deps={fitDepsWithReset} initialZoomMul={initialZoomMul} />
+        <InteractWatcher lastInteractRef={lastInteractRef} />
+        <CustomAutoRotate
+          enabled={useCustomAutoRotate}
+          axis={autoRotateAxis}
+          speedDegPerSec={(Number(autoRotateSpeed) || 1) * 30}
+          pausedRef={pausedRef}
+          idleDelayMs={autoRotateIdleDelayMs}
+          lastInteractRef={lastInteractRef}
         />
 
         {contactShadows && (
@@ -616,7 +807,7 @@ export function SaunaViewer3D({
           enableDamping
           dampingFactor={dampingFactor}
           rotateSpeed={rotateSpeed}
-          autoRotate={autoRotate}
+          autoRotate={orbitAutoRotate}
           autoRotateSpeed={autoRotateSpeed}
           minPolarAngle={(Number(minPolarDeg) || 0) * Math.PI / 180}
           maxPolarAngle={(Number(maxPolarDeg) || 180) * Math.PI / 180}
@@ -626,9 +817,26 @@ export function SaunaViewer3D({
           maxDistance={maxDistance}
         />
         <RotationSnap stepDeg={snapRotationDeg} />
+        {showFps && <Stats />}
       </Suspense>
     </Canvas>
-    {showOverlay && <ResetViewButton resetKey={resetCounter} onReset={() => setResetCounter((c) => c + 1)} />}
+    {showResetView && <ResetViewButton resetKey={resetCounter} onReset={() => setResetCounter((c) => c + 1)} />}
+    {showScreenshotButton && (
+      <button
+        type="button"
+        onClick={downloadScreenshot}
+        title="Download screenshot"
+        style={{
+          position: 'absolute', top: 8, left: 8, zIndex: 5,
+          padding: '4px 10px', fontSize: 12, cursor: 'pointer',
+          background: 'rgba(0,0,0,0.55)', color: '#fff',
+          border: '1px solid rgba(255,255,255,0.25)', borderRadius: 6,
+          backdropFilter: 'blur(4px)',
+        }}
+      >
+        ⤓ PNG
+      </button>
+    )}
     </div>
   )
 }

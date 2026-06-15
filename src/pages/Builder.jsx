@@ -53,6 +53,33 @@ const DEFAULT_VIEWER_SETTINGS = {
   glbGroundColor:        '#cccccc',
   glbGridHelper:         false,
   glbShowResetView:      false,
+  // ── auto-rotate behaviour ──
+  glbAutoRotateAxis:     'y',
+  glbPauseAutoRotateOnHover: true,
+  glbAutoRotateIdleDelayMs: 0,
+  // ── light colors / shadows ──
+  glbAmbientColor:       '#ffffff',
+  glbKeyColor:           '#ffffff',
+  glbFillColor:          '#ffffff',
+  glbShadowMapSize:      1024,
+  glbShadowRadius:       1,
+  // ── fog ──
+  glbFogEnabled:         false,
+  glbFogColor:           '#ffffff',
+  glbFogDensity:         0.02,
+  glbFogType:            'exp2',
+  glbFogNear:            1,
+  glbFogFar:             50,
+  // ── UX overlays ──
+  glbShowFps:            false,
+  glbShowScreenshotButton: false,
+  glbCursorStyle:        'grab',
+  // ── render mode ──
+  glbRenderMode:         'solid',
+  glbXrayOpacity:        0.35,
+  glbFlatShading:        false,
+  // ── animation ──
+  glbAnimationCrossfade: 0,
 }
 
 const TONE_MAPPING_OPTIONS = ['aces', 'linear', 'reinhard', 'cineon', 'neutral', 'none']
@@ -353,7 +380,7 @@ function StackTransformEditor({ transform, onChange }) {
     onChange(null)
   }
 
-  const hasAny = !!(t.offset || t.rotation || (t.scale != null && t.scale !== 1) || t.autoCenter || t.targetOffset || t.initialCameraPosition || t.defaultYaw || t.defaultPitch)
+  const hasAny = !!(t.offset || t.rotation || (t.scale != null && t.scale !== 1) || t.autoCenter || t.targetOffset || t.initialCameraPosition || t.defaultYaw || t.defaultPitch || t.fov || (t.initialZoomMul != null && t.initialZoomMul !== 1))
 
   return (
     <div className="layer-transform" style={{ marginTop: 10 }}>
@@ -422,6 +449,12 @@ function StackTransformEditor({ transform, onChange }) {
             <AxisInput axis="Y" value={initialCam?.y ?? 4} onChange={(v) => setInitialCam('y', v)} step={0.5} />
             <AxisInput axis="Z" value={initialCam?.z ?? 12} onChange={(v) => setInitialCam('z', v)} step={0.5} />
             {initialCam && <button className="btn-text-danger" style={{ fontSize: 10 }} onClick={clearInitialCam}>×</button>}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr 1fr', gap: 6, alignItems: 'center', marginBottom: 6 }}>
+            <span style={{ color: 'var(--text-muted)' }}>FOV / Zoom×</span>
+            <AxisInput axis="" value={t.fov ?? ''} onChange={(v) => onChange({ ...t, fov: v === '' ? null : (Number(v) || null) })} step={1} />
+            <AxisInput axis="" value={t.initialZoomMul ?? 1} onChange={(v) => onChange({ ...t, initialZoomMul: Number(v) || 1 })} step={0.05} min={0.1} />
           </div>
 
           {hasAny && (
@@ -1467,6 +1500,222 @@ function ViewerSettingsEditor({ settings, onChange }) {
             onChange={(e) => set('glbGridHelper', e.target.checked)} />
           <span className="vs-toggle-track" />
         </label>
+      </div>
+
+      {/* ── Auto-rotate behaviour ── */}
+      <p className="vs-group-label" style={{ marginTop: 16 }}>Auto-rotate behaviour</p>
+
+      <div className="vs-row">
+        <label className="vs-label">Axis</label>
+        <select className="vs-select"
+          value={s.glbAutoRotateAxis ?? 'y'}
+          onChange={(e) => set('glbAutoRotateAxis', e.target.value)}>
+          <option value="x">X</option>
+          <option value="y">Y (default)</option>
+          <option value="z">Z</option>
+        </select>
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label">Pause on hover</label>
+        <label className="vs-toggle">
+          <input type="checkbox" checked={s.glbPauseAutoRotateOnHover ?? true}
+            onChange={(e) => set('glbPauseAutoRotateOnHover', e.target.checked)} />
+          <span className="vs-toggle-track" />
+        </label>
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label">Idle delay (ms)</label>
+        <input className="field-input inline" type="number" step="100" min="0"
+          value={s.glbAutoRotateIdleDelayMs ?? 0}
+          onChange={(e) => set('glbAutoRotateIdleDelayMs', Number(e.target.value) || 0)} />
+      </div>
+
+      {/* ── Light colors / shadow softness ── */}
+      <p className="vs-group-label" style={{ marginTop: 16 }}>Light colors</p>
+
+      <div className="vs-row">
+        <label className="vs-label">Ambient color</label>
+        <input type="color"
+          value={s.glbAmbientColor ?? '#ffffff'}
+          onChange={(e) => set('glbAmbientColor', e.target.value)} />
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label">Key light color</label>
+        <input type="color"
+          value={s.glbKeyColor ?? '#ffffff'}
+          onChange={(e) => set('glbKeyColor', e.target.value)} />
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label">Fill light color</label>
+        <input type="color"
+          value={s.glbFillColor ?? '#ffffff'}
+          onChange={(e) => set('glbFillColor', e.target.value)} />
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label">Shadow map size</label>
+        <select className="vs-select"
+          value={s.glbShadowMapSize ?? 1024}
+          onChange={(e) => set('glbShadowMapSize', Number(e.target.value))}>
+          <option value={512}>512</option>
+          <option value={1024}>1024</option>
+          <option value={2048}>2048</option>
+          <option value={4096}>4096</option>
+        </select>
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label">Shadow softness</label>
+        <div className="vs-slider-wrap">
+          <input type="range" min="0" max="10" step="0.5"
+            value={s.glbShadowRadius ?? 1}
+            onChange={(e) => set('glbShadowRadius', Number(e.target.value))} />
+          <span className="vs-value">{s.glbShadowRadius ?? 1}</span>
+        </div>
+      </div>
+
+      {/* ── Fog ── */}
+      <p className="vs-group-label" style={{ marginTop: 16 }}>Fog</p>
+
+      <div className="vs-row">
+        <label className="vs-label">Enable fog</label>
+        <label className="vs-toggle">
+          <input type="checkbox" checked={s.glbFogEnabled ?? false}
+            onChange={(e) => set('glbFogEnabled', e.target.checked)} />
+          <span className="vs-toggle-track" />
+        </label>
+      </div>
+
+      {s.glbFogEnabled && (
+        <>
+          <div className="vs-row">
+            <label className="vs-label">Fog type</label>
+            <select className="vs-select"
+              value={s.glbFogType ?? 'exp2'}
+              onChange={(e) => set('glbFogType', e.target.value)}>
+              <option value="exp2">Exponential</option>
+              <option value="linear">Linear</option>
+            </select>
+          </div>
+          <div className="vs-row">
+            <label className="vs-label">Fog color</label>
+            <input type="color"
+              value={s.glbFogColor ?? '#ffffff'}
+              onChange={(e) => set('glbFogColor', e.target.value)} />
+          </div>
+          {s.glbFogType === 'linear' ? (
+            <>
+              <div className="vs-row">
+                <label className="vs-label">Near</label>
+                <input className="field-input inline" type="number" step="0.5"
+                  value={s.glbFogNear ?? 1}
+                  onChange={(e) => set('glbFogNear', Number(e.target.value) || 0)} />
+              </div>
+              <div className="vs-row">
+                <label className="vs-label">Far</label>
+                <input className="field-input inline" type="number" step="1"
+                  value={s.glbFogFar ?? 50}
+                  onChange={(e) => set('glbFogFar', Number(e.target.value) || 0)} />
+              </div>
+            </>
+          ) : (
+            <div className="vs-row">
+              <label className="vs-label">Density</label>
+              <div className="vs-slider-wrap">
+                <input type="range" min="0" max="0.3" step="0.005"
+                  value={s.glbFogDensity ?? 0.02}
+                  onChange={(e) => set('glbFogDensity', Number(e.target.value))} />
+                <span className="vs-value">{s.glbFogDensity ?? 0.02}</span>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── Render mode ── */}
+      <p className="vs-group-label" style={{ marginTop: 16 }}>Render mode</p>
+
+      <div className="vs-row">
+        <label className="vs-label">Mode</label>
+        <select className="vs-select"
+          value={s.glbRenderMode ?? 'solid'}
+          onChange={(e) => set('glbRenderMode', e.target.value)}>
+          <option value="solid">Solid</option>
+          <option value="wireframe">Wireframe</option>
+          <option value="xray">X-ray</option>
+        </select>
+      </div>
+
+      {s.glbRenderMode === 'xray' && (
+        <div className="vs-row">
+          <label className="vs-label">X-ray opacity</label>
+          <div className="vs-slider-wrap">
+            <input type="range" min="0.05" max="1" step="0.05"
+              value={s.glbXrayOpacity ?? 0.35}
+              onChange={(e) => set('glbXrayOpacity', Number(e.target.value))} />
+            <span className="vs-value">{s.glbXrayOpacity ?? 0.35}</span>
+          </div>
+        </div>
+      )}
+
+      <div className="vs-row">
+        <label className="vs-label">Flat shading</label>
+        <label className="vs-toggle">
+          <input type="checkbox" checked={s.glbFlatShading ?? false}
+            onChange={(e) => set('glbFlatShading', e.target.checked)} />
+          <span className="vs-toggle-track" />
+        </label>
+      </div>
+
+      {/* ── UX overlays ── */}
+      <p className="vs-group-label" style={{ marginTop: 16 }}>Overlays &amp; cursor</p>
+
+      <div className="vs-row">
+        <label className="vs-label">FPS overlay</label>
+        <label className="vs-toggle">
+          <input type="checkbox" checked={s.glbShowFps ?? false}
+            onChange={(e) => set('glbShowFps', e.target.checked)} />
+          <span className="vs-toggle-track" />
+        </label>
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label">Screenshot button</label>
+        <label className="vs-toggle">
+          <input type="checkbox" checked={s.glbShowScreenshotButton ?? false}
+            onChange={(e) => set('glbShowScreenshotButton', e.target.checked)} />
+          <span className="vs-toggle-track" />
+        </label>
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label">Cursor style</label>
+        <select className="vs-select"
+          value={s.glbCursorStyle ?? 'grab'}
+          onChange={(e) => set('glbCursorStyle', e.target.value)}>
+          <option value="default">Default</option>
+          <option value="grab">Grab</option>
+          <option value="pointer">Pointer</option>
+          <option value="crosshair">Crosshair</option>
+          <option value="move">Move</option>
+        </select>
+      </div>
+
+      {/* ── Animation ── */}
+      <p className="vs-group-label" style={{ marginTop: 16 }}>Animation</p>
+
+      <div className="vs-row">
+        <label className="vs-label">Crossfade (s)</label>
+        <div className="vs-slider-wrap">
+          <input type="range" min="0" max="3" step="0.1"
+            value={s.glbAnimationCrossfade ?? 0}
+            onChange={(e) => set('glbAnimationCrossfade', Number(e.target.value))} />
+          <span className="vs-value">{s.glbAnimationCrossfade ?? 0}s</span>
+        </div>
       </div>
     </div>
   )

@@ -341,7 +341,6 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
         autoRotateSpeed: vs.glbAutoRotateSpeed ?? 1,
         environment: vs.glbEnvironment ?? 'city',
         allowZoom: vs.glbAllowZoom ?? true,
-        fov: vs.glbFov ?? 42,
         surroundLighting: vs.glbSurroundLighting ?? false,
         // ── orbit controls ──
         enablePan: vs.glbEnablePan ?? false,
@@ -373,6 +372,36 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
         groundColor: vs.glbGroundColor ?? '#cccccc',
         gridHelper: vs.glbGridHelper ?? false,
         showResetView: vs.glbShowResetView ?? false,
+        // ── auto-rotate behaviour ──
+        autoRotateAxis: vs.glbAutoRotateAxis ?? 'y',
+        pauseAutoRotateOnHover: vs.glbPauseAutoRotateOnHover ?? true,
+        autoRotateIdleDelayMs: vs.glbAutoRotateIdleDelayMs ?? 0,
+        // ── light colors / shadow softness ──
+        ambientColor: vs.glbAmbientColor ?? '#ffffff',
+        keyColor: vs.glbKeyColor ?? '#ffffff',
+        fillColor: vs.glbFillColor ?? '#ffffff',
+        shadowMapSize: vs.glbShadowMapSize ?? 1024,
+        shadowRadius: vs.glbShadowRadius ?? 1,
+        // ── fog ──
+        fogEnabled: vs.glbFogEnabled ?? false,
+        fogColor: vs.glbFogColor ?? '#ffffff',
+        fogDensity: vs.glbFogDensity ?? 0.02,
+        fogType: vs.glbFogType ?? 'exp2',
+        fogNear: vs.glbFogNear ?? 1,
+        fogFar: vs.glbFogFar ?? 50,
+        // ── UX overlays ──
+        showFps: vs.glbShowFps ?? false,
+        showScreenshotButton: vs.glbShowScreenshotButton ?? false,
+        cursorStyle: vs.glbCursorStyle ?? 'grab',
+        // ── render mode ──
+        renderMode: vs.glbRenderMode ?? 'solid',
+        xrayOpacity: vs.glbXrayOpacity ?? 0.35,
+        flatShading: vs.glbFlatShading ?? false,
+        // ── animation extras ──
+        animationCrossfade: vs.glbAnimationCrossfade ?? 0,
+        // ── per-variant overrides ──
+        initialZoomMul: variant.transform?.initialZoomMul ?? 1,
+        fov: variant.transform?.fov ?? (vs.glbFov ?? 42),
         ...lightProps,
         // If the viewer-side lighting selector is on and a preset is chosen,
         // its values override the configurator's lighting.
