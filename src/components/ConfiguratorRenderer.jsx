@@ -313,6 +313,9 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
             materialOverrides: { ...(l.materialOverrides ?? {}), ...colorOverrides },
             animationConfig: l.animationConfig ?? null,
             visibleNodes: l.visibleNodes ?? null,
+            transform: l.transform ?? null,
+            castShadow: l.castShadow !== false,
+            receiveShadow: l.receiveShadow !== false,
           }))
       : variant.glbUrl
         ? [{ url: variant.glbUrl, materialOverrides: variant.materialOverrides ?? {}, animationConfig: variant.animationConfig ?? null }]
@@ -340,6 +343,36 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
         allowZoom: vs.glbAllowZoom ?? true,
         fov: vs.glbFov ?? 42,
         surroundLighting: vs.glbSurroundLighting ?? false,
+        // ── orbit controls ──
+        enablePan: vs.glbEnablePan ?? false,
+        minPolarDeg: vs.glbMinPolarDeg ?? 22.5,
+        maxPolarDeg: vs.glbMaxPolarDeg ?? 81.8,
+        minAzimuthDeg: vs.glbMinAzimuthDeg ?? null,
+        maxAzimuthDeg: vs.glbMaxAzimuthDeg ?? null,
+        minDistance: vs.glbMinDistance ?? 2,
+        maxDistance: vs.glbMaxDistance ?? 30,
+        rotateSpeed: vs.glbRotateSpeed ?? 1,
+        dampingFactor: vs.glbDampingFactor ?? 0.07,
+        snapRotationDeg: vs.glbSnapRotationDeg ?? 0,
+        // ── camera ──
+        orthographic: vs.glbOrthographic ?? false,
+        initialCameraPosition: variant.transform?.initialCameraPosition ?? null,
+        targetOffset: variant.transform?.targetOffset ?? null,
+        defaultYaw: variant.transform?.defaultYaw ?? 0,
+        defaultPitch: variant.transform?.defaultPitch ?? 0,
+        // ── render ──
+        backgroundColor: vs.glbBackgroundColor ?? null,
+        toneMapping: vs.glbToneMapping ?? 'aces',
+        dpr: vs.glbDpr ?? 2,
+        wireframe: vs.glbWireframe ?? false,
+        // ── ground / shadows ──
+        contactShadows: vs.glbContactShadows ?? false,
+        contactShadowOpacity: vs.glbContactShadowOpacity ?? 0.55,
+        contactShadowBlur: vs.glbContactShadowBlur ?? 2.2,
+        groundPlane: vs.glbGroundPlane ?? false,
+        groundColor: vs.glbGroundColor ?? '#cccccc',
+        gridHelper: vs.glbGridHelper ?? false,
+        showResetView: vs.glbShowResetView ?? false,
         ...lightProps,
         // If the viewer-side lighting selector is on and a preset is chosen,
         // its values override the configurator's lighting.

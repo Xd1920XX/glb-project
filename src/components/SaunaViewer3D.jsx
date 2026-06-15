@@ -1,7 +1,17 @@
 import { Canvas, useThree, useFrame } from '@react-three/fiber'
-import { useGLTF, OrbitControls, Bounds, useBounds, Environment } from '@react-three/drei'
-import { Suspense, useLayoutEffect, useMemo, useEffect, useRef } from 'react'
+import { useGLTF, OrbitControls, Bounds, useBounds, Environment, ContactShadows, Grid } from '@react-three/drei'
+import { Suspense, useLayoutEffect, useMemo, useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
+
+const TONE_MAPPINGS = {
+  aces:     THREE.ACESFilmicToneMapping,
+  linear:   THREE.LinearToneMapping,
+  reinhard: THREE.ReinhardToneMapping,
+  cineon:   THREE.CineonToneMapping,
+  neutral:  THREE.NeutralToneMapping ?? THREE.ACESFilmicToneMapping,
+  none:     THREE.NoToneMapping,
+}
+export const TONE_MAPPING_KEYS = Object.keys(TONE_MAPPINGS)
 
 export const ENV_PRESETS = [
   'apartment', 'city', 'dawn', 'forest', 'lobby',
@@ -43,7 +53,7 @@ function loadCachedTexture(url) {
 
 // ── Model with optional material overrides ────────────────────────
 
-function Model({ url, materialOverrides = {}, animationConfig = null, animationOverride = null, visibleNodes = null, onSceneRef = null }) {
+function Model({ url, materialOverrides = {}, animationConfig = null, animationOverride = null, visibleNodes = null, onSceneRef = null, castShadow = true, receiveShadow = true, wireframe = false, layerTransform = null }) {
   const { scene, animations } = useGLTF(url)
   const { gl } = useThree()
   const maxAniso = useMemo(() => gl?.capabilities?.getMaxAnisotropy?.() ?? 8, [gl])
@@ -54,8 +64,8 @@ function Model({ url, materialOverrides = {}, animationConfig = null, animationO
     const root = scene.clone(true)
     root.traverse((node) => {
       if (!node.isMesh) return
-      node.castShadow = true
-      node.receiveShadow = true
+      node.castShadow = castShadow
+      node.receiveShadow = receiveShadow
       const list = Array.isArray(node.material) ? node.material : [node.material]
       const out = list.map((m) => {
         const c = m.clone()
@@ -87,25 +97,56 @@ function Model({ url, materialOverrides = {}, animationConfig = null, animationO
   useEffect(() => {
     let cancelled = false
 
+    const cacheOriginals = (mat) => {
+      if (mat.userData._origColor === undefined) {
+        mat.userData._origColor = mat.color ? mat.color.getHex() : null
+      }
+      if (mat.userData._origMap === undefined) {
+        mat.userData._origMap = mat.map ?? null
+      }
+      if (mat.userData._origRoughness === undefined) {
+        mat.userData._origRoughness = mat.roughness ?? null
+      }
+      if (mat.userData._origMetalness === undefined) {
+        mat.userData._origMetalness = mat.metalness ?? null
+      }
+      if (mat.userData._origEmissive === undefined) {
+        mat.userData._origEmissive = mat.emissive ? mat.emissive.getHex() : null
+      }
+      if (mat.userData._origEmissiveIntensity === undefined) {
+        mat.userData._origEmissiveIntensity = mat.emissiveIntensity ?? null
+      }
+    }
+
+    const restoreOriginals = (mat) => {
+      if (mat.userData._origMap !== undefined) mat.map = mat.userData._origMap
+      if (mat.userData._origColor !== undefined && mat.userData._origColor !== null && mat.color) {
+        mat.color.setHex(mat.userData._origColor)
+      }
+      if (mat.userData._origRoughness !== undefined && mat.userData._origRoughness !== null && 'roughness' in mat) {
+        mat.roughness = mat.userData._origRoughness
+      }
+      if (mat.userData._origMetalness !== undefined && mat.userData._origMetalness !== null && 'metalness' in mat) {
+        mat.metalness = mat.userData._origMetalness
+      }
+      if (mat.userData._origEmissive !== undefined && mat.userData._origEmissive !== null && mat.emissive) {
+        mat.emissive.setHex(mat.userData._origEmissive)
+      }
+      if (mat.userData._origEmissiveIntensity !== undefined && mat.userData._origEmissiveIntensity !== null && 'emissiveIntensity' in mat) {
+        mat.emissiveIntensity = mat.userData._origEmissiveIntensity
+      }
+    }
+
     cloned.traverse((node) => {
       if (!node.isMesh) return
       const mats = Array.isArray(node.material) ? node.material : [node.material]
       mats.forEach((mat) => {
-        // Cache original color + map ONCE so we can restore when override removed
-        if (mat.userData._origColor === undefined) {
-          mat.userData._origColor = mat.color ? mat.color.getHex() : null
-        }
-        if (mat.userData._origMap === undefined) {
-          mat.userData._origMap = mat.map ?? null
-        }
-
+        cacheOriginals(mat)
         const ov = materialOverrides[mat.name]
+        // Always restore first so override layering is predictable
+        restoreOriginals(mat)
+
         if (!ov || ov.type === 'none') {
-          // Reset to original (in case prior override was applied)
-          if (mat.userData._origMap !== undefined) mat.map = mat.userData._origMap
-          if (mat.userData._origColor !== undefined && mat.userData._origColor !== null && mat.color) {
-            mat.color.setHex(mat.userData._origColor)
-          }
           mat.needsUpdate = true
           return
         }
@@ -113,7 +154,6 @@ function Model({ url, materialOverrides = {}, animationConfig = null, animationO
         if (ov.type === 'color' && ov.color) {
           mat.color.set(ov.color)
           mat.map = null
-          mat.needsUpdate = true
         } else if (ov.type === 'texture' && ov.textureUrl) {
           loadCachedTexture(ov.textureUrl).then((tex) => {
             if (cancelled) return
@@ -121,26 +161,41 @@ function Model({ url, materialOverrides = {}, animationConfig = null, animationO
             mat.needsUpdate = true
           })
         }
+        // Extra PBR overrides (apply on top of color/texture)
+        if (ov.roughness != null && 'roughness' in mat) mat.roughness = Math.max(0, Math.min(1, Number(ov.roughness)))
+        if (ov.metalness != null && 'metalness' in mat) mat.metalness = Math.max(0, Math.min(1, Number(ov.metalness)))
+        if (ov.emissive && mat.emissive) mat.emissive.set(ov.emissive)
+        if (ov.emissiveIntensity != null && 'emissiveIntensity' in mat) mat.emissiveIntensity = Number(ov.emissiveIntensity)
+        mat.needsUpdate = true
       })
     })
 
     return () => {
       cancelled = true
-      // Reset materials to GLB originals; cached textures stay alive in TEX_CACHE
       cloned.traverse((node) => {
         if (!node.isMesh) return
         const mats = Array.isArray(node.material) ? node.material : [node.material]
         mats.forEach((mat) => {
-          if (mat.userData._origMap !== undefined) mat.map = mat.userData._origMap
-          if (mat.userData._origColor !== undefined && mat.userData._origColor !== null && mat.color) {
-            mat.color.setHex(mat.userData._origColor)
-          }
+          restoreOriginals(mat)
           mat.needsUpdate = true
         })
       })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cloned, JSON.stringify(materialOverrides)])
+
+  // ── Shadow + wireframe toggles ─────────────────────────────────
+  useEffect(() => {
+    cloned.traverse((node) => {
+      if (!node.isMesh) return
+      node.castShadow = castShadow
+      node.receiveShadow = receiveShadow
+      const mats = Array.isArray(node.material) ? node.material : [node.material]
+      mats.forEach((mat) => {
+        if ('wireframe' in mat) mat.wireframe = !!wireframe
+      })
+    })
+  }, [cloned, castShadow, receiveShadow, wireframe])
 
   // ── Node visibility filter ─────────────────────────────────────
   // visibleNodes is null/empty → all nodes visible.
@@ -171,12 +226,14 @@ function Model({ url, materialOverrides = {}, animationConfig = null, animationO
         ? THREE.LoopPingPong
         : THREE.LoopRepeat
     const baseSpeed = Number(animationConfig.speed) || 1
+    const dir = animationConfig.reverse ? -1 : 1
     actionsRef.current = clips.map((clip) => {
       const a = mixer.clipAction(clip)
       a.reset()
       a.setLoop(loopMode, Infinity)
       a.clampWhenFinished = loopMode === THREE.LoopOnce
-      a.timeScale = baseSpeed
+      a.timeScale = baseSpeed * dir
+      if (dir < 0) a.time = clip.duration
       a.play()
       return a
     })
@@ -184,18 +241,19 @@ function Model({ url, materialOverrides = {}, animationConfig = null, animationO
       actionsRef.current.forEach((a) => a.stop())
       actionsRef.current = []
     }
-  }, [mixer, animations, animationConfig?.enabled, animationConfig?.clipName, animationConfig?.loop, animationConfig?.speed, animationOverride?.restartKey])
+  }, [mixer, animations, animationConfig?.enabled, animationConfig?.clipName, animationConfig?.loop, animationConfig?.speed, animationConfig?.reverse, animationOverride?.restartKey])
 
   // React to viewer-side override (play/pause + speed multiplier)
   useEffect(() => {
     if (!animationOverride) return
     const baseSpeed = Number(animationConfig?.speed) || 1
     const mult = Number(animationOverride.speed) || 1
+    const dir = animationConfig?.reverse ? -1 : 1
     for (const a of actionsRef.current) {
       a.paused = !animationOverride.playing
-      a.timeScale = baseSpeed * mult
+      a.timeScale = baseSpeed * mult * dir
     }
-  }, [animationOverride, animationConfig?.speed])
+  }, [animationOverride, animationConfig?.speed, animationConfig?.reverse])
 
   useFrame((_, dt) => {
     if (animationConfig?.enabled) mixer.update(dt)
@@ -207,11 +265,32 @@ function Model({ url, materialOverrides = {}, animationConfig = null, animationO
     return () => onSceneRef?.(null)
   }, [cloned, onSceneRef])
 
-  return <primitive object={cloned} />
+  // Per-layer transform (offset + rotation° + scale) inside the stack group.
+  const lt = layerTransform || {}
+  const lOff = lt.offset ?? { x: 0, y: 0, z: 0 }
+  const lRot = lt.rotation ?? { x: 0, y: 0, z: 0 }
+  const lScl = lt.scale != null
+    ? (typeof lt.scale === 'number'
+        ? [lt.scale, lt.scale, lt.scale]
+        : [Number(lt.scale.x) || 1, Number(lt.scale.y) || 1, Number(lt.scale.z) || 1])
+    : [1, 1, 1]
+
+  return (
+    <group
+      position={[Number(lOff.x) || 0, Number(lOff.y) || 0, Number(lOff.z) || 0]}
+      rotation={[
+        (Number(lRot.x) || 0) * Math.PI / 180,
+        (Number(lRot.y) || 0) * Math.PI / 180,
+        (Number(lRot.z) || 0) * Math.PI / 180,
+      ]}
+      scale={lScl}>
+      <primitive object={cloned} />
+    </group>
+  )
 }
 
 // Wraps all GLB layers of a variant inside ONE group so transform applies to the entire stack.
-function GlbStack({ layers, animationOverride, transform }) {
+function GlbStack({ layers, animationOverride, transform, wireframe = false, globalCastShadow = true, globalReceiveShadow = true }) {
   const groupRef = useRef(null)
   const sceneMapRef = useRef(new Map())
 
@@ -272,6 +351,10 @@ function GlbStack({ layers, animationOverride, transform }) {
             animationConfig={layer.animationConfig ?? null}
             visibleNodes={layer.visibleNodes ?? null}
             animationOverride={animationOverride}
+            layerTransform={layer.transform ?? null}
+            castShadow={layer.castShadow !== false && globalCastShadow}
+            receiveShadow={layer.receiveShadow !== false && globalReceiveShadow}
+            wireframe={wireframe}
             onSceneRef={(s) => setSceneFor(key, s)} />
         )
       })}
@@ -288,6 +371,88 @@ function CameraFit({ deps = [] }) {
 }
 
 // ── Main viewer ───────────────────────────────────────────────────
+
+// Reset button — shown over canvas when showResetView is true. Refits Bounds + restores pose.
+function ResetViewButton({ resetKey, onReset }) {
+  return (
+    <button
+      type="button"
+      onClick={onReset}
+      title="Reset view"
+      style={{
+        position: 'absolute', top: 8, right: 8, zIndex: 5,
+        padding: '4px 10px', fontSize: 12, cursor: 'pointer',
+        background: 'rgba(0,0,0,0.55)', color: '#fff',
+        border: '1px solid rgba(255,255,255,0.25)', borderRadius: 6,
+        backdropFilter: 'blur(4px)',
+      }}
+    >
+      ⟳ Reset
+    </button>
+  )
+}
+
+// Apply default yaw/pitch + initial camera position + target offset after Bounds fit.
+function CameraPoseInit({ deps, defaultYaw, defaultPitch, initialCameraPosition, targetOffset }) {
+  const camera = useThree((s) => s.camera)
+  const controls = useThree((s) => s.controls)
+  useLayoutEffect(() => {
+    if (!controls) return
+    if (targetOffset) {
+      controls.target.x += Number(targetOffset.x) || 0
+      controls.target.y += Number(targetOffset.y) || 0
+      controls.target.z += Number(targetOffset.z) || 0
+    }
+    if (initialCameraPosition) {
+      camera.position.set(
+        Number(initialCameraPosition.x) || camera.position.x,
+        Number(initialCameraPosition.y) || camera.position.y,
+        Number(initialCameraPosition.z) || camera.position.z,
+      )
+    }
+    // Apply yaw/pitch by rotating camera around target on a sphere of current radius.
+    const yaw = (Number(defaultYaw) || 0) * Math.PI / 180
+    const pitch = (Number(defaultPitch) || 0) * Math.PI / 180
+    if (yaw !== 0 || pitch !== 0) {
+      const t = controls.target
+      const offset = new THREE.Vector3().subVectors(camera.position, t)
+      const radius = offset.length() || 1
+      const baseAzimuth = Math.atan2(offset.x, offset.z)
+      const basePolar = Math.acos(Math.max(-1, Math.min(1, offset.y / radius)))
+      const az = baseAzimuth + yaw
+      const po = Math.max(0.01, Math.min(Math.PI - 0.01, basePolar + pitch))
+      camera.position.set(
+        t.x + radius * Math.sin(po) * Math.sin(az),
+        t.y + radius * Math.cos(po),
+        t.z + radius * Math.sin(po) * Math.cos(az),
+      )
+    }
+    camera.lookAt(controls.target)
+    controls.update?.()
+  }, deps) // eslint-disable-line
+  return null
+}
+
+// Snap OrbitControls rotation to a step (degrees) on pointer release.
+function RotationSnap({ stepDeg }) {
+  const controls = useThree((s) => s.controls)
+  useEffect(() => {
+    if (!controls || !stepDeg || stepDeg <= 0) return
+    const step = (Number(stepDeg) || 0) * Math.PI / 180
+    const handler = () => {
+      const sph = new THREE.Spherical().setFromVector3(
+        new THREE.Vector3().subVectors(controls.object.position, controls.target),
+      )
+      sph.theta = Math.round(sph.theta / step) * step
+      const v = new THREE.Vector3().setFromSpherical(sph)
+      controls.object.position.copy(controls.target).add(v)
+      controls.update?.()
+    }
+    controls.addEventListener?.('end', handler)
+    return () => controls.removeEventListener?.('end', handler)
+  }, [controls, stepDeg])
+  return null
+}
 
 export function SaunaViewer3D({
   glb,               // backward compat: single GLB URL
@@ -311,6 +476,36 @@ export function SaunaViewer3D({
   exposure           = 1,
   surroundLighting   = false,
   animationOverride  = null,
+  // ── new (orbit controls) ──
+  enablePan          = false,
+  minPolarDeg        = 22.5,   // PI/8
+  maxPolarDeg        = 81.8,   // PI/2.2
+  minAzimuthDeg      = null,
+  maxAzimuthDeg      = null,
+  minDistance        = 2,
+  maxDistance        = 30,
+  rotateSpeed        = 1,
+  dampingFactor      = 0.07,
+  snapRotationDeg    = 0,
+  // ── new (camera) ──
+  orthographic       = false,
+  initialCameraPosition = null,
+  targetOffset       = null,
+  defaultYaw         = 0,
+  defaultPitch       = 0,
+  // ── new (render) ──
+  backgroundColor    = null,
+  toneMapping        = 'aces',
+  dpr                = 2,
+  wireframe          = false,
+  // ── new (ground + shadows) ──
+  contactShadows     = false,
+  contactShadowOpacity = 0.55,
+  contactShadowBlur  = 2.2,
+  groundPlane        = false,
+  groundColor        = '#cccccc',
+  gridHelper         = false,
+  showResetView      = false,
 }) {
   const env = ENV_PRESETS.includes(environment) ? environment : 'studio'
 
@@ -319,23 +514,39 @@ export function SaunaViewer3D({
     ? glbLayers.filter((l) => l.url)
     : (glb ? [{ url: glb, materialOverrides }] : [])
 
+  const toneMap = TONE_MAPPINGS[toneMapping] ?? THREE.ACESFilmicToneMapping
+  const dprClamped = Math.max(0.5, Math.min(3, Number(dpr) || 2))
+
+  const fitDeps = useMemo(
+    () => [layers.map((l) => l.url).join('|'), JSON.stringify(stackTransform), JSON.stringify(initialCameraPosition), JSON.stringify(targetOffset), defaultYaw, defaultPitch],
+    [layers, stackTransform, initialCameraPosition, targetOffset, defaultYaw, defaultPitch],
+  )
+  const [resetCounter, setResetCounter] = useResetCounter()
+  const fitDepsWithReset = useMemo(() => [...fitDeps, resetCounter], [fitDeps, resetCounter])
+
+  const showOverlay = showResetView
   return (
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
     <Canvas
       shadows={!surroundLighting && shadows}
-      dpr={[1, 2]}
-      camera={{ fov, position: [8, 4, 12] }}
+      dpr={[1, dprClamped]}
+      orthographic={orthographic}
+      camera={orthographic
+        ? { position: [8, 4, 12], zoom: 80, near: -100, far: 100 }
+        : { fov, position: [8, 4, 12] }}
       style={{ width: '100%', height: '100%' }}
       gl={{
         toneMappingExposure: exposure,
         preserveDrawingBuffer: true,
         antialias: true,
-        toneMapping: THREE.ACESFilmicToneMapping,
+        toneMapping: toneMap,
         outputColorSpace: THREE.SRGBColorSpace,
         powerPreference: 'high-performance',
       }}
     >
+      {backgroundColor && <color attach="background" args={[backgroundColor]} />}
       <Suspense fallback={null}>
-        <Environment preset={env} background={background} environmentIntensity={envIntensity} />
+        <Environment preset={env} background={background && !backgroundColor} environmentIntensity={envIntensity} />
         <ambientLight intensity={ambientIntensity} />
         {surroundLighting ? (
           <>
@@ -352,24 +563,82 @@ export function SaunaViewer3D({
         )}
 
         <Bounds fit clip margin={1.2}>
-          <GlbStack layers={layers} animationOverride={animationOverride} transform={stackTransform} />
-          <CameraFit deps={[layers.map((l) => l.url).join('|'), JSON.stringify(stackTransform)]} />
+          <GlbStack
+            layers={layers}
+            animationOverride={animationOverride}
+            transform={stackTransform}
+            wireframe={wireframe}
+            globalCastShadow={shadows}
+            globalReceiveShadow={shadows}
+          />
+          <CameraFit deps={fitDepsWithReset} />
         </Bounds>
+
+        <CameraPoseInit
+          deps={fitDepsWithReset}
+          defaultYaw={defaultYaw}
+          defaultPitch={defaultPitch}
+          initialCameraPosition={initialCameraPosition}
+          targetOffset={targetOffset}
+        />
+
+        {contactShadows && (
+          <ContactShadows
+            position={[0, -0.001, 0]}
+            opacity={contactShadowOpacity}
+            blur={contactShadowBlur}
+            far={20}
+            scale={30}
+            resolution={1024}
+          />
+        )}
+        {groundPlane && (
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
+            <planeGeometry args={[200, 200]} />
+            <meshStandardMaterial color={groundColor} />
+          </mesh>
+        )}
+        {gridHelper && (
+          <Grid
+            position={[0, 0, 0]}
+            args={[20, 20]}
+            cellColor="#888"
+            sectionColor="#444"
+            fadeDistance={30}
+            infiniteGrid
+          />
+        )}
 
         <OrbitControls
           makeDefault
-          enablePan={false}
+          enablePan={enablePan}
           enableZoom={allowZoom}
           enableDamping
-          dampingFactor={0.07}
+          dampingFactor={dampingFactor}
+          rotateSpeed={rotateSpeed}
           autoRotate={autoRotate}
           autoRotateSpeed={autoRotateSpeed}
-          minPolarAngle={Math.PI / 8}
-          maxPolarAngle={Math.PI / 2.2}
-          minDistance={2}
-          maxDistance={30}
+          minPolarAngle={(Number(minPolarDeg) || 0) * Math.PI / 180}
+          maxPolarAngle={(Number(maxPolarDeg) || 180) * Math.PI / 180}
+          minAzimuthAngle={minAzimuthDeg != null ? Number(minAzimuthDeg) * Math.PI / 180 : -Infinity}
+          maxAzimuthAngle={maxAzimuthDeg != null ? Number(maxAzimuthDeg) * Math.PI / 180 :  Infinity}
+          minDistance={minDistance}
+          maxDistance={maxDistance}
         />
+        <RotationSnap stepDeg={snapRotationDeg} />
       </Suspense>
     </Canvas>
+    {showOverlay && <ResetViewButton resetKey={resetCounter} onReset={() => setResetCounter((c) => c + 1)} />}
+    </div>
   )
+}
+
+function useResetCounter() {
+  const ref = useRef(0)
+  const [, force] = useState(0)
+  const set = (updater) => {
+    ref.current = typeof updater === 'function' ? updater(ref.current) : updater
+    force((n) => n + 1)
+  }
+  return [ref.current, set]
 }

@@ -27,7 +27,35 @@ const DEFAULT_VIEWER_SETTINGS = {
   glbEnvIntensity:       50,
   glbSurroundLighting:   false,
   glbEnableAR:           false,
+  // ── orbit controls ──
+  glbEnablePan:          false,
+  glbMinPolarDeg:        22.5,
+  glbMaxPolarDeg:        81.8,
+  glbMinAzimuthDeg:      null,
+  glbMaxAzimuthDeg:      null,
+  glbMinDistance:        2,
+  glbMaxDistance:        30,
+  glbRotateSpeed:        1,
+  glbDampingFactor:      0.07,
+  glbSnapRotationDeg:    0,
+  // ── camera ──
+  glbOrthographic:       false,
+  // ── render ──
+  glbBackgroundColor:    null,
+  glbToneMapping:        'aces',
+  glbDpr:                2,
+  glbWireframe:          false,
+  // ── ground / shadows ──
+  glbContactShadows:     false,
+  glbContactShadowOpacity: 0.55,
+  glbContactShadowBlur:  2.2,
+  glbGroundPlane:        false,
+  glbGroundColor:        '#cccccc',
+  glbGridHelper:         false,
+  glbShowResetView:      false,
 }
+
+const TONE_MAPPING_OPTIONS = ['aces', 'linear', 'reinhard', 'cineon', 'neutral', 'none']
 
 const DEFAULT_ORDER_FORM = {
   enabled: false,
@@ -304,11 +332,28 @@ function StackTransformEditor({ transform, onChange }) {
   const setScale = (v) => onChange({ ...t, scale: Number(v) || 1 })
   const setAutoCenter = (v) => onChange({ ...t, autoCenter: !!v })
 
+  const targetOffset = t.targetOffset ?? null
+  const initialCam = t.initialCameraPosition ?? null
+  const defaultYaw = t.defaultYaw ?? 0
+  const defaultPitch = t.defaultPitch ?? 0
+  const setTargetOffset = (axis, v) => {
+    const next = { ...(targetOffset ?? { x: 0, y: 0, z: 0 }), [axis]: Number(v) || 0 }
+    const isZero = !next.x && !next.y && !next.z
+    onChange({ ...t, targetOffset: isZero ? null : next })
+  }
+  const setInitialCam = (axis, v) => {
+    const next = { ...(initialCam ?? { x: 8, y: 4, z: 12 }), [axis]: Number(v) || 0 }
+    onChange({ ...t, initialCameraPosition: next })
+  }
+  const clearInitialCam = () => onChange({ ...t, initialCameraPosition: null })
+  const setDefaultYaw = (v) => onChange({ ...t, defaultYaw: Number(v) || 0 })
+  const setDefaultPitch = (v) => onChange({ ...t, defaultPitch: Number(v) || 0 })
+
   function reset() {
     onChange(null)
   }
 
-  const hasAny = !!(t.offset || t.rotation || (t.scale != null && t.scale !== 1) || t.autoCenter)
+  const hasAny = !!(t.offset || t.rotation || (t.scale != null && t.scale !== 1) || t.autoCenter || t.targetOffset || t.initialCameraPosition || t.defaultYaw || t.defaultPitch)
 
   return (
     <div className="layer-transform" style={{ marginTop: 10 }}>
@@ -338,11 +383,16 @@ function StackTransformEditor({ transform, onChange }) {
             <AxisInput axis="Z" value={rotation.z} onChange={(v) => setRotation('z', v)} step={5} />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '70px repeat(3, 1fr)', gap: 6, alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>Quick rotate</span>
-            <RotateButtons axis="x" current={rotation.x} onChange={(v) => setRotation('x', v)} />
-            <RotateButtons axis="y" current={rotation.y} onChange={(v) => setRotation('y', v)} />
-            <RotateButtons axis="z" current={rotation.z} onChange={(v) => setRotation('z', v)} />
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 4 }}>Quick rotate</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: 6, alignItems: 'center', rowGap: 4 }}>
+              <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>X axis</span>
+              <RotateButtons axis="x" current={rotation.x} onChange={(v) => setRotation('x', v)} />
+              <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>Y axis</span>
+              <RotateButtons axis="y" current={rotation.y} onChange={(v) => setRotation('y', v)} />
+              <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>Z axis</span>
+              <RotateButtons axis="z" current={rotation.z} onChange={(v) => setRotation('z', v)} />
+            </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: 6, alignItems: 'center', marginBottom: 6 }}>
@@ -350,11 +400,35 @@ function StackTransformEditor({ transform, onChange }) {
             <AxisInput axis="" value={scaleVal} onChange={setScale} step={0.05} min={0.01} />
           </div>
 
+          <div style={{ borderTop: '1px solid var(--border)', margin: '10px 0 8px' }} />
+          <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 6 }}>Camera pose (applied after fit)</div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr 1fr', gap: 6, alignItems: 'center', marginBottom: 6 }}>
+            <span style={{ color: 'var(--text-muted)' }}>Yaw / Pitch°</span>
+            <AxisInput axis="Y" value={defaultYaw} onChange={setDefaultYaw} step={5} />
+            <AxisInput axis="P" value={defaultPitch} onChange={setDefaultPitch} step={5} />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '70px repeat(3, 1fr)', gap: 6, alignItems: 'center', marginBottom: 6 }}>
+            <span style={{ color: 'var(--text-muted)' }}>Target +</span>
+            <AxisInput axis="X" value={targetOffset?.x ?? 0} onChange={(v) => setTargetOffset('x', v)} step={0.05} />
+            <AxisInput axis="Y" value={targetOffset?.y ?? 0} onChange={(v) => setTargetOffset('y', v)} step={0.05} />
+            <AxisInput axis="Z" value={targetOffset?.z ?? 0} onChange={(v) => setTargetOffset('z', v)} step={0.05} />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '70px repeat(3, 1fr) auto', gap: 6, alignItems: 'center', marginBottom: 6 }}>
+            <span style={{ color: 'var(--text-muted)' }}>Init cam</span>
+            <AxisInput axis="X" value={initialCam?.x ?? 8} onChange={(v) => setInitialCam('x', v)} step={0.5} />
+            <AxisInput axis="Y" value={initialCam?.y ?? 4} onChange={(v) => setInitialCam('y', v)} step={0.5} />
+            <AxisInput axis="Z" value={initialCam?.z ?? 12} onChange={(v) => setInitialCam('z', v)} step={0.5} />
+            {initialCam && <button className="btn-text-danger" style={{ fontSize: 10 }} onClick={clearInitialCam}>×</button>}
+          </div>
+
           {hasAny && (
             <button className="btn-text-danger" style={{ fontSize: 11 }} onClick={reset}>Reset transform</button>
           )}
           <p className="builder-hint" style={{ marginTop: 8, fontSize: 11 }}>
-            Applies to all GLB layers in this variant as a single group. Auto-center uses the combined bounding box so layer alignment is preserved.
+            Applies to all GLB layers in this variant as a single group. Auto-center uses the combined bounding box. Yaw/Pitch and Target+ shift the camera/orbit pivot after fit. Init cam overrides starting position.
           </p>
         </div>
       )}
@@ -369,10 +443,9 @@ function RotateButtons({ axis, current, onChange }) {
     if (next <= -180) next += 360
     onChange(next)
   }
-  const btnStyle = { all: 'unset', cursor: 'pointer', padding: '3px 6px', borderRadius: 3, background: 'var(--surface)', border: '1px solid var(--border)', fontSize: 10, fontWeight: 500, color: 'var(--text)' }
+  const btnStyle = { all: 'unset', cursor: 'pointer', padding: '5px 8px', borderRadius: 4, background: 'var(--surface)', border: '1px solid var(--border)', fontSize: 11, fontWeight: 500, color: 'var(--text)', textAlign: 'center', minWidth: 0, flex: '1 1 0' }
   return (
-    <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
-      <span style={{ fontSize: 11, color: 'var(--text-muted)', minWidth: 12 }}>{axis.toUpperCase()}</span>
+    <div style={{ display: 'flex', gap: 4, alignItems: 'center', minWidth: 0 }}>
       <button title={`Rotate ${axis.toUpperCase()} -90°`} style={btnStyle} onClick={() => snap(-90)}>-90°</button>
       <button title={`Rotate ${axis.toUpperCase()} +90°`} style={btnStyle} onClick={() => snap(90)}>+90°</button>
       <button title={`Rotate ${axis.toUpperCase()} 180°`} style={btnStyle} onClick={() => snap(180)}>180°</button>
@@ -498,6 +571,10 @@ function GlbLayerEditor({ layer, uid: userUid, onChange, onDelete, onMoveUp, onM
         <p className="builder-hint" style={{ marginTop: 8 }}>No animations found in this GLB.</p>
       )}
 
+      {layer.glbUrl && (
+        <LayerTransformEditor layer={layer} onChange={onChange} />
+      )}
+
       {showPicker && (
         <MediaPickerModal uid={userUid} accept=".glb"
           onSelect={(f) => { setShowPicker(false); handleSelect(f) }}
@@ -557,6 +634,70 @@ function AnimationEditor({ animations, config, onChange }) {
               <span className="vs-value">{speed.toFixed(1)}×</span>
             </div>
           </div>
+          <div className="vs-row">
+            <label className="vs-label">Reverse</label>
+            <label className="vs-toggle">
+              <input type="checkbox" checked={!!config?.reverse}
+                onChange={(e) => update({ reverse: e.target.checked })} />
+              <span className="vs-toggle-track" />
+            </label>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function LayerTransformEditor({ layer, onChange }) {
+  const [open, setOpen] = useState(false)
+  const t = layer.transform ?? {}
+  const offset = t.offset ?? { x: 0, y: 0, z: 0 }
+  const rotation = t.rotation ?? { x: 0, y: 0, z: 0 }
+  const scl = typeof t.scale === 'number' ? t.scale : (t.scale?.x ?? 1)
+  const cs = layer.castShadow !== false
+  const rs = layer.receiveShadow !== false
+  const hasAny = !!(t.offset || t.rotation || (t.scale != null && t.scale !== 1) || layer.castShadow === false || layer.receiveShadow === false)
+
+  function setT(patch) { onChange({ ...layer, transform: { ...t, ...patch } }) }
+  function setOff(axis, v) { setT({ offset: { ...offset, [axis]: Number(v) || 0 } }) }
+  function setRot(axis, v) { setT({ rotation: { ...rotation, [axis]: Number(v) || 0 } }) }
+  function setScale(v) { setT({ scale: Number(v) || 1 }) }
+  function reset() { onChange({ ...layer, transform: null, castShadow: true, receiveShadow: true }) }
+
+  return (
+    <div style={{ marginTop: 8 }}>
+      <button className="btn-link" style={{ all: 'unset', cursor: 'pointer', fontSize: 12, color: 'var(--text-muted)' }}
+        onClick={() => setOpen((v) => !v)}>
+        {open ? '▾' : '▸'} Layer transform & shadows {hasAny && <span style={{ color: '#16a34a' }}>●</span>}
+      </button>
+      {open && (
+        <div style={{ marginTop: 6, padding: 10, background: 'var(--hover-bg)', borderRadius: 6, fontSize: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '70px repeat(3, 1fr)', gap: 6, alignItems: 'center', marginBottom: 6 }}>
+            <span style={{ color: 'var(--text-muted)' }}>Offset</span>
+            <AxisInput axis="X" value={offset.x} onChange={(v) => setOff('x', v)} step={0.05} />
+            <AxisInput axis="Y" value={offset.y} onChange={(v) => setOff('y', v)} step={0.05} />
+            <AxisInput axis="Z" value={offset.z} onChange={(v) => setOff('z', v)} step={0.05} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '70px repeat(3, 1fr)', gap: 6, alignItems: 'center', marginBottom: 6 }}>
+            <span style={{ color: 'var(--text-muted)' }}>Rotation°</span>
+            <AxisInput axis="X" value={rotation.x} onChange={(v) => setRot('x', v)} step={5} />
+            <AxisInput axis="Y" value={rotation.y} onChange={(v) => setRot('y', v)} step={5} />
+            <AxisInput axis="Z" value={rotation.z} onChange={(v) => setRot('z', v)} step={5} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: 6, alignItems: 'center', marginBottom: 8 }}>
+            <span style={{ color: 'var(--text-muted)' }}>Scale</span>
+            <AxisInput axis="" value={scl} onChange={setScale} step={0.05} min={0.01} />
+          </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <input type="checkbox" checked={cs} onChange={(e) => onChange({ ...layer, castShadow: e.target.checked })} />
+            <span>Cast shadow</span>
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+            <input type="checkbox" checked={rs} onChange={(e) => onChange({ ...layer, receiveShadow: e.target.checked })} />
+            <span>Receive shadow</span>
+          </label>
+          {hasAny && <button className="btn-text-danger" style={{ fontSize: 11 }} onClick={reset}>Reset</button>}
+          <p className="builder-hint" style={{ marginTop: 6, fontSize: 11 }}>Per-layer transform applies INSIDE the stack group — useful if individual GLBs are misaligned in Blender.</p>
         </div>
       )}
     </div>
@@ -1104,6 +1245,228 @@ function ViewerSettingsEditor({ settings, onChange }) {
             onChange={(e) => set('glbEnvIntensity', Number(e.target.value))} />
           <span className="vs-value">{s.glbEnvIntensity ?? 50}</span>
         </div>
+      </div>
+
+      {/* ── Orbit controls ── */}
+      <p className="vs-group-label" style={{ marginTop: 16 }}>Orbit controls</p>
+
+      <div className="vs-row">
+        <label className="vs-label">Enable pan (drag)</label>
+        <label className="vs-toggle">
+          <input type="checkbox" checked={s.glbEnablePan ?? false}
+            onChange={(e) => set('glbEnablePan', e.target.checked)} />
+          <span className="vs-toggle-track" />
+        </label>
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label">Reset view button</label>
+        <label className="vs-toggle">
+          <input type="checkbox" checked={s.glbShowResetView ?? false}
+            onChange={(e) => set('glbShowResetView', e.target.checked)} />
+          <span className="vs-toggle-track" />
+        </label>
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label">Min polar °</label>
+        <div className="vs-slider-wrap">
+          <input type="range" min="0" max="89" step="0.5"
+            value={s.glbMinPolarDeg ?? 22.5}
+            onChange={(e) => set('glbMinPolarDeg', Number(e.target.value))} />
+          <span className="vs-value">{s.glbMinPolarDeg ?? 22.5}°</span>
+        </div>
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label">Max polar °</label>
+        <div className="vs-slider-wrap">
+          <input type="range" min="91" max="180" step="0.5"
+            value={s.glbMaxPolarDeg ?? 81.8}
+            onChange={(e) => set('glbMaxPolarDeg', Number(e.target.value))} />
+          <span className="vs-value">{s.glbMaxPolarDeg ?? 81.8}°</span>
+        </div>
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label">Min azimuth °</label>
+        <input className="field-input inline" type="number" step="1"
+          placeholder="(unlimited)"
+          value={s.glbMinAzimuthDeg ?? ''}
+          onChange={(e) => set('glbMinAzimuthDeg', e.target.value === '' ? null : Number(e.target.value))} />
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label">Max azimuth °</label>
+        <input className="field-input inline" type="number" step="1"
+          placeholder="(unlimited)"
+          value={s.glbMaxAzimuthDeg ?? ''}
+          onChange={(e) => set('glbMaxAzimuthDeg', e.target.value === '' ? null : Number(e.target.value))} />
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label">Min distance</label>
+        <div className="vs-slider-wrap">
+          <input type="range" min="0.1" max="20" step="0.1"
+            value={s.glbMinDistance ?? 2}
+            onChange={(e) => set('glbMinDistance', Number(e.target.value))} />
+          <span className="vs-value">{s.glbMinDistance ?? 2}</span>
+        </div>
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label">Max distance</label>
+        <div className="vs-slider-wrap">
+          <input type="range" min="5" max="200" step="1"
+            value={s.glbMaxDistance ?? 30}
+            onChange={(e) => set('glbMaxDistance', Number(e.target.value))} />
+          <span className="vs-value">{s.glbMaxDistance ?? 30}</span>
+        </div>
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label">Rotate speed</label>
+        <div className="vs-slider-wrap">
+          <input type="range" min="0.1" max="3" step="0.1"
+            value={s.glbRotateSpeed ?? 1}
+            onChange={(e) => set('glbRotateSpeed', Number(e.target.value))} />
+          <span className="vs-value">{s.glbRotateSpeed ?? 1}</span>
+        </div>
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label">Damping</label>
+        <div className="vs-slider-wrap">
+          <input type="range" min="0" max="0.3" step="0.01"
+            value={s.glbDampingFactor ?? 0.07}
+            onChange={(e) => set('glbDampingFactor', Number(e.target.value))} />
+          <span className="vs-value">{s.glbDampingFactor ?? 0.07}</span>
+        </div>
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label">Snap rotation °</label>
+        <div className="vs-slider-wrap">
+          <input type="range" min="0" max="90" step="1"
+            value={s.glbSnapRotationDeg ?? 0}
+            onChange={(e) => set('glbSnapRotationDeg', Number(e.target.value))} />
+          <span className="vs-value">{s.glbSnapRotationDeg ?? 0}°</span>
+        </div>
+      </div>
+
+      {/* ── Camera ── */}
+      <p className="vs-group-label" style={{ marginTop: 16 }}>Camera mode</p>
+
+      <div className="vs-row">
+        <label className="vs-label">Orthographic</label>
+        <label className="vs-toggle">
+          <input type="checkbox" checked={s.glbOrthographic ?? false}
+            onChange={(e) => set('glbOrthographic', e.target.checked)} />
+          <span className="vs-toggle-track" />
+        </label>
+      </div>
+
+      {/* ── Render ── */}
+      <p className="vs-group-label" style={{ marginTop: 16 }}>Rendering</p>
+
+      <div className="vs-row">
+        <label className="vs-label">Background color</label>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <input type="color"
+            value={s.glbBackgroundColor ?? '#ffffff'}
+            onChange={(e) => set('glbBackgroundColor', e.target.value)} />
+          <button className="btn-text-danger" style={{ fontSize: 11 }} onClick={() => set('glbBackgroundColor', null)}>Clear</button>
+        </div>
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label">Tone mapping</label>
+        <select className="vs-select"
+          value={s.glbToneMapping ?? 'aces'}
+          onChange={(e) => set('glbToneMapping', e.target.value)}>
+          {TONE_MAPPING_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label">Resolution (DPR)</label>
+        <div className="vs-slider-wrap">
+          <input type="range" min="0.5" max="3" step="0.1"
+            value={s.glbDpr ?? 2}
+            onChange={(e) => set('glbDpr', Number(e.target.value))} />
+          <span className="vs-value">{s.glbDpr ?? 2}</span>
+        </div>
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label">Wireframe (debug)</label>
+        <label className="vs-toggle">
+          <input type="checkbox" checked={s.glbWireframe ?? false}
+            onChange={(e) => set('glbWireframe', e.target.checked)} />
+          <span className="vs-toggle-track" />
+        </label>
+      </div>
+
+      {/* ── Ground & shadows ── */}
+      <p className="vs-group-label" style={{ marginTop: 16 }}>Ground &amp; shadows</p>
+
+      <div className="vs-row">
+        <label className="vs-label">Contact shadows</label>
+        <label className="vs-toggle">
+          <input type="checkbox" checked={s.glbContactShadows ?? false}
+            onChange={(e) => set('glbContactShadows', e.target.checked)} />
+          <span className="vs-toggle-track" />
+        </label>
+      </div>
+
+      {s.glbContactShadows && (
+        <>
+          <div className="vs-row">
+            <label className="vs-label">Shadow opacity</label>
+            <div className="vs-slider-wrap">
+              <input type="range" min="0" max="1" step="0.05"
+                value={s.glbContactShadowOpacity ?? 0.55}
+                onChange={(e) => set('glbContactShadowOpacity', Number(e.target.value))} />
+              <span className="vs-value">{s.glbContactShadowOpacity ?? 0.55}</span>
+            </div>
+          </div>
+          <div className="vs-row">
+            <label className="vs-label">Shadow blur</label>
+            <div className="vs-slider-wrap">
+              <input type="range" min="0" max="10" step="0.1"
+                value={s.glbContactShadowBlur ?? 2.2}
+                onChange={(e) => set('glbContactShadowBlur', Number(e.target.value))} />
+              <span className="vs-value">{s.glbContactShadowBlur ?? 2.2}</span>
+            </div>
+          </div>
+        </>
+      )}
+
+      <div className="vs-row">
+        <label className="vs-label">Ground plane</label>
+        <label className="vs-toggle">
+          <input type="checkbox" checked={s.glbGroundPlane ?? false}
+            onChange={(e) => set('glbGroundPlane', e.target.checked)} />
+          <span className="vs-toggle-track" />
+        </label>
+      </div>
+
+      {s.glbGroundPlane && (
+        <div className="vs-row">
+          <label className="vs-label">Ground color</label>
+          <input type="color"
+            value={s.glbGroundColor ?? '#cccccc'}
+            onChange={(e) => set('glbGroundColor', e.target.value)} />
+        </div>
+      )}
+
+      <div className="vs-row">
+        <label className="vs-label">Grid helper</label>
+        <label className="vs-toggle">
+          <input type="checkbox" checked={s.glbGridHelper ?? false}
+            onChange={(e) => set('glbGridHelper', e.target.checked)} />
+          <span className="vs-toggle-track" />
+        </label>
       </div>
     </div>
   )
