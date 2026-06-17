@@ -283,25 +283,39 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
         ?? grp.options?.[0]
         ?? null
     }
+    // Accumulate filters across all matching partOption groups so multiple
+    // groups can compose (e.g. position group + hole group + sticker group
+    // all targeting the same lid layer). Each filter is an OR-list; combining
+    // filters means a mesh must satisfy every filter (AND).
     const resolvePartLayer = (l) => {
+      let layer = l
+      const filters = l.visibleNodes && l.visibleNodes.length ? [l.visibleNodes] : []
+      let hide = false
       for (const grp of variant.partOptions ?? []) {
         if (!grp.matchLayerLabels?.includes(l.label)) continue
         const opt = resolveOption(grp)
-        if (!opt) return l
-        if (opt.hidden) return null
-        // Per-layer override map for groups that target multiple layers with one selection
+        if (!opt) continue
+        if (opt.hidden) { hide = true; break }
         const data = opt.byLayer?.[l.label] ?? opt
-        if (!data.glbUrl && !data.visibleNodes && !data.materialOverrides) return l
-        return {
-          ...l,
-          label: data.layerLabel ?? opt.layerLabel ?? opt.label ?? l.label,
-          glbUrl: data.glbUrl ?? l.glbUrl,
-          glbStoragePath: data.glbStoragePath ?? l.glbStoragePath,
-          visibleNodes: data.visibleNodes ?? l.visibleNodes,
-          materialOverrides: { ...(data.materialOverrides ?? {}), ...(l.materialOverrides ?? {}) },
+        if (data.glbUrl) {
+          layer = {
+            ...layer,
+            glbUrl: data.glbUrl,
+            glbStoragePath: data.glbStoragePath ?? layer.glbStoragePath,
+          }
+        }
+        if (data.visibleNodes && data.visibleNodes.length) {
+          filters.push(data.visibleNodes)
+        }
+        if (data.materialOverrides) {
+          layer = {
+            ...layer,
+            materialOverrides: { ...(data.materialOverrides ?? {}), ...(layer.materialOverrides ?? {}) },
+          }
         }
       }
-      return l
+      if (hide) return null
+      return { ...layer, visibleNodeFilters: filters.length ? filters : null }
     }
     return variant.glbLayers
       ? variant.glbLayers
@@ -313,6 +327,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
             materialOverrides: { ...(l.materialOverrides ?? {}), ...colorOverrides },
             animationConfig: l.animationConfig ?? null,
             visibleNodes: l.visibleNodes ?? null,
+            visibleNodeFilters: l.visibleNodeFilters ?? null,
             transform: l.transform ?? null,
             castShadow: l.castShadow !== false,
             receiveShadow: l.receiveShadow !== false,

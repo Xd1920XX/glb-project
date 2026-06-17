@@ -339,6 +339,18 @@ export default function BuilderTranslations() {
                                   setNested(['variants', v.id, 'partOptions', g.id, 'options', o.id, 'swatchImageUrl'], '')
                                   setNested(['variants', v.id, 'partOptions', g.id, 'options', o.id, 'swatchStoragePath'], '')
                                 }} />
+                              <AssetRow label="Option GLB (this language)" accept=".glb" uid={user.uid}
+                                original={o.glbUrl}
+                                value={getNested(T, ['variants', v.id, 'partOptions', g.id, 'options', o.id, 'glbUrl']) ?? ''}
+                                storagePath={getNested(T, ['variants', v.id, 'partOptions', g.id, 'options', o.id, 'glbStoragePath']) ?? ''}
+                                onChange={(url, path) => {
+                                  setNested(['variants', v.id, 'partOptions', g.id, 'options', o.id, 'glbUrl'], url)
+                                  setNested(['variants', v.id, 'partOptions', g.id, 'options', o.id, 'glbStoragePath'], path || '')
+                                }}
+                                onClear={() => {
+                                  setNested(['variants', v.id, 'partOptions', g.id, 'options', o.id, 'glbUrl'], '')
+                                  setNested(['variants', v.id, 'partOptions', g.id, 'options', o.id, 'glbStoragePath'], '')
+                                }} />
                             </div>
                           ))}
                         </div>

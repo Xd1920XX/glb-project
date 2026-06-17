@@ -23,6 +23,9 @@
  *             label?: string,
  *             swatchImageUrl?:    string,     // per-locale part swatch
  *             swatchStoragePath?: string,
+ *             glbUrl?:            string,     // per-locale option GLB
+ *             glbStoragePath?:    string,
+ *             materialOverrides?: object,     // per-locale material override map
  *           } },
  *         } },
  *         glbLayers?: { [layerId]: {
@@ -49,6 +52,10 @@ function pick(translation, fallback) {
 }
 
 // Apply both label + per-locale swatch overrides to a single option-like node.
+// For partOption options, optionally swap the GLB file (per-locale GLB asset)
+// and merge per-locale material overrides — used when a part should swap to
+// a different model when language changes (e.g. localized sticker artwork
+// baked into a per-language GLB).
 function overlayOption(item, T) {
   if (!T) return item
   const out = { ...item }
@@ -58,6 +65,13 @@ function overlayOption(item, T) {
     if (T.swatchStoragePath) out.swatchStoragePath = T.swatchStoragePath
     // When a translated swatch image is provided, ensure swatchType resolves to image
     if (!out.swatchType || out.swatchType === 'image') out.swatchType = 'image'
+  }
+  if (T.glbUrl) {
+    out.glbUrl = T.glbUrl
+    if (T.glbStoragePath) out.glbStoragePath = T.glbStoragePath
+  }
+  if (T.materialOverrides && typeof T.materialOverrides === 'object') {
+    out.materialOverrides = { ...(item.materialOverrides || {}), ...T.materialOverrides }
   }
   return out
 }
@@ -193,7 +207,10 @@ export function extractTranslatable(config) {
         id: g.id,
         label: g.label ?? '',
         options: (g.options ?? []).map((o) => ({
-          id: o.id, label: o.label ?? '', swatchImageUrl: o.swatchImageUrl ?? '',
+          id: o.id,
+          label: o.label ?? '',
+          swatchImageUrl: o.swatchImageUrl ?? '',
+          glbUrl: o.glbUrl ?? '',
         })),
       })),
       glbLayers: (v.glbLayers ?? []).map((l) => ({

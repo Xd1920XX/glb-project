@@ -53,7 +53,7 @@ function loadCachedTexture(url) {
 
 // ── Model with optional material overrides ────────────────────────
 
-function Model({ url, materialOverrides = {}, animationConfig = null, animationOverride = null, visibleNodes = null, onSceneRef = null, castShadow = true, receiveShadow = true, wireframe = false, renderMode = 'solid', xrayOpacity = 0.35, flatShading = false, layerTransform = null, crossfade = 0 }) {
+function Model({ url, materialOverrides = {}, animationConfig = null, animationOverride = null, visibleNodes = null, visibleNodeFilters = null, onSceneRef = null, castShadow = true, receiveShadow = true, wireframe = false, renderMode = 'solid', xrayOpacity = 0.35, flatShading = false, layerTransform = null, crossfade = 0 }) {
   const { scene, animations } = useGLTF(url)
   const { gl } = useThree()
   const maxAniso = useMemo(() => gl?.capabilities?.getMaxAnisotropy?.() ?? 8, [gl])
@@ -217,15 +217,26 @@ function Model({ url, materialOverrides = {}, animationConfig = null, animationO
   }, [cloned, castShadow, receiveShadow, wireframe, renderMode, xrayOpacity, flatShading])
 
   // ── Node visibility filter ─────────────────────────────────────
-  // visibleNodes is null/empty → all nodes visible.
-  // Otherwise: a mesh is visible iff its name contains any of the patterns.
+  // Two inputs:
+  //   visibleNodes        — legacy single OR-list (string[]). Mesh visible iff name
+  //                         contains any pattern.
+  //   visibleNodeFilters  — array of OR-lists (string[][]). Mesh visible iff it
+  //                         satisfies every filter (each filter is OR over its
+  //                         patterns). Allows multiple part groups to compose.
+  // Both empty/null → all nodes visible.
   useEffect(() => {
-    const patterns = visibleNodes && visibleNodes.length > 0 ? visibleNodes : null
+    const filters = []
+    if (visibleNodes && visibleNodes.length) filters.push(visibleNodes)
+    if (visibleNodeFilters && visibleNodeFilters.length) {
+      for (const f of visibleNodeFilters) if (f && f.length) filters.push(f)
+    }
     cloned.traverse((node) => {
       if (!node.isMesh) return
-      node.visible = patterns ? patterns.some((p) => node.name.includes(p)) : true
+      node.visible = filters.length === 0
+        ? true
+        : filters.every((f) => f.some((p) => node.name.includes(p)))
     })
-  }, [cloned, JSON.stringify(visibleNodes)]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cloned, JSON.stringify(visibleNodes), JSON.stringify(visibleNodeFilters)]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Animations ────────────────────────────────────────────────
   const mixer = useMemo(() => new THREE.AnimationMixer(cloned), [cloned])
@@ -383,6 +394,7 @@ function GlbStack({ layers, animationOverride, transform, wireframe = false, ren
             materialOverrides={layer.materialOverrides ?? {}}
             animationConfig={layer.animationConfig ?? null}
             visibleNodes={layer.visibleNodes ?? null}
+            visibleNodeFilters={layer.visibleNodeFilters ?? null}
             animationOverride={animationOverride}
             layerTransform={layer.transform ?? null}
             castShadow={layer.castShadow !== false && globalCastShadow}
