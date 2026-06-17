@@ -6,6 +6,7 @@ import { ARButton } from './ARButton.jsx'
 import { saveOrder, updateOrder } from '../firebase/db.js'
 import { uploadOrderSnapshot } from '../firebase/storage.js'
 import { postToParent, onParentMessage, resolveSelectionAgainstConfig, selectionToQuery } from '../embed/embedApi.js'
+import { LOCALES } from '../i18n/index.jsx'
 
 // ── Group helpers ────────────────────────────────────────────────────
 
@@ -40,7 +41,7 @@ function computeVisibleGroups(groups, selectedByGroup) {
  * Generic configurator renderer.
  * config = { variants, interiors, background, viewerSettings, variantGroups, hotspots, watermark }
  */
-export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotPlace = null, initialSelection = null, enableEmbedApi = false }) {
+export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotPlace = null, initialSelection = null, enableEmbedApi = false, locales = null, currentLocale = null, onLocaleChange = null }) {
   const { variants = [], interiors = [], background, viewerSettings = {}, exteriorLabel, interiorLabel, orderForm, theme = 'minimal', darkMode = false, themeColors = {}, variantGroups = [], hotspots = [], watermark, hideInteriorTab = false, hide3DButton = false, enableLightingControl = false } = config
 
   const resolvedInitial = useMemo(
@@ -674,6 +675,20 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
 
       <div className="config-pane">
         <div className="config-panel">
+          {locales && locales.length > 1 && onLocaleChange && (
+            <div className="locale-picker">
+              <select
+                value={currentLocale ?? ''}
+                onChange={(e) => onLocaleChange(e.target.value || null)}
+                aria-label="Language">
+                {locales.map((loc) => (
+                  <option key={loc || 'default'} value={loc || ''}>
+                    {loc ? (LOCALES[loc]?.name ?? loc) : 'Default'}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           {/* Tabs */}
           <div className="view-tabs">
             {variants.length > 0 && (

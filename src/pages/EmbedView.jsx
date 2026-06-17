@@ -64,15 +64,35 @@ export default function EmbedView() {
 }
 
 function TranslatedRenderer({ config, initialSelection, search }) {
-  const lang = useMemo(() => {
+  const initialLang = useMemo(() => {
     const p = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search)
     return p.get('lang') || null
   }, [search])
+
+  const [lang, setLang] = useState(initialLang)
+
+  // Available locales = anything the config has translations for, plus the
+  // implicit default (no translation overlay = original strings).
+  const locales = useMemo(() => {
+    const keys = config?.translations ? Object.keys(config.translations) : []
+    return [null, ...keys]
+  }, [config])
 
   const translatedConfig = useMemo(
     () => applyConfigTranslations(config, lang),
     [config, lang]
   )
+
+  // Reflect language in URL so the choice is shareable/back-button-friendly.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    if (lang) params.set('lang', lang)
+    else params.delete('lang')
+    const qs = params.toString()
+    const next = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash
+    window.history.replaceState(null, '', next)
+  }, [lang])
 
   // Key the renderer by selection + lang so changes re-mount fresh state.
   const renderKey = `${lang || 'default'}::${JSON.stringify(initialSelection)}`
@@ -83,6 +103,9 @@ function TranslatedRenderer({ config, initialSelection, search }) {
       config={translatedConfig}
       initialSelection={initialSelection}
       enableEmbedApi
+      locales={locales}
+      currentLocale={lang}
+      onLocaleChange={setLang}
     />
   )
 }

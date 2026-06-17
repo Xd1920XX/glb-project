@@ -102,6 +102,23 @@ body {
   margin-top: 3px;
 }
 
+/* ── Language picker (embed) ─────────────────────────────────────── */
+
+.locale-picker {
+  padding: 12px 24px 0;
+  display: flex;
+  justify-content: flex-end;
+}
+.locale-picker select {
+  font-size: 12px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+
 /* ── View tabs ───────────────────────────────────────────────────── */
 
 .view-tabs {
