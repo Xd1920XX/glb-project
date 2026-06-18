@@ -165,6 +165,26 @@ export const MODELS = {
       { id: 'huum-hive-eos', label: 'Huum Hive 9kw + EOS',    icon: ICON.huumEOS, path: encode('/Mudelid/10_Denmark/Saun Denmark_6k_Huum Hive+EOS.jpg') },
     ],
   },
+
+  'sauna-dushiga': {
+    name: 'Saun Duširuumiga',
+    colors: makeColors({
+      blackFolder: '/Mudelid/01_Saun Duširuumiga/Pööratav must',
+      brownFolder: '/Mudelid/01_Saun Duširuumiga/Pööratav pruun',
+      glb:         '/Mudelid/01_Saun Duširuumiga/Saun Dushiga.glb',
+    }),
+    rooms: [
+      { id: 'sauna',    label: 'Sauna room' },
+      { id: 'shower',   label: 'Shower room',   path: encode('/Mudelid/01_Saun Duširuumiga/Saun Duširuumiga_6k_shower room.jpg') },
+      { id: 'changing', label: 'Changing room', path: encode('/Mudelid/01_Saun Duširuumiga/Saun Duširuumiga_6k_2nd room.jpg') },
+    ],
+    interiors: [
+      { id: 'huum-flow',     label: 'Huum Flow 8.5kw',                icon: ICON.flow,    path: encode('/Mudelid/01_Saun Duširuumiga/Saun Duširuumiga_6k_Huum Flow.jpg') },
+      { id: 'huum-flow-eos', label: 'Huum Flow 8.5kw + Infrared EOS', icon: ICON.flowEOS, path: encode('/Mudelid/01_Saun Duširuumiga/Saun Duširuumiga_6k_Huum Flow+infrared EOS.jpg') },
+      { id: 'huum-hive',     label: 'Huum Hive 9kw',                  icon: ICON.huum,    path: encode('/Mudelid/01_Saun Duširuumiga/Saun Duširuumiga_6k_Huum Hive.jpg') },
+      { id: 'huum-hive-eos', label: 'Huum Hive 9kw + Infrared EOS',   icon: ICON.huumEOS, path: encode('/Mudelid/01_Saun Duširuumiga/Saun Duširuumiga_6k_Huum Hive+infrared EOS.jpg') },
+    ],
+  },
 }
 
 // Legacy exports for backward compatibility

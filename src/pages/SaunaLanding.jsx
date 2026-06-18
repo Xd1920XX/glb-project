@@ -10,6 +10,7 @@ const MODELS = [
   { id: '07', name: 'Grande',           image: encodeURI('/Mudelid/08_Grande/Pööratav_Must/1.jpg'),             modelId: 'grande' },
   { id: '08', name: 'Saun Elegant',     image: encodeURI('/Mudelid/09_Saun Elegant/Must pööratav/1.jpg'),       modelId: 'elegant' },
   { id: '09', name: 'Denmark',          image: encodeURI('/Mudelid/10_Denmark/Pööratav must/1.jpg'),            modelId: 'denmark' },
+  { id: '10', name: 'Saun Duširuumiga', image: encodeURI('/Mudelid/01_Saun Duširuumiga/Pööratav must/1.jpg'),   modelId: 'sauna-dushiga' },
 ]
 
 
