@@ -1,0 +1,487 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for src/pages/PrivacyPolicy.jsx</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/pages</a> PrivacyPolicy.jsx</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>0/112</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>0/112</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a>
+<a name='L97'></a><a href='#L97'>97</a>
+<a name='L98'></a><a href='#L98'>98</a>
+<a name='L99'></a><a href='#L99'>99</a>
+<a name='L100'></a><a href='#L100'>100</a>
+<a name='L101'></a><a href='#L101'>101</a>
+<a name='L102'></a><a href='#L102'>102</a>
+<a name='L103'></a><a href='#L103'>103</a>
+<a name='L104'></a><a href='#L104'>104</a>
+<a name='L105'></a><a href='#L105'>105</a>
+<a name='L106'></a><a href='#L106'>106</a>
+<a name='L107'></a><a href='#L107'>107</a>
+<a name='L108'></a><a href='#L108'>108</a>
+<a name='L109'></a><a href='#L109'>109</a>
+<a name='L110'></a><a href='#L110'>110</a>
+<a name='L111'></a><a href='#L111'>111</a>
+<a name='L112'></a><a href='#L112'>112</a>
+<a name='L113'></a><a href='#L113'>113</a>
+<a name='L114'></a><a href='#L114'>114</a>
+<a name='L115'></a><a href='#L115'>115</a>
+<a name='L116'></a><a href='#L116'>116</a>
+<a name='L117'></a><a href='#L117'>117</a>
+<a name='L118'></a><a href='#L118'>118</a>
+<a name='L119'></a><a href='#L119'>119</a>
+<a name='L120'></a><a href='#L120'>120</a>
+<a name='L121'></a><a href='#L121'>121</a>
+<a name='L122'></a><a href='#L122'>122</a>
+<a name='L123'></a><a href='#L123'>123</a>
+<a name='L124'></a><a href='#L124'>124</a>
+<a name='L125'></a><a href='#L125'>125</a>
+<a name='L126'></a><a href='#L126'>126</a>
+<a name='L127'></a><a href='#L127'>127</a>
+<a name='L128'></a><a href='#L128'>128</a>
+<a name='L129'></a><a href='#L129'>129</a>
+<a name='L130'></a><a href='#L130'>130</a>
+<a name='L131'></a><a href='#L131'>131</a>
+<a name='L132'></a><a href='#L132'>132</a>
+<a name='L133'></a><a href='#L133'>133</a>
+<a name='L134'></a><a href='#L134'>134</a>
+<a name='L135'></a><a href='#L135'>135</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" >import { Link } from 'react-router-dom'</span></span></span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >export default function PrivacyPolicy() {</span>
+<span class="cstat-no" title="statement not covered" >  return (</span>
+<span class="cstat-no" title="statement not covered" >    &lt;div className="legal-page"&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;div className="legal-nav"&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;Link to="/" className="legal-nav-back"&gt;← GLB Configurator&lt;/Link&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;div className="legal-container"&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;div className="legal-header"&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;p className="legal-eyebrow"&gt;Nordic Render OÜ&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;h1&gt;Privacy Policy&lt;/h1&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;p className="legal-updated"&gt;Last updated: 23 April 2026&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;/div&gt;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        &lt;div className="legal-body"&gt;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >          &lt;section&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;h2&gt;1. Who we are&lt;/h2&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;This Privacy Policy applies to the GLB Configurator platform operated by &lt;strong&gt;Nordic Render OÜ&lt;/strong&gt;, a private limited company registered in Estonia (Reg. no. 16885822, VAT EE102691294), with registered address at A. H. Tammsaare tee 47, Kristiine linnaosa, 11316 Tallinn, Estonia.&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;We are the data controller for personal data collected through our platform at &lt;strong&gt;glbconfigurator.com&lt;/strong&gt;.&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;Contact us: &lt;a href="mailto:privacy@nordicrender.com"&gt;privacy@nordicrender.com&lt;/a&gt;&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;/section&gt;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >          &lt;section&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;h2&gt;2. What data we collect and why&lt;/h2&gt;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >            &lt;h3&gt;Account data&lt;/h3&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;When you register, we collect your &lt;strong&gt;email address&lt;/strong&gt; and optionally your name. This is required to create and manage your account. Legal basis: &lt;em&gt;performance of a contract&lt;/em&gt; (Art. 6(1)(b) GDPR).&lt;/p&gt;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >            &lt;h3&gt;Billing data&lt;/h3&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;To issue VAT-compliant invoices, we collect billing details you provide: full name, company name, VAT/Tax ID, street address, city, postal code, and country. Legal basis: &lt;em&gt;legal obligation&lt;/em&gt; (Art. 6(1)(c) GDPR) and &lt;em&gt;performance of a contract&lt;/em&gt;.&lt;/p&gt;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >            &lt;h3&gt;Payment data&lt;/h3&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;Payments are processed by &lt;strong&gt;Stripe, Inc.&lt;/strong&gt; We do not store your card details. Stripe transmits to us a transaction ID and subscription status. Stripe's privacy policy: &lt;a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer"&gt;stripe.com/privacy&lt;/a&gt;.&lt;/p&gt;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >            &lt;h3&gt;Usage data&lt;/h3&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;We collect information about how you use the platform — pages visited, configurators created, embeds published — to improve the service and for billing purposes (embed count). Legal basis: &lt;em&gt;legitimate interest&lt;/em&gt; (Art. 6(1)(f) GDPR).&lt;/p&gt;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >            &lt;h3&gt;Technical data&lt;/h3&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;Standard server and browser data including IP address, browser type, operating system, referring URL, and session identifiers are collected automatically. Legal basis: &lt;em&gt;legitimate interest&lt;/em&gt;.&lt;/p&gt;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >            &lt;h3&gt;Communications&lt;/h3&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;We send transactional emails (account confirmation, invoices, subscription status) via &lt;strong&gt;SendGrid (Twilio Inc.)&lt;/strong&gt;. We do not send marketing emails without your explicit consent. Legal basis: &lt;em&gt;performance of a contract&lt;/em&gt;.&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;/section&gt;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >          &lt;section&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;h2&gt;3. Cookies and tracking&lt;/h2&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;We use the following cookies and local storage:&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;ul&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;li&gt;&lt;strong&gt;Authentication (necessary):&lt;/strong&gt; Firebase Authentication stores a session token in your browser's local storage to keep you logged in. Without this, the platform cannot function.&lt;/li&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;li&gt;&lt;strong&gt;Analytics (optional):&lt;/strong&gt; If you consent, Google Analytics (Firebase Analytics) collects anonymised usage statistics to help us understand how the platform is used. You can withdraw consent at any time via the cookie settings.&lt;/li&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;/ul&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;We do not use advertising or third-party tracking cookies.&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;See our full &lt;Link to="/cookies"&gt;Cookie Policy&lt;/Link&gt;.&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;/section&gt;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >          &lt;section&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;h2&gt;4. Who we share your data with&lt;/h2&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;We do not sell your personal data. We share data only with the following processors, each under a data processing agreement:&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;ul&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;li&gt;&lt;strong&gt;Google / Firebase&lt;/strong&gt; — authentication, database (Firestore), file storage, and hosting. Data may be processed in the US under Standard Contractual Clauses.&lt;/li&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;li&gt;&lt;strong&gt;Stripe, Inc.&lt;/strong&gt; — payment processing. Data processed in the US under Standard Contractual Clauses.&lt;/li&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;li&gt;&lt;strong&gt;Twilio SendGrid&lt;/strong&gt; — transactional email delivery. Data processed in the US under Standard Contractual Clauses.&lt;/li&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;/ul&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;/section&gt;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >          &lt;section&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;h2&gt;5. Data retention&lt;/h2&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;ul&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;li&gt;&lt;strong&gt;Account data:&lt;/strong&gt; retained for the duration of your account and deleted within 90 days of account closure.&lt;/li&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;li&gt;&lt;strong&gt;Invoices and billing records:&lt;/strong&gt; retained for 7 years as required by Estonian accounting law (Raamatupidamise seadus § 12).&lt;/li&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;li&gt;&lt;strong&gt;Usage logs:&lt;/strong&gt; retained for up to 12 months.&lt;/li&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;/ul&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;/section&gt;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >          &lt;section&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;h2&gt;6. Your rights under GDPR&lt;/h2&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;As a data subject in the EU/EEA, you have the right to:&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;ul&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;li&gt;&lt;strong&gt;Access&lt;/strong&gt; — request a copy of all personal data we hold about you.&lt;/li&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;li&gt;&lt;strong&gt;Rectification&lt;/strong&gt; — correct inaccurate data.&lt;/li&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;li&gt;&lt;strong&gt;Erasure&lt;/strong&gt; — request deletion of your data (subject to legal retention obligations).&lt;/li&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;li&gt;&lt;strong&gt;Portability&lt;/strong&gt; — receive your data in a structured, machine-readable format.&lt;/li&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;li&gt;&lt;strong&gt;Restriction&lt;/strong&gt; — request that we limit processing of your data.&lt;/li&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;li&gt;&lt;strong&gt;Objection&lt;/strong&gt; — object to processing based on legitimate interest.&lt;/li&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;li&gt;&lt;strong&gt;Withdraw consent&lt;/strong&gt; — for any processing based solely on consent (e.g. analytics cookies).&lt;/li&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;/ul&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;To exercise any right, email &lt;a href="mailto:privacy@nordicrender.com"&gt;privacy@nordicrender.com&lt;/a&gt;. We will respond within 30 days. If you believe we have violated your rights, you may lodge a complaint with the &lt;strong&gt;Estonian Data Protection Inspectorate&lt;/strong&gt; (&lt;a href="https://www.aki.ee" target="_blank" rel="noopener noreferrer"&gt;aki.ee&lt;/a&gt;).&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;/section&gt;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >          &lt;section&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;h2&gt;7. International transfers&lt;/h2&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;Some processors (Google, Stripe, Twilio) are located in the United States. Transfers are covered by Standard Contractual Clauses approved by the European Commission under Art. 46(2)(c) GDPR.&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;/section&gt;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >          &lt;section&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;h2&gt;8. Security&lt;/h2&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;We implement appropriate technical and organisational measures including encrypted data transmission (TLS), access controls, and Firebase security rules. No method of transmission or storage is 100% secure; we cannot guarantee absolute security.&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;/section&gt;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >          &lt;section&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;h2&gt;9. Changes to this policy&lt;/h2&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;We may update this policy from time to time. We will notify you of material changes by email. Continued use of the platform after the effective date constitutes acceptance of the updated policy.&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;/section&gt;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >          &lt;section&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;h2&gt;10. Contact&lt;/h2&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;&lt;strong&gt;Nordic Render OÜ&lt;/strong&gt;&lt;br /&gt;</span>
+<span class="cstat-no" title="statement not covered" >            A. H. Tammsaare tee 47, 11316 Tallinn, Estonia&lt;br /&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;a href="mailto:privacy@nordicrender.com"&gt;privacy@nordicrender.com&lt;/a&gt;&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;/section&gt;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;LegalFooter /&gt;</span>
+<span class="cstat-no" title="statement not covered" >    &lt;/div&gt;</span>
+  )
+<span class="cstat-no" title="statement not covered" >}</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >export function LegalFooter() {</span>
+<span class="cstat-no" title="statement not covered" >  return (</span>
+<span class="cstat-no" title="statement not covered" >    &lt;footer className="legal-footer"&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;div className="legal-footer-inner"&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;span&gt;© {new Date().getFullYear()} Nordic Render OÜ · Reg. 16885822 · VAT EE102691294&lt;/span&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;div className="legal-footer-links"&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;Link to="/privacy"&gt;Privacy Policy&lt;/Link&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;Link to="/terms"&gt;Terms of Service&lt;/Link&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;Link to="/cookies"&gt;Cookie Policy&lt;/Link&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >    &lt;/footer&gt;</span>
+  )
+<span class="cstat-no" title="statement not covered" >}</span>
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-04-30T07:48:22.841Z
+            </div>
+        <script src="../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../sorter.js"></script>
+        <script src="../../block-navigation.js"></script>
+    </body>
+</html>
+    

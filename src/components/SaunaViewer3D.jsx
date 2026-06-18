@@ -6,9 +6,8 @@ import * as THREE from 'three'
 // Point useGLTF at the local Draco decoder (needed for compressed GLBs)
 useGLTF.setDecoderPath('/draco/')
 
-useGLTF.preload(encodeURI('/latest/Sauna City.glb'))
-useGLTF.preload(encodeURI('/xs-Exterior/Sauna City XS (1).glb'))
-useGLTF.preload(encodeURI('/city_lux/Sauna City LUX.glb'))
+useGLTF.preload(encodeURI('/Mudelid/02_City XS/Sauna City XS.glb'))
+useGLTF.preload(encodeURI('/Mudelid/03_Saun City/Sauna City.glb'))
 
 export const ENV_PRESETS = [
   'apartment', 'city', 'dawn', 'forest', 'lobby',

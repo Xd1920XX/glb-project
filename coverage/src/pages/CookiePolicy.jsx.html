@@ -1,0 +1,424 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for src/pages/CookiePolicy.jsx</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/pages</a> CookiePolicy.jsx</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>0/101</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>0/101</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a>
+<a name='L97'></a><a href='#L97'>97</a>
+<a name='L98'></a><a href='#L98'>98</a>
+<a name='L99'></a><a href='#L99'>99</a>
+<a name='L100'></a><a href='#L100'>100</a>
+<a name='L101'></a><a href='#L101'>101</a>
+<a name='L102'></a><a href='#L102'>102</a>
+<a name='L103'></a><a href='#L103'>103</a>
+<a name='L104'></a><a href='#L104'>104</a>
+<a name='L105'></a><a href='#L105'>105</a>
+<a name='L106'></a><a href='#L106'>106</a>
+<a name='L107'></a><a href='#L107'>107</a>
+<a name='L108'></a><a href='#L108'>108</a>
+<a name='L109'></a><a href='#L109'>109</a>
+<a name='L110'></a><a href='#L110'>110</a>
+<a name='L111'></a><a href='#L111'>111</a>
+<a name='L112'></a><a href='#L112'>112</a>
+<a name='L113'></a><a href='#L113'>113</a>
+<a name='L114'></a><a href='#L114'>114</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" >import { Link } from 'react-router-dom'</span></span></span>
+import { LegalFooter } from './PrivacyPolicy.jsx'
+&nbsp;
+<span class="cstat-no" title="statement not covered" >export default function CookiePolicy() {</span>
+<span class="cstat-no" title="statement not covered" >  return (</span>
+<span class="cstat-no" title="statement not covered" >    &lt;div className="legal-page"&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;div className="legal-nav"&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;Link to="/" className="legal-nav-back"&gt;← GLB Configurator&lt;/Link&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;div className="legal-container"&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;div className="legal-header"&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;p className="legal-eyebrow"&gt;Nordic Render OÜ&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;h1&gt;Cookie Policy&lt;/h1&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;p className="legal-updated"&gt;Last updated: 23 April 2026&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;/div&gt;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        &lt;div className="legal-body"&gt;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >          &lt;section&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;h2&gt;1. What are cookies&lt;/h2&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;Cookies are small text files placed on your device by a website. They are widely used to make websites work, to work more efficiently, and to provide information to site owners. We also use similar technologies such as &lt;strong&gt;localStorage&lt;/strong&gt; (data stored in your browser).&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;/section&gt;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >          &lt;section&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;h2&gt;2. How we use cookies&lt;/h2&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;We keep our cookie use minimal. We use two categories:&lt;/p&gt;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >            &lt;h3&gt;Strictly necessary (always active)&lt;/h3&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;These are required for the platform to function and cannot be disabled.&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;table className="legal-table"&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;thead&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;tr&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;th&gt;Name / Storage key&lt;/th&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;th&gt;Provider&lt;/th&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;th&gt;Purpose&lt;/th&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;th&gt;Expires&lt;/th&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;/tr&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;/thead&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;tbody&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;tr&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;td&gt;&lt;code&gt;firebase:authUser:*&lt;/code&gt;&lt;/td&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;td&gt;Google Firebase&lt;/td&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;td&gt;Keeps you logged in to your account. Without this you would be logged out on every page load.&lt;/td&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;td&gt;Session / until sign-out&lt;/td&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;/tr&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;tr&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;td&gt;&lt;code&gt;cookie_consent&lt;/code&gt;&lt;/td&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;td&gt;GLB Configurator&lt;/td&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;td&gt;Stores your cookie preference (accepted / declined analytics) so we do not ask again.&lt;/td&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;td&gt;365 days&lt;/td&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;/tr&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;/tbody&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;/table&gt;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >            &lt;h3&gt;Analytics (optional — requires consent)&lt;/h3&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;If you accept analytics cookies, Google Analytics (Firebase Analytics) is loaded to collect anonymised usage data. We use this to understand which features are most used and to improve the platform.&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;table className="legal-table"&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;thead&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;tr&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;th&gt;Name&lt;/th&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;th&gt;Provider&lt;/th&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;th&gt;Purpose&lt;/th&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;th&gt;Expires&lt;/th&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;/tr&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;/thead&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;tbody&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;tr&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;td&gt;&lt;code&gt;_ga&lt;/code&gt;&lt;/td&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;td&gt;Google Analytics&lt;/td&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;td&gt;Distinguishes unique users using a randomly generated number.&lt;/td&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;td&gt;2 years&lt;/td&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;/tr&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;tr&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;td&gt;&lt;code&gt;_ga_*&lt;/code&gt;&lt;/td&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;td&gt;Google Analytics&lt;/td&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;td&gt;Stores and counts page views.&lt;/td&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;td&gt;2 years&lt;/td&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;/tr&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;/tbody&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;/table&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;No advertising, retargeting, or third-party tracking cookies are used.&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;/section&gt;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >          &lt;section&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;h2&gt;3. Managing your preferences&lt;/h2&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;You can change your cookie preferences at any time by clicking &lt;strong&gt;"Cookie settings"&lt;/strong&gt; in the footer of any page, or by clearing your browser's local storage and cookies for this site.&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;You can also control cookies at the browser level:&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;ul&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;li&gt;&lt;a href="https://support.google.com/chrome/answer/95647" target="_blank" rel="noopener noreferrer"&gt;Chrome&lt;/a&gt;&lt;/li&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;li&gt;&lt;a href="https://support.mozilla.org/en-US/kb/enhanced-tracking-protection-firefox-desktop" target="_blank" rel="noopener noreferrer"&gt;Firefox&lt;/a&gt;&lt;/li&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;li&gt;&lt;a href="https://support.apple.com/en-gb/guide/safari/sfri11471/mac" target="_blank" rel="noopener noreferrer"&gt;Safari&lt;/a&gt;&lt;/li&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;li&gt;&lt;a href="https://support.microsoft.com/en-us/windows/manage-cookies-in-microsoft-edge" target="_blank" rel="noopener noreferrer"&gt;Edge&lt;/a&gt;&lt;/li&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;/ul&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;Note: blocking strictly necessary cookies will prevent you from using the platform.&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;/section&gt;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >          &lt;section&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;h2&gt;4. Legal basis&lt;/h2&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;Strictly necessary cookies are used on the basis of &lt;em&gt;legitimate interest&lt;/em&gt; and are essential to providing the service you have requested. Analytics cookies are only set with your explicit &lt;em&gt;consent&lt;/em&gt; (Art. 6(1)(a) GDPR). You may withdraw consent at any time.&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;/section&gt;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >          &lt;section&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;h2&gt;5. Contact&lt;/h2&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;Questions about our cookie use: &lt;a href="mailto:privacy@nordicrender.com"&gt;privacy@nordicrender.com&lt;/a&gt;&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;Full details of how we handle your personal data: &lt;Link to="/privacy"&gt;Privacy Policy&lt;/Link&gt;.&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;/section&gt;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;LegalFooter /&gt;</span>
+<span class="cstat-no" title="statement not covered" >    &lt;/div&gt;</span>
+  )
+<span class="cstat-no" title="statement not covered" >}</span>
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-04-30T07:48:22.841Z
+            </div>
+        <script src="../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../sorter.js"></script>
+        <script src="../../block-navigation.js"></script>
+    </body>
+</html>
+    
