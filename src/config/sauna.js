@@ -59,6 +59,7 @@ export const MODELS = {
     colors: makeColors({
       blackFolder: '/Mudelid/04_Saun City LUX/Pööratav must',
       brownFolder: '/Mudelid/04_Saun City LUX/Pööratav pruun',
+      glb:         '/City_lux_new/Sauna City LUX.glb',
     }),
     interiors: [
       { id: 'harvia',    label: 'Harvia Spirit 9kw WI-FI',            icon: ICON.harvia,   path: encode('/Mudelid/04_Saun City LUX/CIty LUX_6k_Harvia.jpg') },
