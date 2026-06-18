@@ -265,6 +265,22 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
 
   const vs = viewerSettings
 
+  // Groups suppressed by the currently selected partOptions.
+  // An option may declare `hidesGroups: [groupLabel,...]` to hide other groups
+  // (and exclude their visibleNodes filters) when that option is active.
+  // Use case: a "no-variants" lid like Puhas turns off hole/orientation toggles
+  // that otherwise filter to nodes its GLB does not contain.
+  const suppressedPartGroups = useMemo(() => {
+    const set = new Set()
+    for (const grp of variant?.partOptions ?? []) {
+      const sel = grp.options?.find((o) => o.label === partSel[grp.label])
+        ?? grp.options?.find((o) => o.id === grp.defaultOptionId)
+        ?? grp.options?.[0]
+      if (sel?.hidesGroups) sel.hidesGroups.forEach((l) => set.add(l))
+    }
+    return set
+  }, [variant, partSel])
+
   // Resolved GLB layers for the active variant — shared by viewer + AR button.
   const activeGlbLayers = useMemo(() => {
     if (!variant || (view !== 'exterior' && view !== 'order')) return []
@@ -294,6 +310,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
       let hide = false
       for (const grp of variant.partOptions ?? []) {
         if (!grp.matchLayerLabels?.includes(l.label)) continue
+        if (suppressedPartGroups.has(grp.label)) continue
         const opt = resolveOption(grp)
         if (!opt) continue
         if (opt.hidden) { hide = true; break }
@@ -336,7 +353,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
       : variant.glbUrl
         ? [{ url: variant.glbUrl, materialOverrides: variant.materialOverrides ?? {}, animationConfig: variant.animationConfig ?? null }]
         : []
-  }, [variant, view, colorSel, layerVisByVariant, partSel])
+  }, [variant, view, colorSel, layerVisByVariant, partSel, suppressedPartGroups])
 
   // ── Viewer ──────────────────────────────────────────────────────
   function renderViewer() {
@@ -500,6 +517,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
         const colorPart = selectedColorOpt ? `Color: ${selectedColorOpt.label}` : null
 
         const partOptionParts = (variant?.partOptions ?? []).map((grp) => {
+          if (suppressedPartGroups.has(grp.label)) return null
           const opt = grp.options?.find((o) => o.label === partSel[grp.label])
             ?? grp.options?.find((o) => o.id === grp.defaultOptionId)
             ?? grp.options?.[0]
@@ -518,6 +536,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
           }, {}),
           color: selectedColorOpt?.label ?? null,
           partOptions: (variant?.partOptions ?? []).reduce((acc, grp) => {
+            if (suppressedPartGroups.has(grp.label)) return acc
             const opt = grp.options?.find((o) => o.label === partSel[grp.label])
               ?? grp.options?.find((o) => o.id === grp.defaultOptionId)
               ?? grp.options?.[0]
@@ -765,7 +784,9 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
                     </div>
                   )
                 })()}
-                {modelTouched && variant?.partOptions?.length > 0 && variant.partOptions.map((grp, idx) => {
+                {modelTouched && variant?.partOptions?.length > 0 && variant.partOptions
+                  .filter((grp) => !suppressedPartGroups.has(grp.label))
+                  .map((grp, idx) => {
                   if (!grp.options?.length) return null
                   if (idx > 0 && !firstPartTouched) return null
                   const selOpt = grp.options.find((o) => o.label === partSel[grp.label])
@@ -881,6 +902,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
                       )
                     })()}
                     {(variant?.partOptions ?? []).map((grp) => {
+                      if (suppressedPartGroups.has(grp.label)) return null
                       const opt = grp.options?.find((o) => o.label === partSel[grp.label])
                         ?? grp.options?.find((o) => o.id === grp.defaultOptionId)
                         ?? grp.options?.[0]
