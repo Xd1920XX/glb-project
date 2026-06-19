@@ -27,6 +27,7 @@ import GlbModels      from './pages/GlbModels.jsx'
 import WhatIsGlb      from './pages/WhatIsGlb.jsx'
 import Team           from './pages/Team.jsx'
 import JoinTeam       from './pages/JoinTeam.jsx'
+import PrygikastDemo  from './pages/PrygikastDemo.jsx'
 
 export default function App() {
   return (
@@ -36,6 +37,7 @@ export default function App() {
         <Route path="/login"          element={<Login />} />
         <Route path="/signup"         element={<Signup />} />
         <Route path="/demo"           element={<SaunaDemo />} />
+        <Route path="/prygikast"      element={<PrygikastDemo />} />
         <Route path="/contact"        element={<Contact />} />
         <Route path="/glb-models"     element={<GlbModels />} />
         <Route path="/what-is-glb"    element={<WhatIsGlb />} />
