@@ -831,7 +831,7 @@ body {
 /* ── Mobile ──────────────────────────────────────────────────────── */
 
 @media (max-width: 768px) {
-  html, body, #root { height: 100%; overflow: hidden; }
+  html:has(.app), body:has(.app), #root:has(.app) { height: 100%; overflow: hidden; }
 
   .app {
     grid-template-columns: 1fr;
