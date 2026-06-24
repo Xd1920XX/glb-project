@@ -741,24 +741,28 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
                   <div key={group.id} className="variant-group-section">
                     {group.label && <p className="section-label">{group.label}</p>}
                     <div className="color-grid">
-                      {group.variants.map((v) => (
-                        <button key={v.id}
-                          className={`color-card${selectedByGroup[group.id] === v.id && activeGroupId === group.id && modelTouched ? ' selected' : ''}`}
-                          onClick={() => {
-                            setSelectedByGroup((prev) => ({ ...prev, [group.id]: v.id }))
-                            setActiveGroupId(group.id)
-                            setModelTouched(true)
-                            setFirstPartTouched(false)
-                            setFrameIndex(0)
-                            setShow3D(false)
-                          }}>
-                          <SwatchDot variant={v} />
-                          <div className="color-card-info">
-                            <span className="color-label">{v.label}</span>
-                            {v.price != null && <span className="color-price">{fmt(v.price)}</span>}
-                          </div>
-                        </button>
-                      ))}
+                      {group.variants.map((v) => {
+                        const isSelected = selectedByGroup[group.id] === v.id && activeGroupId === group.id && modelTouched
+                        return (
+                          <button key={v.id} type="button"
+                            aria-pressed={isSelected}
+                            className={`color-card${isSelected ? ' selected' : ''}`}
+                            onClick={() => {
+                              setSelectedByGroup((prev) => ({ ...prev, [group.id]: v.id }))
+                              setActiveGroupId(group.id)
+                              setModelTouched(true)
+                              setFirstPartTouched(false)
+                              setFrameIndex(0)
+                              setShow3D(false)
+                            }}>
+                            <SwatchDot variant={v} />
+                            <div className="color-card-info">
+                              <span className="color-label">{v.label}</span>
+                              {v.price != null && <span className="color-price">{fmt(v.price)}</span>}
+                            </div>
+                          </button>
+                        )
+                      })}
                     </div>
                   </div>
                 ))}
@@ -768,10 +772,11 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
                     ?? variant.colorOptions[0]
                   return (
                     <div className="variant-group-section">
-                      <p className="section-label">Frame color</p>
+                      <p className="section-label">{variant.colorOptionsLabel || 'Color'}</p>
                       <div className="color-grid">
                         {variant.colorOptions.map((c) => (
-                          <button key={c.id}
+                          <button key={c.id} type="button"
+                            aria-pressed={sel?.label === c.label}
                             className={`color-card${sel?.label === c.label ? ' selected' : ''}`}
                             onClick={() => setColorSel(c.label)}>
                             <span className="color-dot" style={{ background: c.swatch }} />
@@ -796,22 +801,26 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
                     <div key={grp.id} className="variant-group-section">
                       <p className="section-label">{grp.label}</p>
                       <div className="color-grid">
-                        {grp.options.map((o) => (
-                          <button key={o.id}
-                            className={`color-card${selOpt?.label === o.label ? ' selected' : ''}`}
-                            onClick={() => {
-                              setPartSel((prev) => ({ ...prev, [grp.label]: o.label }))
-                              if (idx === 0) setFirstPartTouched(true)
-                            }}>
-                            {o.swatchImageUrl
-                              ? <img src={o.swatchImageUrl} className="color-dot color-dot-img" alt="" />
-                              : <span className="color-dot" style={{ background: o.swatch ?? '#888' }} />}
-                            <div className="color-card-info">
-                              <span className="color-label">{o.label}</span>
-                              {o.price != null && <span className="color-price">{fmt(o.price)}</span>}
-                            </div>
-                          </button>
-                        ))}
+                        {grp.options.map((o) => {
+                          const isSelected = selOpt?.label === o.label
+                          return (
+                            <button key={o.id} type="button"
+                              aria-pressed={isSelected}
+                              className={`color-card${isSelected ? ' selected' : ''}`}
+                              onClick={() => {
+                                setPartSel((prev) => ({ ...prev, [grp.label]: o.label }))
+                                if (idx === 0) setFirstPartTouched(true)
+                              }}>
+                              {o.swatchImageUrl
+                                ? <img src={o.swatchImageUrl} className="color-dot color-dot-img" alt="" />
+                                : <span className="color-dot" style={{ background: o.swatch ?? '#888' }} />}
+                              <div className="color-card-info">
+                                <span className="color-label">{o.label}</span>
+                                {o.price != null && <span className="color-price">{fmt(o.price)}</span>}
+                              </div>
+                            </button>
+                          )
+                        })}
                       </div>
                     </div>
                   )
@@ -845,20 +854,23 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
             {/* Interior panel */}
             {view === 'interior' && !hideInteriorTab && interiors.length > 0 && (
               <div className="tab-section">
-                <p className="section-label">View</p>
-                <div className="interior-list">
-                  {interiors.map((item) => (
-                    <button key={item.id}
-                      className={`interior-item${interiorId === item.id ? ' selected' : ''}`}
-                      onClick={() => setInteriorId(item.id)}>
-                      {item.panoramaUrl && (
-                        <div className="interior-item-thumb">
-                          <img src={item.panoramaUrl} alt="" />
-                        </div>
-                      )}
-                      <span className="interior-item-label">{item.label}</span>
-                    </button>
-                  ))}
+                <div className="variant-group-section">
+                  <p className="section-label">View</p>
+                  <div className="interior-list">
+                    {interiors.map((item) => (
+                      <button key={item.id} type="button"
+                        aria-pressed={interiorId === item.id}
+                        className={`interior-item${interiorId === item.id ? ' selected' : ''}`}
+                        onClick={() => setInteriorId(item.id)}>
+                        {item.panoramaUrl && (
+                          <div className="interior-item-thumb">
+                            <img src={item.panoramaUrl} alt="" />
+                          </div>
+                        )}
+                        <span className="interior-item-label">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <TabNav tabs={tabs} view={view} setView={setView} />
               </div>
