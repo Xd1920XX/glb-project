@@ -13,6 +13,7 @@ export default function Landing() {
       <nav className="landing-nav">
         <Link to="/"><img src="/logo.svg" alt="glbconfigurator" className="landing-logo-img" /></Link>
         <div className="landing-nav-links">
+          <Link to="/features">Features</Link>
           <Link to="/contact">Contact</Link>
           <Link to="/login">Log in</Link>
           <Link to="/signup" className="btn-primary">Get started</Link>
@@ -241,6 +242,7 @@ export default function Landing() {
           <div className="landing-footer-links">
             <div className="footer-col">
               <div className="footer-col-title">Product</div>
+              <Link to="/features">Features</Link>
               <Link to="/demo">Demo</Link>
               <Link to="/signup">Sign up</Link>
               <Link to="/login">Log in</Link>
