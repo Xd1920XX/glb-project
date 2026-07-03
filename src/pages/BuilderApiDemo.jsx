@@ -16,6 +16,7 @@ export default function BuilderApiDemo() {
   const [order, setOrder] = useState(null)
   const [log, setLog] = useState([])
   const [lang, setLang] = useState('')
+  const [panel, setPanel] = useState('')
   const [custom, setCustom] = useState('{"selection":{}}')
   const frameRef = useRef(null)
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
@@ -30,17 +31,22 @@ export default function BuilderApiDemo() {
     })
   }, [id, user, navigate])
 
-  // Frame URL — adds ?lang=<code> for live language preview
+  // Frame URL — adds ?lang=<code> and ?panel=<mode> for live preview
   const frameSrc = useMemo(() => {
     if (!id) return ''
-    return `${origin}/embed/${id}${lang ? `?lang=${lang}` : ''}`
-  }, [id, lang, origin])
+    const params = new URLSearchParams()
+    if (lang) params.set('lang', lang)
+    if (panel) params.set('panel', panel)
+    const qs = params.toString()
+    return `${origin}/embed/${id}${qs ? '?' + qs : ''}`
+  }, [id, lang, panel, origin])
 
   // Live URL from current selection (for copy/share)
   const liveUrl = useMemo(() => {
     if (!id) return ''
     const params = new URLSearchParams()
     if (lang) params.set('lang', lang)
+    if (panel) params.set('panel', panel)
     if (selection?.variants) {
       for (const [gid, vid] of Object.entries(selection.variants)) {
         if (vid) params.set(`variants.${gid}`, vid)
@@ -61,7 +67,7 @@ export default function BuilderApiDemo() {
     }
     const qs = params.toString()
     return `${origin}/embed/${id}${qs ? '?' + qs : ''}`
-  }, [id, selection, lang, origin])
+  }, [id, selection, lang, panel, origin])
 
   const postToFrame = useCallback((type, payload) => {
     if (!frameRef.current?.contentWindow) return
@@ -85,6 +91,15 @@ export default function BuilderApiDemo() {
   // When user switches language, reset and reload
   function changeLang(next) {
     setLang(next)
+    setReady(null)
+    setSelection(null)
+    setOrder(null)
+    setLog([])
+  }
+
+  // Panel visibility is initial-only (useState reads once) — force iframe reload
+  function changePanel(next) {
+    setPanel(next)
     setReady(null)
     setSelection(null)
     setOrder(null)
@@ -156,6 +171,17 @@ export default function BuilderApiDemo() {
                 Translations available for: {Object.keys(config.translations).join(', ') || '(none)'}
               </p>
             )}
+
+            <h2>Control panel</h2>
+            <select value={panel} onChange={(e) => changePanel(e.target.value)} style={{ width: '100%', padding: '5px 7px', fontSize: 12, borderRadius: 4, border: '1px solid var(--border)' }}>
+              <option value="">Visible (default)</option>
+              <option value="hidden">Hidden (?panel=hidden)</option>
+              <option value="collapsed">Hidden (?panel=collapsed)</option>
+              <option value="none">Hidden (?panel=none)</option>
+            </select>
+            <p className="builder-hint" style={{ marginTop: 4, fontSize: 11 }}>
+              End user can re-open panel with the ‹ button on the viewer edge.
+            </p>
 
             <h2>From glbc:ready</h2>
             {!ready
