@@ -176,11 +176,10 @@ export default function BuilderApiDemo() {
             <select value={panel} onChange={(e) => changePanel(e.target.value)} style={{ width: '100%', padding: '5px 7px', fontSize: 12, borderRadius: 4, border: '1px solid var(--border)' }}>
               <option value="">Visible (default)</option>
               <option value="hidden">Hidden (?panel=hidden)</option>
-              <option value="collapsed">Hidden (?panel=collapsed)</option>
-              <option value="none">Hidden (?panel=none)</option>
             </select>
             <p className="builder-hint" style={{ marginTop: 4, fontSize: 11 }}>
               End user can re-open panel with the ‹ button on the viewer edge.
+              Aliases <code>?panel=collapsed</code> and <code>?panel=none</code> also work.
             </p>
 
             <h2>From glbc:ready</h2>
@@ -305,8 +304,8 @@ export default function BuilderApiDemo() {
             <h2>Custom postMessage</h2>
             <textarea value={custom} onChange={(e) => setCustom(e.target.value)}
               style={{ width: '100%', height: 60, padding: 6, fontFamily: 'monospace', fontSize: 11, border: '1px solid var(--border)', borderRadius: 4, background: 'var(--bg)', color: 'var(--text)' }} />
-            <button className="api-demo-btn" onClick={() => sendCustom('setSelection')}>setSelection</button>
-            <button className="api-demo-btn" onClick={() => sendCustom('patchSelection')}>patchSelection</button>
+            <button disabled={!ready} className="api-demo-btn" onClick={() => sendCustom('setSelection')}>setSelection</button>
+            <button disabled={!ready} className="api-demo-btn" onClick={() => sendCustom('patchSelection')}>patchSelection</button>
 
             <h2>Event log</h2>
             <div className="api-demo-log">

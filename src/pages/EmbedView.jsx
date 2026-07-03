@@ -70,9 +70,10 @@ function TranslatedRenderer({ config, initialSelection, search }) {
   }, [search])
 
   const [lang, setLang] = useState(initialLang)
+  // Track the child's latest selection so we can pass it back as
+  // initialSelection when we remount on locale change — preserves user picks.
+  const [preserved, setPreserved] = useState(initialSelection)
 
-  // Available locales = anything the config has translations for, plus the
-  // implicit default (no translation overlay = original strings).
   const locales = useMemo(() => {
     const keys = config?.translations ? Object.keys(config.translations) : []
     return [null, ...keys]
@@ -83,7 +84,6 @@ function TranslatedRenderer({ config, initialSelection, search }) {
     [config, lang]
   )
 
-  // Reflect language in URL so the choice is shareable/back-button-friendly.
   useEffect(() => {
     if (typeof window === 'undefined') return
     const params = new URLSearchParams(window.location.search)
@@ -94,14 +94,15 @@ function TranslatedRenderer({ config, initialSelection, search }) {
     window.history.replaceState(null, '', next)
   }, [lang])
 
-  // Key the renderer by selection + lang so changes re-mount fresh state.
-  const renderKey = `${lang || 'default'}::${JSON.stringify(initialSelection)}`
-
+  // Key only on lang — remount when locale changes so translated config
+  // labels/GLBs are picked up. Selection is preserved across remount via
+  // the `preserved` state passed as initialSelection to the fresh mount.
   return (
     <ConfiguratorRenderer
-      key={renderKey}
+      key={lang || 'default'}
       config={translatedConfig}
-      initialSelection={initialSelection}
+      initialSelection={preserved}
+      onSelectionChange={setPreserved}
       enableEmbedApi
       locales={locales}
       currentLocale={lang}

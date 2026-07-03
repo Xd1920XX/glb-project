@@ -155,16 +155,30 @@ export function selectionToQuery(selection) {
 
 /**
  * Reconstruct a selection object from an order doc's `selections` snapshot.
- * Order selections shape: { model: { [groupLabel]: variantLabel }, color, partOptions: { [groupLabel]: optionLabel } }
- * This produces a label-based selection — at hydration time, ConfiguratorRenderer
- * matches labels back to IDs (variant labels) where possible.
+ *
+ * New format (id-based, survives translation label changes):
+ *   { modelIds: { [gid]: vid }, colorId, partOptionIds: { [grpId]: optId } }
+ * Legacy format (label-based, kept for orders saved before ID snapshot):
+ *   { model: { [groupLabel]: variantLabel }, color, partOptions: { [grpLabel]: optLabel } }
+ *
+ * Prefer ids when present. ConfiguratorRenderer state is label-based, so we
+ * translate ids → labels via the current (possibly translated) config so the
+ * restored selection matches whatever labels the user sees now.
  */
 export function selectionFromOrder(order, config) {
   if (!order?.selections || !config) return null
   const sel = {}
   const variants = {}
-  if (order.selections.model && typeof order.selections.model === 'object') {
-    for (const [groupLabel, variantLabel] of Object.entries(order.selections.model)) {
+  const s = order.selections
+
+  // Variants — prefer IDs
+  if (s.modelIds && typeof s.modelIds === 'object') {
+    for (const [gid, vid] of Object.entries(s.modelIds)) {
+      const v = (config.variants || []).find((x) => x.id === vid)
+      if (v) variants[gid] = v.id
+    }
+  } else if (s.model && typeof s.model === 'object') {
+    for (const [groupLabel, variantLabel] of Object.entries(s.model)) {
       const group = (config.variantGroups || []).find((g) => g.label === groupLabel)
       const gid = group?.id ?? '__default__'
       const v = (config.variants || []).find((x) => x.label === variantLabel && (x.groupId || '__default__') === gid)
@@ -172,8 +186,35 @@ export function selectionFromOrder(order, config) {
     }
   }
   if (Object.keys(variants).length) sel.variants = variants
-  if (order.selections.color) sel.color = order.selections.color
-  if (order.selections.partOptions) sel.partOptions = { ...order.selections.partOptions }
+
+  // Determine active variant so we can scope color/partOption lookups to it
+  const activeVid = Object.values(variants)[0] ?? null
+  const activeVariant = activeVid
+    ? (config.variants || []).find((v) => v.id === activeVid)
+    : null
+
+  // Color — prefer ID, translate back to current label
+  if (s.colorId && activeVariant) {
+    const c = (activeVariant.colorOptions || []).find((o) => o.id === s.colorId)
+    if (c) sel.color = c.label
+  } else if (s.color) {
+    sel.color = s.color
+  }
+
+  // partOptions — prefer IDs, translate back to current labels
+  if (s.partOptionIds && typeof s.partOptionIds === 'object' && activeVariant) {
+    const partOptions = {}
+    for (const grp of activeVariant.partOptions || []) {
+      const optId = s.partOptionIds[grp.id]
+      if (!optId) continue
+      const opt = (grp.options || []).find((o) => o.id === optId)
+      if (opt) partOptions[grp.label] = opt.label
+    }
+    if (Object.keys(partOptions).length) sel.partOptions = partOptions
+  } else if (s.partOptions) {
+    sel.partOptions = { ...s.partOptions }
+  }
+
   if (order.interiorId) sel.interiorId = order.interiorId
   return Object.keys(sel).length ? sel : null
 }

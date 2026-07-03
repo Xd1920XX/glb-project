@@ -41,7 +41,7 @@ function computeVisibleGroups(groups, selectedByGroup) {
  * Generic configurator renderer.
  * config = { variants, interiors, background, viewerSettings, variantGroups, hotspots, watermark }
  */
-export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotPlace = null, initialSelection = null, enableEmbedApi = false, locales = null, currentLocale = null, onLocaleChange = null }) {
+export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotPlace = null, initialSelection = null, enableEmbedApi = false, locales = null, currentLocale = null, onLocaleChange = null, onSelectionChange = null }) {
   const { variants = [], interiors = [], background, viewerSettings = {}, exteriorLabel, interiorLabel, orderForm, theme = 'minimal', darkMode = false, themeColors = {}, variantGroups = [], hotspots = [], watermark, hideInteriorTab = false, hide3DButton = false, enableLightingControl = false } = config
 
   const resolvedInitial = useMemo(
@@ -89,6 +89,9 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
   const [animRestartKey, setAnimRestartKey] = useState(0)
   const [panelCollapsed, setPanelCollapsed] = useState(() => {
     if (typeof window === 'undefined') return false
+    // Only honour ?panel URL param when rendered in the public embed —
+    // avoids Builder preview accidentally hiding its panel on shared URLs.
+    if (!window.location.pathname.startsWith('/embed/')) return false
     const p = new URLSearchParams(window.location.search)
     const v = p.get('panel')
     return v === 'hidden' || v === 'collapsed' || v === 'none'
@@ -213,6 +216,24 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
     if (!enableEmbedApi || !readyEmittedRef.current) return
     postToParent('selectionChanged', { selection: currentSelection })
   }, [enableEmbedApi, currentSelection])
+
+  // Local callback so wrappers can preserve selection across remounts
+  // (e.g. TranslatedRenderer remounts on locale change).
+  useEffect(() => {
+    onSelectionChange?.(currentSelection)
+  }, [currentSelection, onSelectionChange])
+
+  // Sync panel visibility back to URL when embedded, so refresh keeps state.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (!window.location.pathname.startsWith('/embed/')) return
+    const params = new URLSearchParams(window.location.search)
+    if (panelCollapsed) params.set('panel', 'hidden')
+    else params.delete('panel')
+    const qs = params.toString()
+    const next = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash
+    window.history.replaceState(null, '', next)
+  }, [panelCollapsed])
 
   // Listen for incoming setSelection / patchSelection from parent
   useEffect(() => {
@@ -532,7 +553,9 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
 
         const allSelections = [...modelParts, colorPart, ...partOptionParts].filter(Boolean).join(', ')
 
-        // Structured snapshot for later retrieval
+        // Structured snapshot for later retrieval.
+        // Store BOTH labels (human-readable) AND ids (stable across translations).
+        // selectionFromOrder prefers ids to survive locale-driven label changes.
         const selections = {
           model: visibleGroups.reduce((acc, g) => {
             const selId = selectedByGroup[g.id] ?? g.variants[0]?.id
@@ -540,13 +563,28 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
             if (sel) acc[g.label || extLabel] = sel.label
             return acc
           }, {}),
+          modelIds: visibleGroups.reduce((acc, g) => {
+            const selId = selectedByGroup[g.id] ?? g.variants[0]?.id
+            const sel = g.variants.find((v) => v.id === selId)
+            if (sel) acc[g.id] = sel.id
+            return acc
+          }, {}),
           color: selectedColorOpt?.label ?? null,
+          colorId: selectedColorOpt?.id ?? null,
           partOptions: (variant?.partOptions ?? []).reduce((acc, grp) => {
             if (suppressedPartGroups.has(grp.label)) return acc
             const opt = grp.options?.find((o) => o.label === partSel[grp.label])
               ?? grp.options?.find((o) => o.id === grp.defaultOptionId)
               ?? grp.options?.[0]
             if (opt) acc[grp.label] = opt.label
+            return acc
+          }, {}),
+          partOptionIds: (variant?.partOptions ?? []).reduce((acc, grp) => {
+            if (suppressedPartGroups.has(grp.label)) return acc
+            const opt = grp.options?.find((o) => o.label === partSel[grp.label])
+              ?? grp.options?.find((o) => o.id === grp.defaultOptionId)
+              ?? grp.options?.[0]
+            if (opt) acc[grp.id] = opt.id
             return acc
           }, {}),
         }
