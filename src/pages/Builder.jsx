@@ -9,6 +9,7 @@ import { ENV_PRESETS } from '../components/SaunaViewer3D.jsx'
 import { extractGLBMaterials } from '../utils/glbMaterials.js'
 import { MediaPickerModal } from '../components/MediaPickerModal.jsx'
 import { ClaudeChat } from '../components/ClaudeChat.jsx'
+import { checkConfigHealth } from '../utils/configHealth.js'
 
 const DEFAULT_BG = { type: 'none', color: '#ffffff', imageUrl: null, imagePath: null }
 
@@ -1743,6 +1744,24 @@ function OrderFormEditor({ orderForm, onChange }) {
         Receive an email when someone submits this form. Requires email function deployed.
       </p>
       <div className="vs-row">
+        <label className="vs-label">Webhook URL</label>
+        <input className="field-input inline" type="url"
+          value={orderForm.webhookUrl ?? ''}
+          placeholder="https://your-server.example.com/orders"
+          onChange={(e) => onChange({ ...orderForm, webhookUrl: e.target.value })} />
+      </div>
+      <div className="vs-row">
+        <label className="vs-label">Webhook secret</label>
+        <input className="field-input inline" type="text"
+          value={orderForm.webhookSecret ?? ''}
+          placeholder="optional — enables HMAC signature"
+          onChange={(e) => onChange({ ...orderForm, webhookSecret: e.target.value })} />
+      </div>
+      <p className="builder-hint" style={{ fontSize: 11, marginTop: -6, marginBottom: 8 }}>
+        Server-to-server POST with the full order payload. Two events per order: <code>orderCreated</code> immediately, then <code>orderSnapshotReady</code> when the snapshot uploads.
+        If a secret is set, requests include an <code>x-glbc-signature: sha256=&lt;hex&gt;</code> header — verify by HMAC-SHA256 of the raw body with the secret.
+      </p>
+      <div className="vs-row">
         <label className="vs-label">Submit button label</label>
         <input className="field-input inline" value={orderForm.submitLabel ?? ''}
           placeholder="Submit order"
@@ -2196,6 +2215,8 @@ export default function Builder() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [inviteOpen, setInviteOpen]   = useState(false)
+  const [healthOpen, setHealthOpen]   = useState(false)
+  const [embedOpen, setEmbedOpen]     = useState(false)
 
   const [settingsWidth, setSettingsWidth] = useState(() => {
     try {
@@ -2372,6 +2393,17 @@ export default function Builder() {
     const subOk = ['trial', 'active'].includes(profile?.subscriptionStatus)
     if (!subOk) { navigate('/billing'); return }
     if (!published) {
+      // Gate publish on health check — errors block, warnings prompt.
+      const { errors, warnings } = checkConfigHealth({ variants, variantGroups, interiors, hotspots, orderForm, translations: config.translations ?? {} })
+      if (errors.length > 0) {
+        setHealthOpen(true)
+        alert(`Cannot publish: ${errors.length} error${errors.length === 1 ? '' : 's'} found. Fix them first.`)
+        return
+      }
+      if (warnings.length > 0) {
+        const ok = confirm(`Health check found ${warnings.length} warning${warnings.length === 1 ? '' : 's'}. Publish anyway?`)
+        if (!ok) { setHealthOpen(true); return }
+      }
       const limit = getEmbedLimit(profile)
       const count = await getPublishedCount(user.uid)
       if (count >= limit) { navigate('/billing'); return }
@@ -2470,6 +2502,12 @@ export default function Builder() {
             <Link to={`/builder/${id}/api-demo`} className="btn-ghost btn-sm builder-desktop-only">
               API Demo
             </Link>
+            <button className="btn-ghost btn-sm builder-desktop-only" onClick={() => setHealthOpen(true)} title="Config health check">
+              Health
+            </button>
+            <button className="btn-ghost btn-sm builder-desktop-only" onClick={() => setEmbedOpen(true)} title="Embed code">
+              Embed
+            </button>
             <button className="btn-ghost btn-sm builder-desktop-only" onClick={() => setInviteOpen(true)}>
               Invite
             </button>
@@ -2497,6 +2535,12 @@ export default function Builder() {
                     </button>
                     <button className="builder-mobile-dropdown-item" onClick={() => { setMobileMenuOpen(false); setPreviewOpen(true) }}>
                       Preview
+                    </button>
+                    <button className="builder-mobile-dropdown-item" onClick={() => { setMobileMenuOpen(false); setHealthOpen(true) }}>
+                      Health check
+                    </button>
+                    <button className="builder-mobile-dropdown-item" onClick={() => { setMobileMenuOpen(false); setEmbedOpen(true) }}>
+                      Embed code
                     </button>
                     <button className="builder-mobile-dropdown-item" onClick={() => { setMobileMenuOpen(false); setInviteOpen(true) }}>
                       Invite collaborator
@@ -2724,6 +2768,23 @@ export default function Builder() {
         />
       )}
 
+      {healthOpen && (
+        <HealthCheckModal
+          config={{ ...config, name, translations: config.translations ?? {} }}
+          onClose={() => setHealthOpen(false)}
+        />
+      )}
+
+      {embedOpen && (
+        <EmbedCodeModal
+          configuratorId={id}
+          configName={name}
+          published={published}
+          translations={config.translations ?? {}}
+          onClose={() => setEmbedOpen(false)}
+        />
+      )}
+
       <ClaudeChat config={{ ...config, name }} onApplyTool={handleClaudeTool} />
     </div>
   )
@@ -2793,6 +2854,199 @@ function InviteModal({ configuratorId, ownerUid, ownerEmail, onClose }) {
               </p>
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Config health check modal ──────────────────────────────────────
+
+function HealthCheckModal({ config, onClose }) {
+  const { errors, warnings } = checkConfigHealth(config)
+  const empty = errors.length === 0 && warnings.length === 0
+
+  return (
+    <div className="rev-backdrop" onClick={onClose}>
+      <div className="rev-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 720 }}>
+        <div className="rev-header">
+          <div>
+            <div className="rev-title">Config health check</div>
+            <div className="rev-sub">
+              {empty
+                ? 'No issues detected.'
+                : `${errors.length} error${errors.length === 1 ? '' : 's'} · ${warnings.length} warning${warnings.length === 1 ? '' : 's'}`}
+            </div>
+          </div>
+          <button className="rev-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="rev-list" style={{ padding: 12 }}>
+          {empty && (
+            <div className="rev-empty">
+              ✓ Nothing to fix. Configurator looks healthy.
+            </div>
+          )}
+          {errors.length > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#dc2626', marginBottom: 6 }}>
+                Errors — publish is blocked until resolved:
+              </div>
+              {errors.map((e, i) => (
+                <div key={i} style={{ background: '#fef2f2', border: '1px solid #fecaca', padding: '6px 10px', borderRadius: 4, marginBottom: 4, fontSize: 12 }}>
+                  <code style={{ fontSize: 10, color: '#991b1b' }}>{e.path}</code>
+                  <div>{e.message}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          {warnings.length > 0 && (
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#b45309', marginBottom: 6 }}>
+                Warnings — publish allowed but review recommended:
+              </div>
+              {warnings.map((w, i) => (
+                <div key={i} style={{ background: '#fffbeb', border: '1px solid #fde68a', padding: '6px 10px', borderRadius: 4, marginBottom: 4, fontSize: 12 }}>
+                  <code style={{ fontSize: 10, color: '#92400e' }}>{w.path}</code>
+                  <div>{w.message}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Embed code generator modal ────────────────────────────────────
+
+function EmbedCodeModal({ configuratorId, configName, published, translations, onClose }) {
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://glbconfigurator.com'
+  const [lang, setLang] = useState('')
+  const [panel, setPanel] = useState('')
+  const [width, setWidth] = useState('100%')
+  const [height, setHeight] = useState('720')
+  const [copied, setCopied] = useState(null)
+
+  const params = new URLSearchParams()
+  if (lang) params.set('lang', lang)
+  if (panel) params.set('panel', panel)
+  const qs = params.toString()
+  const embedUrl = `${origin}/embed/${configuratorId}${qs ? '?' + qs : ''}`
+
+  const iframeHtml = `<iframe src="${embedUrl}" width="${width}" height="${height}" frameborder="0" allow="xr-spatial-tracking" style="border:0;max-width:100%"></iframe>`
+
+  const wpEmbed = `<!-- Paste inside a Custom HTML block -->
+<div style="max-width:1200px;margin:0 auto">
+  <iframe src="${embedUrl}" width="${width}" height="${height}" frameborder="0" allow="xr-spatial-tracking" style="border:0;width:100%"></iframe>
+</div>`
+
+  const listenerJs = `<script>
+// Receive events from the embedded configurator
+window.addEventListener('message', (event) => {
+  const data = event.data
+  if (!data || typeof data.type !== 'string' || !data.type.startsWith('glbc:')) return
+
+  if (data.type === 'glbc:ready') {
+    console.log('Configurator loaded', data.payload.name)
+  }
+  if (data.type === 'glbc:selectionChanged') {
+    console.log('User picked:', data.payload.selection)
+  }
+  if (data.type === 'glbc:orderSubmitted') {
+    console.log('Order:', data.payload.orderId, data.payload.formData)
+    // Optionally: forward to your CRM / backend here
+  }
+})
+
+// Send a selection into the iframe:
+// document.querySelector('iframe').contentWindow.postMessage({
+//   type: 'glbc:patchSelection',
+//   payload: { selection: { color: 'Natural' } }
+// }, '*')
+</script>`
+
+  function copy(key, text) {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(key)
+      setTimeout(() => setCopied((c) => (c === key ? null : c)), 1200)
+    })
+  }
+
+  const locales = Object.keys(translations)
+
+  const sectionH = { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--text-muted)', marginTop: 20, marginBottom: 8, fontWeight: 600 }
+  const codeBox  = { background: '#1a1a1a', color: '#d1d5db', padding: 12, borderRadius: 6, fontSize: 11, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-all', margin: 0 }
+  const urlBox   = { background: 'var(--bg)', border: '1px solid var(--border)', padding: '8px 12px', borderRadius: 6, fontSize: 11, fontFamily: 'monospace', wordBreak: 'break-all' }
+
+  return (
+    <div className="rev-backdrop" onClick={onClose}>
+      <div className="rev-panel" onClick={(e) => e.stopPropagation()} style={{ width: 780, maxWidth: '100%' }}>
+        <div className="rev-header">
+          <div>
+            <div className="rev-title">Embed code — {configName || 'Configurator'}</div>
+            <div className="rev-sub">
+              {published ? 'Configurator is published.' : '⚠ Configurator is NOT published yet — embed will show "unavailable".'}
+            </div>
+          </div>
+          <button className="rev-close" onClick={onClose}>✕</button>
+        </div>
+        <div style={{ padding: '20px 24px', flex: 1, overflowY: 'auto', minHeight: 0 }}>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px' }}>
+            <div className="vs-row" style={{ margin: 0 }}>
+              <label className="vs-label">Language</label>
+              <select className="vs-select" value={lang} onChange={(e) => setLang(e.target.value)}>
+                <option value="">(user picks in embed)</option>
+                {locales.map((loc) => (
+                  <option key={loc} value={loc}>{loc}</option>
+                ))}
+              </select>
+            </div>
+            <div className="vs-row" style={{ margin: 0 }}>
+              <label className="vs-label">Control panel</label>
+              <select className="vs-select" value={panel} onChange={(e) => setPanel(e.target.value)}>
+                <option value="">Visible</option>
+                <option value="hidden">Hidden (?panel=hidden)</option>
+              </select>
+            </div>
+            <div className="vs-row" style={{ margin: 0 }}>
+              <label className="vs-label">Width</label>
+              <input className="field-input inline" value={width} onChange={(e) => setWidth(e.target.value)} placeholder="100% or 1024" />
+            </div>
+            <div className="vs-row" style={{ margin: 0 }}>
+              <label className="vs-label">Height</label>
+              <input className="field-input inline" value={height} onChange={(e) => setHeight(e.target.value)} placeholder="720" />
+            </div>
+          </div>
+
+          <h3 style={sectionH}>Direct URL</h3>
+          <div style={urlBox}>{embedUrl}</div>
+          <button className="btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => copy('url', embedUrl)}>
+            {copied === 'url' ? '✓ Copied' : 'Copy URL'}
+          </button>
+
+          <h3 style={sectionH}>HTML iframe</h3>
+          <pre style={codeBox}>{iframeHtml}</pre>
+          <button className="btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => copy('html', iframeHtml)}>
+            {copied === 'html' ? '✓ Copied' : 'Copy HTML'}
+          </button>
+
+          <h3 style={sectionH}>WordPress (Custom HTML block)</h3>
+          <pre style={codeBox}>{wpEmbed}</pre>
+          <button className="btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => copy('wp', wpEmbed)}>
+            {copied === 'wp' ? '✓ Copied' : 'Copy WP block'}
+          </button>
+
+          <h3 style={sectionH}>JS event listener (optional)</h3>
+          <p className="builder-hint" style={{ marginTop: -4, marginBottom: 8, fontSize: 11 }}>
+            Paste alongside the iframe to receive glbc:ready / selectionChanged / orderSubmitted events.
+          </p>
+          <pre style={{ ...codeBox, maxHeight: 280, overflow: 'auto' }}>{listenerJs}</pre>
+          <button className="btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => copy('js', listenerJs)}>
+            {copied === 'js' ? '✓ Copied' : 'Copy listener JS'}
+          </button>
+
         </div>
       </div>
     </div>

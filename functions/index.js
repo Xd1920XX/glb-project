@@ -1,6 +1,7 @@
 const functions = require('firebase-functions')
 const admin     = require('firebase-admin')
 const axios     = require('axios')
+const crypto    = require('crypto')
 
 admin.initializeApp()
 const db = admin.firestore()
@@ -917,6 +918,48 @@ exports.paypalWebhook = functions.https.onRequest(async (req, res) => {
 
 // ── Order notification ──────────────────────────────────────────────
 
+async function postOrderWebhook(url, secret, payload) {
+  const body = JSON.stringify(payload)
+  const headers = {
+    'content-type': 'application/json',
+    'user-agent': 'glbconfigurator-webhook/1',
+    'x-glbc-event': payload.event,
+    'x-glbc-configurator-id': payload.configuratorId || '',
+    'x-glbc-order-id': payload.orderId || '',
+  }
+  if (secret) {
+    const sig = crypto.createHmac('sha256', secret).update(body).digest('hex')
+    headers['x-glbc-signature'] = `sha256=${sig}`
+  }
+  try {
+    const res = await axios.post(url, body, { headers, timeout: 15000, validateStatus: () => true })
+    if (res.status >= 200 && res.status < 300) {
+      functions.logger.info(`Order webhook ${payload.event} delivered to ${url} (${res.status}) order=${payload.orderId}`)
+    } else {
+      functions.logger.warn(`Order webhook ${payload.event} non-2xx from ${url}: ${res.status}`)
+    }
+  } catch (e) {
+    functions.logger.error(`Order webhook ${payload.event} failed for ${url}:`, e.message)
+  }
+}
+
+function buildWebhookPayload(event, cfg, orderId, order) {
+  return {
+    event,
+    orderId,
+    configuratorId: order.configuratorId,
+    configuratorName: order.configuratorName ?? cfg.name ?? '',
+    ownerId: cfg.ownerId,
+    createdAt: order.createdAt?.toDate?.()?.toISOString() ?? new Date().toISOString(),
+    variantId: order.variantId ?? null,
+    interiorId: order.interiorId ?? null,
+    formData: order.formData ?? {},
+    selections: order.selections ?? null,
+    snapshotUrl: order.snapshotUrl ?? null,
+    stateUrl: `${APP_URL}/embed/${order.configuratorId}?order=${orderId}`,
+  }
+}
+
 exports.onOrderCreated = functions.firestore
   .document('orders/{orderId}')
   .onCreate(async (snap) => {
@@ -937,7 +980,6 @@ exports.onOrderCreated = functions.firestore
       functions.logger.info(`Order notification sent to ${notificationEmail}`)
     }
 
-    // Best-effort customer confirmation when the order form collected an email
     const customerEmail = pickEmailFromFormData(formData)
     if (customerEmail) {
       const customerName = formData.name || formData.fullName || ''
@@ -947,6 +989,34 @@ exports.onOrderCreated = functions.firestore
       })
       functions.logger.info(`Order confirmation sent to customer ${customerEmail}`)
     }
+
+    // Outbound HTTP webhook (server-to-server) if owner configured one
+    const webhookUrl = cfg.orderForm?.webhookUrl
+    if (webhookUrl) {
+      const payload = buildWebhookPayload('orderCreated', cfg, snap.id, order)
+      await postOrderWebhook(webhookUrl, cfg.orderForm?.webhookSecret, payload)
+    }
+  })
+
+// Fire a follow-up webhook when the snapshot URL becomes available on an order.
+// Snapshot upload happens client-side AFTER order create, so this fills the gap.
+exports.onOrderSnapshotReady = functions.firestore
+  .document('orders/{orderId}')
+  .onUpdate(async (change) => {
+    const before = change.before.data()
+    const after  = change.after.data()
+    // Only fire when snapshotUrl transitions from empty → set
+    if (before.snapshotUrl || !after.snapshotUrl) return
+    if (!after.configuratorId) return
+
+    const cfgSnap = await db.collection('configurators').doc(after.configuratorId).get()
+    if (!cfgSnap.exists) return
+    const cfg = cfgSnap.data()
+    const webhookUrl = cfg.orderForm?.webhookUrl
+    if (!webhookUrl) return
+
+    const payload = buildWebhookPayload('orderSnapshotReady', cfg, change.after.id, after)
+    await postOrderWebhook(webhookUrl, cfg.orderForm?.webhookSecret, payload)
   })
 
 // Email a team invite when a new teamInvites doc is created
