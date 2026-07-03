@@ -235,10 +235,14 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
     window.history.replaceState(null, '', next)
   }, [panelCollapsed])
 
-  // Listen for incoming setSelection / patchSelection from parent
+  // Listen for incoming setSelection / patchSelection / submitOrder from parent
   useEffect(() => {
     if (!enableEmbedApi) return
     return onParentMessage((type, payload) => {
+      if (type === 'submitOrder') {
+        submitOrderRef.current?.(payload?.formData ?? payload ?? {})
+        return
+      }
       if (type !== 'setSelection' && type !== 'patchSelection') return
       const incoming = resolveSelectionAgainstConfig({ ...(payload?.selection || payload || {}) }, config)
       if (!incoming) return
@@ -520,8 +524,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
     return null
   }, [])
 
-  async function handleOrderSubmit(e) {
-    e.preventDefault()
+  async function submitOrder(formDataToUse) {
     // Capture snapshot BEFORE save — viewer must still be mounted.
     const snapshotBlob = await captureCanvasBlob()
 
@@ -593,7 +596,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
         orderId = await saveOrder(config.id, config.ownerId, {
           variantId: allSelections || (variant?.label ?? primaryVariantId),
           interiorId: hideInteriorTab ? null : (interior?.label ?? interiorId),
-          formData: orderData,
+          formData: formDataToUse,
           selections,
           configuratorName: config.name ?? '',
         })
@@ -623,12 +626,22 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
         stateUrl,
         selection: currentSelection,
         selections: selectionsPayload,
-        formData: orderData,
+        formData: formDataToUse,
       })
     }
 
     setOrderSubmitted(true)
   }
+
+  async function handleOrderSubmit(e) {
+    e.preventDefault()
+    await submitOrder(orderData)
+  }
+
+  // Ref lets the postMessage listener call the latest closure of submitOrder
+  // without listing every state var as a dep.
+  const submitOrderRef = useRef(null)
+  submitOrderRef.current = submitOrder
 
   // ── Panel ────────────────────────────────────────────────────────
   return (
