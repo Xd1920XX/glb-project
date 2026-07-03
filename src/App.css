@@ -64,11 +64,64 @@ body {
 }
 
 .config-pane {
+  position: relative;
   background: var(--surface);
   border-left: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.configurator-view[data-panel-collapsed='true'] {
+  grid-template-columns: 1fr;
+}
+.configurator-view[data-panel-collapsed='true'] .config-pane {
+  display: none;
+}
+
+.panel-collapse-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 5;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text, #111);
+  border-radius: 6px;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.panel-collapse-btn:hover {
+  background: var(--bg);
+}
+
+.panel-reopen-btn {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  z-index: 5;
+  width: 26px;
+  height: 56px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-right: none;
+  background: var(--surface);
+  color: var(--text, #111);
+  border-radius: 6px 0 0 6px;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.panel-reopen-btn:hover {
+  background: var(--bg);
 }
 
 /* ── Config panel ────────────────────────────────────────────────── */
@@ -976,6 +1029,21 @@ body {
     border-left: none;
     border-top: 1px solid var(--border);
     overflow: hidden;
+  }
+
+  .configurator-view[data-panel-collapsed='true'] .viewer-pane {
+    flex: 1;
+    max-height: none;
+  }
+  .panel-reopen-btn {
+    top: auto;
+    bottom: 12px;
+    right: 12px;
+    transform: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border-right: 1px solid var(--border);
   }
 
   .config-header { padding: 16px 18px 0; }

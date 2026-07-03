@@ -87,6 +87,12 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
   const [animPlaying, setAnimPlaying]   = useState(true)
   const [animSpeed, setAnimSpeed]       = useState(1)
   const [animRestartKey, setAnimRestartKey] = useState(0)
+  const [panelCollapsed, setPanelCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false
+    const p = new URLSearchParams(window.location.search)
+    const v = p.get('panel')
+    return v === 'hidden' || v === 'collapsed' || v === 'none'
+  })
 
   // Compute groups
   const allGroups = useMemo(() => computeGroups(variants, variantGroups), [variants, variantGroups])
@@ -592,6 +598,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
       className="configurator-view"
       data-theme={theme}
       data-dark={darkMode ? 'true' : undefined}
+      data-panel-collapsed={panelCollapsed ? 'true' : undefined}
       style={{
         ...(themeColors.accent  && { '--accent':  themeColors.accent  }),
         ...(themeColors.surface && { '--surface': themeColors.surface }),
@@ -690,9 +697,25 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
             style={{ opacity: (watermark.opacity ?? 80) / 100, width: `${watermark.size ?? 15}%` }}
           />
         )}
+        {panelCollapsed && (
+          <button
+            className="panel-reopen-btn"
+            onClick={() => setPanelCollapsed(false)}
+            aria-label="Open panel"
+            title="Open panel">
+            ‹
+          </button>
+        )}
       </div>
 
       <div className="config-pane">
+        <button
+          className="panel-collapse-btn"
+          onClick={() => setPanelCollapsed(true)}
+          aria-label="Close panel"
+          title="Close panel">
+          ×
+        </button>
         <div className="config-panel">
           {locales && locales.length > 1 && onLocaleChange && (
             <div className="locale-picker">

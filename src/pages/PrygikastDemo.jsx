@@ -17,7 +17,7 @@ const LID_TYPES = [
 
 const cap       = (s) => s[0].toUpperCase() + s.slice(1)
 const LID_GLB   = (typeId) => ENC(`/GLB/2. Kaaned Liigiti/Container_Kaaned_Pos1-5_${cap(typeId)}_v1.glb`)
-const PANEL_GLB = (lang)   => ENC(`/GLB/3. Esipaneelid_fix/Container-Esipaneelid_Pos1-5_${lang}_v1.glb`)
+const PANEL_GLB = (lang)   => ENC(`/GLB/3. Esipaneelid_fixed/Container-Esipaneelid_Pos1-5_${lang}_v1.glb`)
 const FRAME_GLB = (n)      => ENC(`/GLB/1. Karkass/Container-B${n}-Karkass_v2.glb`)
 
 const LANGUAGES = [
@@ -28,6 +28,18 @@ const LANGUAGES = [
   { id: 'LIT', label: 'LIT', swatch: '#006A44' },
 ]
 const DEFAULT_LANG = 'FIN'
+
+const COLOR_OPTIONS = [
+  { id: 'pruun', label: 'Pruun', swatch: '#6b4423' },
+  { id: 'must',  label: 'Must',  swatch: '#1a1a1a', override: '#1a1a1a' },
+  { id: 'valge', label: 'Valge', swatch: '#f2f2f2', override: '#f2f2f2' },
+  { id: 'hall',  label: 'Hall',  swatch: '#7a7a7a', override: '#7a7a7a' },
+  { id: 'roheline', label: 'Roheline', swatch: '#3d5a3d', override: '#3d5a3d' },
+]
+const buildColorOverride = (hex) => ({
+  Pruun:        { type: 'color', color: hex },
+  adskMatPruun: { type: 'color', color: hex },
+})
 
 const lidNodeToken   = (typeId) => `_${cap(typeId)}_`
 const panelNodeToken = (typeId) => `_${cap(typeId)}`
@@ -47,7 +59,6 @@ function buildPartOptions(p) {
         swatch: t.swatch,
         glbUrl: LID_GLB(t.id),
         visibleNodes: [lidNodeToken(t.id)],
-        ...(t.id === 'puhas' ? { hidesGroups: [`Pos ${p} auk`, `Pos ${p} suund`] } : {}),
       })),
     },
     {
@@ -97,6 +108,14 @@ function buildVariant(n) {
     groupId: 'frame',
     swatch: '#3a3a3a',
     price: { 3: 299, 4: 349, 5: 419 }[n],
+    colorOptionsLabel: 'Värv',
+    defaultColorOptionId: 'pruun',
+    colorOptions: COLOR_OPTIONS.map((c) => ({
+      id: c.id,
+      label: c.label,
+      swatch: c.swatch,
+      materialOverridesByMaterial: c.override ? buildColorOverride(c.override) : {},
+    })),
     glbLayers: [
       { id: 'frame', label: 'Frame', glbUrl: FRAME_GLB(n) },
       ...positions.flatMap((p) => [
