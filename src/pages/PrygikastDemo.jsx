@@ -17,8 +17,17 @@ const LID_TYPES = [
 
 const cap       = (s) => s[0].toUpperCase() + s.slice(1)
 const LID_GLB   = (typeId) => ENC(`/GLB/2. Kaaned Liigiti/Container_Kaaned_Pos1-5_${cap(typeId)}_v1.glb`)
-const PANEL_GLB = ENC('/GLB/3. Esipaneelid/Container-Esipaneelid_Pos1-5_v1.glb')
+const PANEL_GLB = (lang)   => ENC(`/GLB/3. Esipaneelid_fix/Container-Esipaneelid_Pos1-5_${lang}_v1.glb`)
 const FRAME_GLB = (n)      => ENC(`/GLB/1. Karkass/Container-B${n}-Karkass_v2.glb`)
+
+const LANGUAGES = [
+  { id: 'FIN', label: 'FIN', swatch: '#003580' },
+  { id: 'SWE', label: 'SWE', swatch: '#FECC00' },
+  { id: 'DEN', label: 'DEN', swatch: '#C60C30' },
+  { id: 'LAT', label: 'LAT', swatch: '#9E1B32' },
+  { id: 'LIT', label: 'LIT', swatch: '#006A44' },
+]
+const DEFAULT_LANG = 'FIN'
 
 const lidNodeToken   = (typeId) => `_${cap(typeId)}_`
 const panelNodeToken = (typeId) => `_${cap(typeId)}`
@@ -80,6 +89,7 @@ function buildPartOptions(p) {
 
 function buildVariant(n) {
   const positions = Array.from({ length: n }, (_, i) => i + 1)
+  const panelLabels = positions.map((p) => `Panel ${p}`)
   return {
     id: `b${n}`,
     label: `B${n}`,
@@ -90,11 +100,25 @@ function buildVariant(n) {
     glbLayers: [
       { id: 'frame', label: 'Frame', glbUrl: FRAME_GLB(n) },
       ...positions.flatMap((p) => [
-        { id: `lid-${p}`,   label: `Lid ${p}`,   glbUrl: LID_GLB('bio'),   visibleNodes: [`Pos${p}_`] },
-        { id: `panel-${p}`, label: `Panel ${p}`, glbUrl: PANEL_GLB,        visibleNodes: [`Pos${p}_`] },
+        { id: `lid-${p}`,   label: `Lid ${p}`,   glbUrl: LID_GLB('bio'),         visibleNodes: [`Pos${p}_`] },
+        { id: `panel-${p}`, label: `Panel ${p}`, glbUrl: PANEL_GLB(DEFAULT_LANG), visibleNodes: [`Pos${p}_`] },
       ]),
     ],
-    partOptions: positions.flatMap(buildPartOptions),
+    partOptions: [
+      {
+        id: 'language',
+        label: 'Language',
+        matchLayerLabels: panelLabels,
+        defaultOptionId: DEFAULT_LANG,
+        options: LANGUAGES.map((l) => ({
+          id: l.id,
+          label: l.label,
+          swatch: l.swatch,
+          glbUrl: PANEL_GLB(l.id),
+        })),
+      },
+      ...positions.flatMap(buildPartOptions),
+    ],
   }
 }
 
