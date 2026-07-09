@@ -5,10 +5,10 @@ const PAGE_TITLE = 'Product Configurators & Product Visualizers — Nordic Rende
 const PAGE_DESC  = 'Interactive product configurators and product visualizers for manufacturers, furniture brands, building products, and industrial companies. Custom-developed, scalable, and optimized for sales.'
 
 const DEMO_IMAGES = [
-  { src: '/demo-image/demo-1.jpeg', alt: 'Interactive product configurator preview' },
-  { src: '/demo-image/demo-2.jpeg', alt: 'Configurator embedded on a client site' },
-  { src: '/demo-image/demo-3.jpeg', alt: '3D product visualization example' },
-  { src: '/demo-image/demo-4.jpeg', alt: 'Real-time material and color picker' },
+  { src: '/demo-image/demo-1.jpeg', caption: 'Interactive 3D product viewer' },
+  { src: '/demo-image/demo-2.jpeg', caption: 'Material and color picker' },
+  { src: '/demo-image/demo-3.jpeg', caption: 'Embedded on client website' },
+  { src: '/demo-image/demo-4.jpeg', caption: 'Configurable options in real time' },
 ]
 
 const INDUSTRIES = [
@@ -78,12 +78,12 @@ export default function Solutions() {
       <section className="how-it-works" style={{ paddingTop: 0 }}>
         <div className="section-eyebrow">See it in action</div>
         <h2 className="section-title">Real client work</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, maxWidth: 1200, margin: '32px auto 0', padding: '0 24px' }}>
+        <div className="solutions-gallery">
           {DEMO_IMAGES.map((img) => (
-            <div key={img.src} style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--surface)', aspectRatio: '4/3' }}>
-              <img src={img.src} alt={img.alt} loading="lazy"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-            </div>
+            <figure key={img.src} className="solutions-gallery-item">
+              <img src={img.src} alt={img.caption} loading="lazy" />
+              <figcaption>{img.caption}</figcaption>
+            </figure>
           ))}
         </div>
       </section>
@@ -106,41 +106,41 @@ export default function Solutions() {
       <section className="how-it-works">
         <div className="section-eyebrow">How we work with you</div>
         <h2 className="section-title">Two ways to get a configurator live</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24, maxWidth: 1080, margin: '32px auto 0', padding: '0 24px' }}>
+        <div className="solutions-tier-grid">
 
-          <div style={{ padding: 32, borderRadius: 16, border: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--accent)', fontWeight: 600, marginBottom: 8 }}>Self-serve · SaaS</div>
-            <h3 style={{ margin: '0 0 12px', fontSize: 24 }}>GLB Configurator</h3>
-            <p style={{ margin: '0 0 20px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+          <div className="solutions-tier-card">
+            <div className="solutions-tier-eyebrow">Self-serve · SaaS</div>
+            <h3>GLB Configurator</h3>
+            <p>
               Upload your own GLBs, spinners, and 360° panoramas. Build configurators visually,
               publish landing pages, and embed anywhere. Predictable monthly pricing.
             </p>
-            <ul style={{ margin: '0 0 24px', padding: '0 0 0 18px', lineHeight: 1.8, fontSize: 14 }}>
+            <ul className="solutions-feature-list">
               <li>Unlimited variants, colors, and part options</li>
               <li>Multi-language, order forms, analytics</li>
               <li>Iframe embed + postMessage API</li>
               <li>7-day free trial, cancel any time</li>
             </ul>
-            <div style={{ marginTop: 'auto', display: 'flex', gap: 8 }}>
+            <div className="solutions-tier-actions">
               <Link to="/signup" className="btn-primary">Start free trial</Link>
               <Link to="/features" className="btn-ghost">See features</Link>
             </div>
           </div>
 
-          <div style={{ padding: 32, borderRadius: 16, border: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--accent)', fontWeight: 600, marginBottom: 8 }}>Custom project</div>
-            <h3 style={{ margin: '0 0 12px', fontSize: 24 }}>Custom Development</h3>
-            <p style={{ margin: '0 0 20px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+          <div className="solutions-tier-card">
+            <div className="solutions-tier-eyebrow">Custom project</div>
+            <h3>Custom Development</h3>
+            <p>
               We handle the whole stack: GLB modelling from your product data, integrations with your CRM
               or ERP, custom UI, and hosting. One-time delivery fee plus optional monthly maintenance.
             </p>
-            <ul style={{ margin: '0 0 24px', padding: '0 0 0 18px', lineHeight: 1.8, fontSize: 14 }}>
+            <ul className="solutions-feature-list">
               <li>3D modelling from photos, CAD, or samples</li>
               <li>Custom UI, branded flows, bespoke features</li>
               <li>API / webhook integrations (Shopify, WP, ERP)</li>
               <li>Ongoing model updates and support</li>
             </ul>
-            <div style={{ marginTop: 'auto', display: 'flex', gap: 8 }}>
+            <div className="solutions-tier-actions">
               <Link to="/contact" className="btn-primary">Get a quote</Link>
               <Link to="/glb-models" className="btn-ghost">GLB model service</Link>
             </div>
