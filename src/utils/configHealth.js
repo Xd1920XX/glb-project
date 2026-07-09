@@ -93,7 +93,19 @@ export function checkConfigHealth(config) {
     if (!i.label) warn(ipath, `Interior "${i.id}" is missing a label.`)
   }
 
-  const hotspotIds = new Set((config.hotspots ?? []).map((h) => h.id))
+  const hotspotIds    = new Set((config.hotspots    ?? []).map((h) => h.id))
+  const customViewIds = new Set((config.customViews ?? []).map((cv) => cv.id))
+
+  for (const cv of config.customViews ?? []) {
+    const cpath = `customViews[${cv.id}]`
+    if (!cv.label) warn(cpath, `Custom view "${cv.id}" is missing a label.`)
+    if (!cv.type)  warn(cpath, `Custom view "${cv.label || cv.id}" has no type — defaults to iframe.`)
+    if (cv.type === 'html') {
+      if (!cv.html) err(cpath, `HTML custom view "${cv.label || cv.id}" has empty html content.`)
+    } else if (!cv.url) {
+      err(cpath, `Custom view "${cv.label || cv.id}" (type=${cv.type ?? 'iframe'}) has no url.`)
+    }
+  }
 
   for (const [loc, dict] of Object.entries(config.translations ?? {})) {
     const lpath = `translations[${loc}]`
@@ -141,6 +153,11 @@ export function checkConfigHealth(config) {
     for (const hid of Object.keys(dict.hotspots ?? {})) {
       if (!hotspotIds.has(hid)) {
         warn(`${lpath}.hotspots[${hid}]`, 'Translation refers to a non-existent hotspot.')
+      }
+    }
+    for (const cid of Object.keys(dict.customViews ?? {})) {
+      if (!customViewIds.has(cid)) {
+        warn(`${lpath}.customViews[${cid}]`, 'Translation refers to a non-existent custom view.')
       }
     }
   }

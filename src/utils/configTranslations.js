@@ -156,6 +156,18 @@ export function applyConfigTranslations(config, locale) {
     })
   }
 
+  if (Array.isArray(config.customViews)) {
+    out.customViews = config.customViews.map((cv) => {
+      const TC = T.customViews?.[cv.id]
+      if (!TC) return cv
+      const nv = { ...cv }
+      if (TC.label) nv.label = pick(TC.label, cv.label)
+      if (TC.url)   nv.url   = pick(TC.url,   cv.url)
+      if (TC.html)  nv.html  = pick(TC.html,  cv.html)
+      return nv
+    })
+  }
+
   if (config.orderForm) {
     const TOF = T.orderForm
     if (TOF) {
@@ -224,6 +236,7 @@ export function extractTranslatable(config) {
       id: i.id, label: i.label ?? '', panoramaUrl: i.panoramaUrl ?? '',
     })),
     hotspots:  (config.hotspots  ?? []).map((h) => ({ id: h.id, label: h.label ?? '', description: h.description ?? '' })),
+    customViews: (config.customViews ?? []).map((cv) => ({ id: cv.id, label: cv.label ?? '', type: cv.type ?? 'iframe', url: cv.url ?? '', html: cv.html ?? '' })),
     orderForm: config.orderForm ? {
       submitLabel:    config.orderForm.submitLabel ?? '',
       successMessage: config.orderForm.successMessage ?? '',

@@ -1811,6 +1811,54 @@ function OrderFormEditor({ orderForm, onChange }) {
   )
 }
 
+// ── Custom view editor ────────────────────────────────────────────
+
+function CustomViewEditor({ view, onChange, onDelete, onMoveUp, onMoveDown }) {
+  return (
+    <div className="variant-block">
+      <div className="variant-block-header">
+        <input className="field-input inline" value={view.label ?? ''} placeholder="Tab label"
+          onChange={(e) => onChange({ ...view, label: e.target.value })} />
+        <select className="vs-select" value={view.type ?? 'iframe'}
+          onChange={(e) => onChange({ ...view, type: e.target.value })}>
+          <option value="iframe">iframe (external URL)</option>
+          <option value="image">Image</option>
+          <option value="video">Video</option>
+          <option value="html">Raw HTML</option>
+        </select>
+        {onMoveUp && <button className="btn-icon" onClick={onMoveUp} title="Move up">↑</button>}
+        {onMoveDown && <button className="btn-icon" onClick={onMoveDown} title="Move down">↓</button>}
+        <button className="btn-icon-delete" onClick={onDelete} title="Delete">✕</button>
+      </div>
+      <div style={{ padding: 12 }}>
+        {view.type === 'html' ? (
+          <textarea className="field-input" style={{ minHeight: 120, fontFamily: 'monospace', fontSize: 12 }}
+            value={view.html ?? ''}
+            placeholder="<div>Hello</div>"
+            onChange={(e) => onChange({ ...view, html: e.target.value })} />
+        ) : (
+          <div className="vs-row">
+            <label className="vs-label">URL</label>
+            <input className="field-input inline" type="url"
+              value={view.url ?? ''}
+              placeholder={
+                view.type === 'video' ? 'https://example.com/video.mp4' :
+                view.type === 'image' ? 'https://example.com/image.jpg' :
+                'https://example.com/page'
+              }
+              onChange={(e) => onChange({ ...view, url: e.target.value })} />
+          </div>
+        )}
+        {view.type === 'iframe' && (
+          <p className="builder-hint" style={{ fontSize: 11 }}>
+            Target site must allow embedding (X-Frame-Options / CSP frame-ancestors).
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Revision panel ─────────────────────────────────────────────────
 
 function RevisionPanel({ configuratorId, ownerId, onRestore, onClose }) {
@@ -2195,6 +2243,7 @@ export default function Builder() {
   const [variantGroups, setVariantGroups]     = useState([])
   const [hotspots, setHotspots]               = useState([])
   const [watermark, setWatermark]             = useState(DEFAULT_WATERMARK)
+  const [customViews, setCustomViews]         = useState([])
   const [hotspotPlaceId, setHotspotPlaceId]   = useState(null)
   const [published, setPublished]             = useState(false)
   const [saving, setSaving]           = useState(false)
@@ -2260,6 +2309,7 @@ export default function Builder() {
       setVariantGroups(cfg.variantGroups ?? [])
       setHotspots(cfg.hotspots ?? [])
       setWatermark({ ...DEFAULT_WATERMARK, ...(cfg.watermark ?? {}) })
+      setCustomViews(cfg.customViews ?? [])
       setPublished(cfg.published ?? false)
       setLoading(false)
     }).catch((err) => {
@@ -2292,10 +2342,10 @@ export default function Builder() {
     if (initialLoad.current) { initialLoad.current = false; return }
     setDirty(true)
     clearTimeout(autoSaveTimer.current)
-    const cfg = { name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark }
+    const cfg = { name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark, customViews }
     autoSaveTimer.current = setTimeout(() => doSave(cfg), 1500)
     return () => clearTimeout(autoSaveTimer.current)
-  }, [name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark, loading, doSave])
+  }, [name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark, customViews, loading, doSave])
 
   function applySnapshot(snap) {
     skipHistory.current = true
@@ -2312,6 +2362,7 @@ export default function Builder() {
     setVariantGroups(snap.variantGroups ?? [])
     setHotspots(snap.hotspots ?? [])
     setWatermark(snap.watermark ?? DEFAULT_WATERMARK)
+    setCustomViews(snap.customViews ?? [])
     setHistoryLen(historyRef.current.length)
   }
 
@@ -2338,11 +2389,11 @@ export default function Builder() {
   useEffect(() => {
     if (loading) return
     if (skipHistory.current) { skipHistory.current = false; return }
-    const snapshot = { variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark }
+    const snapshot = { variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark, customViews }
     historyRef.current = [...historyRef.current.slice(0, historyIdx.current + 1), snapshot].slice(-50)
     historyIdx.current = historyRef.current.length - 1
     setHistoryLen(historyRef.current.length)
-  }, [variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark])
+  }, [variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark, customViews])
 
   useEffect(() => {
     function onKey(e) {
@@ -2385,7 +2436,7 @@ export default function Builder() {
 
   async function handleSave() {
     clearTimeout(autoSaveTimer.current)
-    const cfg = { name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark }
+    const cfg = { name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark, customViews }
     await doSave(cfg, { createRevision: true, ownerId: user.uid })
   }
 
@@ -2408,7 +2459,7 @@ export default function Builder() {
       const count = await getPublishedCount(user.uid)
       if (count >= limit) { navigate('/billing'); return }
     }
-    const cfg = { name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark }
+    const cfg = { name, variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark, customViews }
     await saveConfigurator(id, stripUndefined(cfg))
     await publishConfigurator(id, !published)
     setPublished((v) => !v)
@@ -2417,7 +2468,7 @@ export default function Builder() {
   if (loading) return <div className="page-loading">Loading builder…</div>
   if (loadError) return <div className="page-loading">{loadError}</div>
 
-  const config = { variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark }
+  const config = { variants, interiors, background, viewerSettings, exteriorLabel, interiorLabel, orderForm, theme, darkMode, themeColors, variantGroups, hotspots, watermark, customViews }
 
   function handleClaudeTool(name, input) {
     switch (name) {
@@ -2631,6 +2682,31 @@ export default function Builder() {
                   })}
                   onMoveUp={i > 0 ? () => setInteriors((vs) => { const a = [...vs]; [a[i-1], a[i]] = [a[i], a[i-1]]; return a }) : null}
                   onMoveDown={i < interiors.length - 1 ? () => setInteriors((vs) => { const a = [...vs]; [a[i], a[i+1]] = [a[i+1], a[i]]; return a }) : null}
+                />
+              ))
+            }
+          </BuilderAccordion>
+
+          {/* Custom views (iframe / image / video / html) */}
+          <BuilderAccordion
+            id="customViews"
+            title="Custom views"
+            badge={customViews.length}
+            defaultOpen={customViews.length > 0}
+            right={
+              <button className="btn-add" onClick={() =>
+                setCustomViews((v) => [...v, { id: uid(), label: 'New view', type: 'iframe', url: '' }])
+              }>+ Add</button>
+            }
+          >
+            {customViews.length === 0
+              ? <p className="builder-hint">Add extra tabs — iframe (external page), image, video, or raw HTML.</p>
+              : customViews.map((cv, i) => (
+                <CustomViewEditor key={cv.id} view={cv}
+                  onChange={(u) => setCustomViews((vs) => vs.map((x) => x.id === cv.id ? u : x))}
+                  onDelete={() => setCustomViews((vs) => vs.filter((x) => x.id !== cv.id))}
+                  onMoveUp={i > 0 ? () => setCustomViews((vs) => { const a = [...vs]; [a[i-1], a[i]] = [a[i], a[i-1]]; return a }) : null}
+                  onMoveDown={i < customViews.length - 1 ? () => setCustomViews((vs) => { const a = [...vs]; [a[i], a[i+1]] = [a[i+1], a[i]]; return a }) : null}
                 />
               ))
             }

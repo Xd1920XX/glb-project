@@ -102,7 +102,10 @@ export function parseSelectionFromQuery(searchString) {
     } else if (key === 'interior') {
       selection.interiorId = value
     } else if (key === 'view') {
-      if (['exterior', 'interior', 'order'].includes(value)) selection.view = value
+      // Accept built-in tabs plus any custom view alias, e.g. view=custom:<id>
+      if (['exterior', 'interior', 'order'].includes(value) || value.startsWith('custom:')) {
+        selection.view = value
+      }
     } else if (key.startsWith('layer.') || key.startsWith('layer[')) {
       const m = key.match(/layer[.[]([^\]]+)\]?$/)
       if (m) layers[m[1]] = value === 'true' || value === '1' || value === 'on'

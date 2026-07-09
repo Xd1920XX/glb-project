@@ -42,7 +42,7 @@ function computeVisibleGroups(groups, selectedByGroup) {
  * config = { variants, interiors, background, viewerSettings, variantGroups, hotspots, watermark }
  */
 export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotPlace = null, initialSelection = null, enableEmbedApi = false, locales = null, currentLocale = null, onLocaleChange = null, onSelectionChange = null }) {
-  const { variants = [], interiors = [], background, viewerSettings = {}, exteriorLabel, interiorLabel, orderForm, theme = 'minimal', darkMode = false, themeColors = {}, variantGroups = [], hotspots = [], watermark, hideInteriorTab = false, hide3DButton = false, enableLightingControl = false } = config
+  const { variants = [], interiors = [], background, viewerSettings = {}, exteriorLabel, interiorLabel, orderForm, theme = 'minimal', darkMode = false, themeColors = {}, variantGroups = [], hotspots = [], watermark, hideInteriorTab = false, hide3DButton = false, enableLightingControl = false, customViews = [] } = config
 
   const resolvedInitial = useMemo(
     () => initialSelection ? resolveSelectionAgainstConfig({ ...initialSelection }, config) : null,
@@ -53,10 +53,13 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
   const extLabel = exteriorLabel || 'Exterior'
   const intLabel = interiorLabel || 'Interior'
 
-  // Build ordered tab list for prev/next navigation
+  // Build ordered tab list for prev/next navigation.
+  // Custom views appear between Interior and Order.
+  const customViewTabs = (customViews ?? []).map((cv) => `custom:${cv.id}`)
   const tabs = [
     ...(variants.length > 0                       ? ['exterior'] : []),
     ...(!hideInteriorTab && interiors.length > 0  ? ['interior'] : []),
+    ...customViewTabs,
     ...(orderForm?.enabled                        ? ['order']    : []),
   ]
 
@@ -202,6 +205,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
         })),
       })),
       interiors: interiors.map((i) => ({ id: i.id, label: i.label })),
+      customViews: (customViews ?? []).map((cv) => ({ id: cv.id, label: cv.label, type: cv.type })),
       tabs,
       hasOrder: !!orderForm?.enabled,
       hasInteriors: interiors.length > 0,
@@ -209,7 +213,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
         id: f.id, label: f.label, type: f.type, required: !!f.required,
       })),
     })
-  }, [enableEmbedApi, config.id, config.name, allGroups, orderForm, interiors, tabs])
+  }, [enableEmbedApi, config.id, config.name, allGroups, orderForm, interiors, customViews, tabs])
 
   // Emit selection-changed event when state changes (after ready)
   useEffect(() => {
@@ -388,6 +392,11 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
 
   // ── Viewer ──────────────────────────────────────────────────────
   function renderViewer() {
+    if (view.startsWith('custom:')) {
+      const cvId = view.slice('custom:'.length)
+      const cv = customViews.find((c) => c.id === cvId)
+      if (cv) return <CustomViewRenderer key={cv.id} view={cv} />
+    }
     if (view === 'interior' && interior?.panoramaUrl) {
       return <InteriorViewer key={interior.id} src={interior.panoramaUrl} mode={interior.mode ?? 'pano'} />
     }
@@ -792,6 +801,10 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
               <button className={`view-tab${view === 'interior' ? ' active' : ''}`}
                 onClick={() => setView('interior')}>{intLabel}</button>
             )}
+            {(customViews ?? []).map((cv) => (
+              <button key={cv.id} className={`view-tab${view === `custom:${cv.id}` ? ' active' : ''}`}
+                onClick={() => setView(`custom:${cv.id}`)}>{cv.label || 'View'}</button>
+            ))}
             {orderForm?.enabled && (
               <button className={`view-tab${view === 'order' ? ' active' : ''}`}
                 onClick={() => { setView('order'); setOrderSubmitted(false) }}>
@@ -925,6 +938,21 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
               </div>
             )}
 
+            {/* Custom view panel — minimal side content: label + nav */}
+            {view.startsWith('custom:') && (() => {
+              const cvId = view.slice('custom:'.length)
+              const cv = customViews.find((c) => c.id === cvId)
+              if (!cv) return null
+              return (
+                <div className="tab-section">
+                  <div className="variant-group-section">
+                    {cv.label && <p className="section-label">{cv.label}</p>}
+                  </div>
+                  <TabNav tabs={tabs} view={view} setView={setView} />
+                </div>
+              )
+            })()}
+
             {/* Interior panel */}
             {view === 'interior' && !hideInteriorTab && interiors.length > 0 && (
               <div className="tab-section">
@@ -1055,6 +1083,30 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
       </div>
     </div>
   )
+}
+
+// ── Custom view renderer ────────────────────────────────────────────
+
+function CustomViewRenderer({ view }) {
+  const style = { width: '100%', height: '100%', border: 0, display: 'block' }
+  if (view.type === 'iframe' && view.url) {
+    return <iframe src={view.url} title={view.label || 'view'} style={style} allow="fullscreen; xr-spatial-tracking" />
+  }
+  if (view.type === 'image' && view.url) {
+    return <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000' }}>
+      <img src={view.url} alt={view.label || ''} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+    </div>
+  }
+  if (view.type === 'video' && view.url) {
+    return <video src={view.url} controls playsInline style={{ ...style, background: '#000' }} />
+  }
+  if (view.type === 'html' && view.html) {
+    // Rendered as-is. Configurator owner controls the content — same trust boundary
+    // as the rest of their configurator data (variants, labels, etc.).
+    return <div className="custom-view-html" style={{ width: '100%', height: '100%', overflow: 'auto', padding: 20 }}
+      dangerouslySetInnerHTML={{ __html: view.html }} />
+  }
+  return <div className="preview-empty">Custom view has no content configured.</div>
 }
 
 function TabNav({ tabs, view, setView }) {
