@@ -26,6 +26,7 @@ import CookiePolicy   from './pages/CookiePolicy.jsx'
 import Admin          from './pages/Admin.jsx'
 import GlbModels      from './pages/GlbModels.jsx'
 import WhatIsGlb      from './pages/WhatIsGlb.jsx'
+import Solutions      from './pages/Solutions.jsx'
 import Team           from './pages/Team.jsx'
 import JoinTeam       from './pages/JoinTeam.jsx'
 import PrygikastDemo  from './pages/PrygikastDemo.jsx'
@@ -45,6 +46,7 @@ export default function App() {
         <Route path="/contact"        element={<Contact />} />
         <Route path="/glb-models"     element={<GlbModels />} />
         <Route path="/what-is-glb"    element={<WhatIsGlb />} />
+        <Route path="/solutions"      element={<Solutions />} />
         <Route path="/privacy"        element={<PrivacyPolicy />} />
         <Route path="/terms"          element={<TermsOfService />} />
         <Route path="/cookies"        element={<CookiePolicy />} />
