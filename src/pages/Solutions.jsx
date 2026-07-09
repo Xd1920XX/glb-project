@@ -65,7 +65,7 @@ export default function Solutions() {
       {/* ── Intro / value ── */}
       <section className="how-it-works" style={{ paddingBottom: 40 }}>
         <div className="section-eyebrow">Why interactive</div>
-        <h2 className="section-title">Modern buyers expect more than<br />photos and PDF catalogs</h2>
+        <h2 className="section-title">Modern buyers expect more than photos and PDF catalogs</h2>
         <p style={{ maxWidth: 760, margin: '0 auto', textAlign: 'center', fontSize: 17, lineHeight: 1.65, color: 'var(--text-muted)' }}>
           Product configurators and product visualizers allow customers to explore materials, colors,
           dimensions, and product options in real time — creating an engaging and interactive buying experience.

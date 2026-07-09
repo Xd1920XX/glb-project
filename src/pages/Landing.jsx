@@ -67,7 +67,7 @@ export default function Landing() {
       {/* ── How it works ── */}
       <section className="how-it-works">
         <div className="section-eyebrow">How it works</div>
-        <h2 className="section-title">From assets to live configurator<br />in minutes</h2>
+        <h2 className="section-title">From assets to live configurator in minutes</h2>
         <div className="steps">
           <div className="step">
             <div className="step-num">01</div>
@@ -92,7 +92,7 @@ export default function Landing() {
       {/* ── Features ── */}
       <section className="features-section">
         <div className="section-eyebrow">Features</div>
-        <h2 className="section-title">Everything you need to<br />sell products in 3D</h2>
+        <h2 className="section-title">Everything you need to sell products in 3D</h2>
         <div className="features">
           <div className="feature-card">
             <div className="feature-icon-wrap">
