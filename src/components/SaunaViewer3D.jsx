@@ -53,7 +53,7 @@ function loadCachedTexture(url) {
 
 // ── Model with optional material overrides ────────────────────────
 
-function Model({ url, materialOverrides = {}, animationConfig = null, animationOverride = null, visibleNodes = null, visibleNodeFilters = null, onSceneRef = null, castShadow = true, receiveShadow = true, wireframe = false, renderMode = 'solid', xrayOpacity = 0.35, flatShading = false, layerTransform = null, crossfade = 0 }) {
+function Model({ url, materialOverrides = {}, animationConfig = null, animationOverride = null, visibleNodes = null, visibleNodeFilters = null, hideNodes = null, onSceneRef = null, castShadow = true, receiveShadow = true, wireframe = false, renderMode = 'solid', xrayOpacity = 0.35, flatShading = false, layerTransform = null, crossfade = 0 }) {
   const { scene, animations } = useGLTF(url)
   const { gl } = useThree()
   const maxAniso = useMemo(() => gl?.capabilities?.getMaxAnisotropy?.() ?? 8, [gl])
@@ -217,22 +217,24 @@ function Model({ url, materialOverrides = {}, animationConfig = null, animationO
   }, [cloned, castShadow, receiveShadow, wireframe, renderMode, xrayOpacity, flatShading])
 
   // ── Node visibility filter ─────────────────────────────────────
-  // Two inputs:
+  // Inputs:
   //   visibleNodes        — legacy single OR-list (string[]). Mesh visible iff name
   //                         contains any pattern.
   //   visibleNodeFilters  — array of OR-lists (string[][]). Mesh visible iff it
   //                         satisfies every filter (each filter is OR over its
   //                         patterns). Allows multiple part groups to compose.
-  // Both empty/null → all nodes visible.
+  //   hideNodes           — OR-list (string[]). Mesh forced hidden if any ancestor
+  //                         name contains any pattern. Overrides visibleNode logic.
+  // All empty/null → all nodes visible.
   useEffect(() => {
     const filters = []
     if (visibleNodes && visibleNodes.length) filters.push(visibleNodes)
     if (visibleNodeFilters && visibleNodeFilters.length) {
       for (const f of visibleNodeFilters) if (f && f.length) filters.push(f)
     }
+    const hides = hideNodes && hideNodes.length ? hideNodes : null
     cloned.traverse((node) => {
       if (!node.isMesh) return
-      if (filters.length === 0) { node.visible = true; return }
       // Include ancestor group names in the search — GLTFLoader wraps multi-primitive
       // meshes in a group named after the glTF node, so per-position filtering only
       // works if we check the parent chain too.
@@ -240,9 +242,11 @@ function Model({ url, materialOverrides = {}, animationConfig = null, animationO
       let cur = node
       while (cur) { if (cur.name) names.push(cur.name); cur = cur.parent }
       const combined = names.join(' ')
+      if (hides && hides.some((p) => combined.includes(p))) { node.visible = false; return }
+      if (filters.length === 0) { node.visible = true; return }
       node.visible = filters.every((f) => f.some((p) => combined.includes(p)))
     })
-  }, [cloned, JSON.stringify(visibleNodes), JSON.stringify(visibleNodeFilters)]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cloned, JSON.stringify(visibleNodes), JSON.stringify(visibleNodeFilters), JSON.stringify(hideNodes)]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Animations ────────────────────────────────────────────────
   const mixer = useMemo(() => new THREE.AnimationMixer(cloned), [cloned])
@@ -401,6 +405,7 @@ function GlbStack({ layers, animationOverride, transform, wireframe = false, ren
             animationConfig={layer.animationConfig ?? null}
             visibleNodes={layer.visibleNodes ?? null}
             visibleNodeFilters={layer.visibleNodeFilters ?? null}
+            hideNodes={layer.hideNodes ?? null}
             animationOverride={animationOverride}
             layerTransform={layer.transform ?? null}
             castShadow={layer.castShadow !== false && globalCastShadow}

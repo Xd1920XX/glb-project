@@ -342,6 +342,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
     const resolvePartLayer = (l) => {
       let layer = l
       const filters = l.visibleNodes && l.visibleNodes.length ? [l.visibleNodes] : []
+      const hideNodes = []
       let hide = false
       for (const grp of variant.partOptions ?? []) {
         if (!grp.matchLayerLabels?.includes(l.label)) continue
@@ -360,6 +361,9 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
         if (data.visibleNodes && data.visibleNodes.length) {
           filters.push(data.visibleNodes)
         }
+        if (data.hideNodes && data.hideNodes.length) {
+          for (const p of data.hideNodes) hideNodes.push(p)
+        }
         if (data.materialOverrides) {
           layer = {
             ...layer,
@@ -368,7 +372,11 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
         }
       }
       if (hide) return null
-      return { ...layer, visibleNodeFilters: filters.length ? filters : null }
+      return {
+        ...layer,
+        visibleNodeFilters: filters.length ? filters : null,
+        hideNodes: hideNodes.length ? hideNodes : null,
+      }
     }
     return variant.glbLayers
       ? variant.glbLayers
@@ -381,6 +389,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
             animationConfig: l.animationConfig ?? null,
             visibleNodes: l.visibleNodes ?? null,
             visibleNodeFilters: l.visibleNodeFilters ?? null,
+            hideNodes: l.hideNodes ?? null,
             transform: l.transform ?? null,
             castShadow: l.castShadow !== false,
             receiveShadow: l.receiveShadow !== false,
