@@ -327,6 +327,11 @@ function VariantEditor({ variant, uid: userUid, onChange, onDelete, onDuplicate,
               transform={variant.transform}
               onChange={(transform) => onChange({ ...variant, transform })} />
           )}
+          <PartOptionsEditor
+            variant={variant}
+            uid={userUid}
+            onChange={onChange}
+          />
         </>
       )}
 
@@ -776,6 +781,219 @@ function GlbLayersEditor({ layers, uid: userUid, onChange }) {
           onDelete={() => deleteLayer(layer.id)}
           onMoveUp={i > 0 ? () => moveLayer(i, -1) : null}
           onMoveDown={i < layers.length - 1 ? () => moveLayer(i, 1) : null}
+        />
+      ))}
+    </div>
+  )
+}
+
+// ── Part options editor ────────────────────────────────────────────
+
+function csvToArray(s) {
+  return String(s ?? '')
+    .split(/[,\n]/)
+    .map((t) => t.trim())
+    .filter(Boolean)
+}
+function arrayToCsv(arr) { return Array.isArray(arr) ? arr.join(', ') : '' }
+
+function PartOptionEditor({ option, uid: userUid, onChange, onDelete, onMoveUp, onMoveDown, availableGroupLabels }) {
+  const [showPicker, setShowPicker] = useState(false)
+  const [collapsed, setCollapsed] = useState(true)
+
+  return (
+    <div className="part-option-block" style={{ border: '1px solid #e0e0e0', borderRadius: 4, padding: 8, marginBottom: 6 }}>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <button className="variant-collapse-btn" onClick={() => setCollapsed((v) => !v)}>
+          <span className={`bacc-chevron${collapsed ? '' : ' open'}`} />
+        </button>
+        <input className="field-input inline" placeholder="Option label"
+          value={option.label ?? ''}
+          onChange={(e) => onChange({ ...option, label: e.target.value })} />
+        <button className="btn-icon-move" onClick={onMoveUp} disabled={!onMoveUp}>↑</button>
+        <button className="btn-icon-move" onClick={onMoveDown} disabled={!onMoveDown}>↓</button>
+        <button className="btn-icon-delete" onClick={onDelete}>✕</button>
+      </div>
+      {!collapsed && (
+        <div style={{ paddingLeft: 28, marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <input type="checkbox" checked={!!option.hidden}
+              onChange={(e) => onChange({ ...option, hidden: e.target.checked })} />
+            <span style={{ fontSize: 12 }}>Hide entire matched layer when selected</span>
+          </label>
+
+          <div>
+            <div style={{ fontSize: 12, marginBottom: 4 }}>Option GLB (overrides layer GLB)</div>
+            {option.glbUrl ? (
+              <div className="upload-done" style={{ fontSize: 12 }}>
+                ✓ GLB selected
+                <button className="btn-text-danger" onClick={() => setShowPicker(true)}>Replace</button>
+                <button className="btn-text-danger" onClick={() => onChange({ ...option, glbUrl: null, glbStoragePath: null })}>Remove</button>
+              </div>
+            ) : (
+              <button className="btn-upload" style={{ fontSize: 12, padding: '4px 8px' }} onClick={() => setShowPicker(true)}>Choose GLB</button>
+            )}
+          </div>
+
+          <label style={{ fontSize: 12 }}>
+            <div>visibleNodes (CSV substrings — mesh visible if ancestor name matches any)</div>
+            <input className="field-input" value={arrayToCsv(option.visibleNodes)}
+              onChange={(e) => onChange({ ...option, visibleNodes: csvToArray(e.target.value) })} />
+          </label>
+
+          <label style={{ fontSize: 12 }}>
+            <div>hideNodes (CSV substrings — mesh hidden if ancestor name matches any)</div>
+            <input className="field-input" value={arrayToCsv(option.hideNodes)}
+              onChange={(e) => onChange({ ...option, hideNodes: csvToArray(e.target.value) })} />
+          </label>
+
+          <label style={{ fontSize: 12 }}>
+            <div>hidesGroups (CSV — group labels to suppress when this option active)</div>
+            <input className="field-input" value={arrayToCsv(option.hidesGroups)}
+              onChange={(e) => onChange({ ...option, hidesGroups: csvToArray(e.target.value) })}
+              list={`hides-groups-${option.id}`} />
+            {availableGroupLabels?.length > 0 && (
+              <datalist id={`hides-groups-${option.id}`}>
+                {availableGroupLabels.map((l) => <option key={l} value={l} />)}
+              </datalist>
+            )}
+          </label>
+        </div>
+      )}
+      {showPicker && (
+        <MediaPickerModal uid={userUid} accept=".glb"
+          onSelect={({ url, storagePath }) => { setShowPicker(false); onChange({ ...option, glbUrl: url, glbStoragePath: storagePath }) }}
+          onClose={() => setShowPicker(false)} />
+      )}
+    </div>
+  )
+}
+
+function PartOptionGroupEditor({ group, glbLayers, allGroups, uid: userUid, onChange, onDelete, onMoveUp, onMoveDown }) {
+  const [collapsed, setCollapsed] = useState(true)
+  const options = group.options ?? []
+  const layerLabels = (glbLayers ?? []).map((l) => l.label).filter(Boolean)
+  const otherGroupLabels = (allGroups ?? []).filter((g) => g.id !== group.id).map((g) => g.label).filter(Boolean)
+
+  function updateOptions(next) { onChange({ ...group, options: next }) }
+  function addOption() {
+    updateOptions([...options, { id: uid(), label: `Option ${options.length + 1}` }])
+  }
+  function updateOption(i, updated) { updateOptions(options.map((o, idx) => idx === i ? updated : o)) }
+  function deleteOption(i) { updateOptions(options.filter((_, idx) => idx !== i)) }
+  function moveOption(i, dir) {
+    const next = [...options]
+    ;[next[i], next[i + dir]] = [next[i + dir], next[i]]
+    updateOptions(next)
+  }
+  function toggleLayerMatch(label) {
+    const cur = group.matchLayerLabels ?? []
+    const next = cur.includes(label) ? cur.filter((l) => l !== label) : [...cur, label]
+    onChange({ ...group, matchLayerLabels: next })
+  }
+
+  return (
+    <div className="part-option-group-block" style={{ border: '1px solid #ccc', borderRadius: 4, padding: 8, marginBottom: 8 }}>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <button className="variant-collapse-btn" onClick={() => setCollapsed((v) => !v)}>
+          <span className={`bacc-chevron${collapsed ? '' : ' open'}`} />
+        </button>
+        <input className="field-input inline" placeholder="Group label (e.g. Pos 1 kaas)"
+          value={group.label ?? ''}
+          onChange={(e) => onChange({ ...group, label: e.target.value })} />
+        <span style={{ fontSize: 11, color: '#666' }}>{options.length} option{options.length === 1 ? '' : 's'}</span>
+        <button className="btn-icon-move" onClick={onMoveUp} disabled={!onMoveUp}>↑</button>
+        <button className="btn-icon-move" onClick={onMoveDown} disabled={!onMoveDown}>↓</button>
+        <button className="btn-icon-delete" onClick={onDelete}>✕</button>
+      </div>
+      {!collapsed && (
+        <div style={{ paddingLeft: 28, marginTop: 8 }}>
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ fontSize: 12, marginBottom: 4 }}>matchLayerLabels (which GLB layers this group controls)</div>
+            {layerLabels.length === 0 ? (
+              <p className="builder-hint">Add GLB layers first to bind this group to them.</p>
+            ) : (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {layerLabels.map((l) => (
+                  <label key={l} className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+                    <input type="checkbox"
+                      checked={(group.matchLayerLabels ?? []).includes(l)}
+                      onChange={() => toggleLayerMatch(l)} />
+                    {l}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+          <label style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>
+            <div>Default option (optional)</div>
+            <select className="vs-select" value={group.defaultOptionId ?? ''}
+              onChange={(e) => onChange({ ...group, defaultOptionId: e.target.value || null })}>
+              <option value="">First option</option>
+              {options.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+            </select>
+          </label>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600 }}>Options</span>
+            <button className="btn-add" onClick={addOption}>+ Add option</button>
+          </div>
+          {options.map((opt, i) => (
+            <PartOptionEditor
+              key={opt.id}
+              option={opt}
+              uid={userUid}
+              availableGroupLabels={otherGroupLabels}
+              onChange={(updated) => updateOption(i, updated)}
+              onDelete={() => deleteOption(i)}
+              onMoveUp={i > 0 ? () => moveOption(i, -1) : null}
+              onMoveDown={i < options.length - 1 ? () => moveOption(i, 1) : null}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function PartOptionsEditor({ variant, uid: userUid, onChange }) {
+  const groups = variant.partOptions ?? []
+  const glbLayers = variant.glbLayers ?? []
+
+  function updateGroups(next) { onChange({ ...variant, partOptions: next }) }
+  function addGroup() {
+    updateGroups([...groups, { id: uid(), label: `Group ${groups.length + 1}`, matchLayerLabels: [], options: [] }])
+  }
+  function updateGroup(i, updated) { updateGroups(groups.map((g, idx) => idx === i ? updated : g)) }
+  function deleteGroup(i) {
+    if (!confirm('Delete this option group?')) return
+    updateGroups(groups.filter((_, idx) => idx !== i))
+  }
+  function moveGroup(i, dir) {
+    const next = [...groups]
+    ;[next[i], next[i + dir]] = [next[i + dir], next[i]]
+    updateGroups(next)
+  }
+
+  return (
+    <div className="part-options-editor" style={{ marginTop: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+        <span style={{ fontWeight: 600 }}>Part options ({groups.length})</span>
+        <button className="btn-add" onClick={addGroup}>+ Add group</button>
+      </div>
+      {groups.length === 0 && (
+        <p className="builder-hint">Groups let viewers pick between interchangeable parts. Each group targets one or more GLB layers via matchLayerLabels.</p>
+      )}
+      {groups.map((g, i) => (
+        <PartOptionGroupEditor
+          key={g.id}
+          group={g}
+          glbLayers={glbLayers}
+          allGroups={groups}
+          uid={userUid}
+          onChange={(updated) => updateGroup(i, updated)}
+          onDelete={() => deleteGroup(i)}
+          onMoveUp={i > 0 ? () => moveGroup(i, -1) : null}
+          onMoveDown={i < groups.length - 1 ? () => moveGroup(i, 1) : null}
         />
       ))}
     </div>
