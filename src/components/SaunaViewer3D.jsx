@@ -1,7 +1,36 @@
 import { Canvas, useThree, useFrame } from '@react-three/fiber'
-import { useGLTF, OrbitControls, Bounds, useBounds, Environment, ContactShadows, Grid, Stats } from '@react-three/drei'
+import { useGLTF, OrbitControls, Bounds, useBounds, Environment, ContactShadows, Grid, Stats, useProgress } from '@react-three/drei'
 import { Suspense, useLayoutEffect, useMemo, useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
+
+function GlbLoadingOverlay() {
+  const { active, progress } = useProgress()
+  const [visible, setVisible] = useState(false)
+  useEffect(() => {
+    if (active) { setVisible(true); return }
+    const t = setTimeout(() => setVisible(false), 200)
+    return () => clearTimeout(t)
+  }, [active])
+  if (!visible) return null
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 10,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(2px)',
+      pointerEvents: 'none',
+      transition: 'opacity 180ms', opacity: active ? 1 : 0,
+    }}>
+      <svg width="44" height="44" viewBox="0 0 44 44" style={{ animation: 'glb-spin 1s linear infinite' }}>
+        <circle cx="22" cy="22" r="18" fill="none" stroke="rgba(0,0,0,0.12)" strokeWidth="4" />
+        <path d="M22 4 a18 18 0 0 1 18 18" fill="none" stroke="rgba(0,0,0,0.6)" strokeWidth="4" strokeLinecap="round" />
+      </svg>
+      <div style={{ marginTop: 10, fontSize: 12, color: 'rgba(0,0,0,0.6)', fontFamily: 'system-ui, sans-serif' }}>
+        {Math.round(progress)}%
+      </div>
+      <style>{`@keyframes glb-spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  )
+}
 
 const TONE_MAPPINGS = {
   aces:     THREE.ACESFilmicToneMapping,
@@ -717,6 +746,7 @@ export function SaunaViewer3D({
       onPointerDown={() => { draggingRef.current = true; forceCursorRender((n) => n + 1) }}
       onPointerUp={() => { draggingRef.current = false; forceCursorRender((n) => n + 1) }}
     >
+    <GlbLoadingOverlay />
     <Canvas
       shadows={!surroundLighting && shadows}
       dpr={[1, dprClamped]}
