@@ -427,7 +427,7 @@ function GlbStack({ layers, animationOverride, transform, wireframe = false, ren
   return (
     <group ref={groupRef} position={pos} rotation={rot} scale={scl}>
       {layers.map((layer, idx) => {
-        const key = layer.id ?? `${idx}:${layer.url}`
+        const key = `${layer.id ?? idx}:${layer.url}`
         return (
           <Model key={key} url={layer.url}
             materialOverrides={layer.materialOverrides ?? {}}
