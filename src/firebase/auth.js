@@ -11,20 +11,16 @@ import {
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from './config.js'
 
-// Explicitly set local persistence so the session survives browser restarts.
-// Firebase refresh tokens last up to 6 months of inactivity.
 setPersistence(auth, browserLocalPersistence).catch(() => {})
 
-export async function signUp(name, email, password) {
+// role: 'teacher' | 'student'
+export async function signUp(name, email, password, role = 'student') {
   const { user } = await createUserWithEmailAndPassword(auth, email, password)
   await updateProfile(user, { displayName: name })
   await setDoc(doc(db, 'users', user.uid), {
     name,
     email,
-    plan: 'trial',
-    trialStarted: serverTimestamp(),
-    subscriptionStatus: 'trial',
-    paypalSubscriptionId: null,
+    role,
     createdAt: serverTimestamp(),
   })
   return user
@@ -35,20 +31,16 @@ export async function signIn(email, password) {
   return user
 }
 
-export async function signInWithGoogle() {
+export async function signInWithGoogle(role = 'student') {
   const provider = new GoogleAuthProvider()
   const { user } = await signInWithPopup(auth, provider)
-  // Create Firestore profile only if it doesn't exist yet (new user)
   const ref = doc(db, 'users', user.uid)
   const snap = await getDoc(ref)
   if (!snap.exists()) {
     await setDoc(ref, {
       name: user.displayName || '',
       email: user.email,
-      plan: 'trial',
-      trialStarted: serverTimestamp(),
-      subscriptionStatus: 'trial',
-      paypalSubscriptionId: null,
+      role,
       createdAt: serverTimestamp(),
     })
   }

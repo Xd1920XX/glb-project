@@ -3,117 +3,41 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // Users can read/write their own profile.
-    // Admins (isAdmin == true in their own doc) can read/write any profile.
     match /users/{uid} {
-      allow read: if request.auth != null
-                  && (request.auth.uid == uid
-                      || request.auth.uid == 'kMZlGUDl3lPFm2VIyc5eyYHhA752'
-                      || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
-      allow write: if request.auth != null
-                   && (request.auth.uid == uid
-                       || request.auth.uid == 'kMZlGUDl3lPFm2VIyc5eyYHhA752'
-                       || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
+      allow read, write: if request.auth != null && request.auth.uid == uid;
     }
 
-    // Configurators: published ones are public (for embeds);
-    // any authenticated user can read (covers team members);
-    // only the owner can write/create/delete
-    match /configurators/{id} {
+    // Rule tables (teacher-owned parameter validation rules)
+    match /ruleTables/{id} {
+      allow read:   if request.auth != null;
+      allow write, delete: if request.auth != null && request.auth.uid == resource.data.ownerId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.ownerId;
+    }
+
+    // Lessons (teacher-owned)
+    match /lessons/{id} {
+      // Published lessons readable by any authenticated user (students join by code)
       allow read:   if resource.data.published == true || request.auth != null;
-      allow write:  if request.auth != null && request.auth.uid == resource.data.ownerId;
+      allow write, delete: if request.auth != null && request.auth.uid == resource.data.ownerId;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.ownerId;
     }
 
-    // Orders: anyone can create (submitted from public embed, no auth).
-    // Only the configurator owner can read their orders.
-    match /orders/{orderId} {
-      allow create: if request.resource.data.keys().hasAll(['configuratorId', 'ownerId']);
-      allow read, update, delete: if request.auth != null
-                                  && request.auth.uid == resource.data.ownerId;
-    }
-
-    // Analytics: anyone can write (tracked from public embed).
-    // Any authenticated user can read (owners check their own stats).
-    match /analytics/{configId} {
-      allow write: if true;
-      allow read:  if request.auth != null;
-    }
-
-    // Landing pages: owner can read/write; anyone can read published ones
-    match /landingPages/{id} {
-      allow read: if resource.data.published == true
-                  || (request.auth != null && request.auth.uid == resource.data.ownerId);
-      allow write: if request.auth != null && request.auth.uid == resource.data.ownerId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.ownerId;
-    }
-
-    // Media metadata (Firestore side)
-    match /media/{mediaId} {
-      allow read, write: if request.auth != null
-                         && request.auth.uid == resource.data.ownerId;
-      allow create: if request.auth != null
-                    && request.auth.uid == request.resource.data.ownerId;
-    }
-
-    // Invoices: server writes for real payments; users can create + read their own
-    match /invoices/{invoiceId} {
-      allow read:   if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      allow update, delete: if false;
-    }
-
-    // Revisions: owner can read/write their own
-    match /revisions/{revId} {
-      allow read, write: if request.auth != null
-                         && request.auth.uid == resource.data.ownerId;
-      allow create: if request.auth != null
-                    && request.auth.uid == request.resource.data.ownerId;
-      allow delete: if request.auth != null
-                    && request.auth.uid == resource.data.ownerId;
-    }
-
-    // Invoice counter (server-only)
-    match /meta/{docId} {
-      allow read, write: if false;
-    }
-
-    // Team invites
-    // - Owner can create invites (ownerUid must match their uid)
-    // - Owner can read/update/delete their own invites
-    // - The invited member can read an invite by code (to show the join page)
-    // - The invited member can update to accept (set status + memberUid)
-    // - Configurators: team members can read configs they've been granted access to
-    match /teamInvites/{code} {
-      allow create: if request.auth != null
-                    && request.auth.uid == request.resource.data.ownerUid;
+    // Attempts (student-owned; teacher reads via lesson ownership)
+    match /attempts/{id} {
       allow read:   if request.auth != null
-                    && (request.auth.uid == resource.data.ownerUid
-                        || request.auth.uid == resource.data.memberUid);
-      // Allow unauthenticated read so the /join page can show invite details before login
-      allow read:   if true;
-      allow update: if request.auth != null
-                    && (request.auth.uid == resource.data.ownerUid
-                        || (resource.data.status == 'pending'
-                            && request.resource.data.status == 'accepted'
-                            && request.auth.uid == request.resource.data.memberUid));
-      allow delete: if request.auth != null
-                    && request.auth.uid == resource.data.ownerUid;
+                    && (request.auth.uid == resource.data.studentUid
+                        || request.auth.uid == get(/databases/$(database)/documents/lessons/$(resource.data.lessonId)).data.ownerId);
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.studentUid;
+      allow update: if request.auth != null && request.auth.uid == resource.data.studentUid;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.studentUid;
     }
 
-    // Contact messages: anyone can submit; only admins can read
-    match /contact_messages/{docId} {
-      allow create: if request.resource.data.keys().hasAll(['name', 'email', 'message']);
-      allow read, update, delete: if request.auth != null
-                                  && (request.auth.uid == 'kMZlGUDl3lPFm2VIyc5eyYHhA752'
-                                      || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
-    }
-
-    // Model inquiries: anyone can submit; only admins can read
-    match /model_inquiries/{docId} {
-      allow create: if request.resource.data.keys().hasAll(['name', 'email', 'description']);
-      allow read, update, delete: if request.auth != null
-                                  && (request.auth.uid == 'kMZlGUDl3lPFm2VIyc5eyYHhA752'
-                                      || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
+    // Media library metadata (owner-scoped GLB uploads)
+    match /media/{mediaId} {
+      allow read, write, delete: if request.auth != null
+                                 && request.auth.uid == resource.data.ownerId;
+      allow create: if request.auth != null
+                    && request.auth.uid == request.resource.data.ownerId;
     }
   }
 }

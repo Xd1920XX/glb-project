@@ -1,7 +1,7 @@
 import {
   collection, doc,
-  addDoc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
-  query, where, orderBy, serverTimestamp, increment,
+  addDoc, getDoc, getDocs, updateDoc, deleteDoc,
+  query, where, orderBy, serverTimestamp,
 } from 'firebase/firestore'
 import { db } from './config.js'
 
@@ -16,111 +16,160 @@ export async function updateUser(uid, data) {
   await updateDoc(doc(db, 'users', uid), data)
 }
 
-export async function getAllUsers() {
-  const snaps = await getDocs(collection(db, 'users'))
-  const users = snaps.docs.map((d) => ({ id: d.id, ...d.data() }))
-  // Sort client-side — not all user docs have createdAt
-  return users.sort((a, b) => {
-    const ta = a.createdAt?.toDate?.()?.getTime() ?? 0
-    const tb = b.createdAt?.toDate?.()?.getTime() ?? 0
-    return tb - ta
-  })
-}
+// ── Rule tables ────────────────────────────────────────────────────
 
-export async function deleteUser(uid) {
-  await deleteDoc(doc(db, 'users', uid))
-}
-
-// ── Configurators ──────────────────────────────────────────────────
-
-export async function createConfigurator(uid, name) {
-  const ref = await addDoc(collection(db, 'configurators'), {
+export async function createRuleTable(uid, name, rules = []) {
+  const ref = await addDoc(collection(db, 'ruleTables'), {
     ownerId: uid,
     name,
-    published: false,
-    variants: [],
-    interiors: [],
+    rules,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   })
   return ref.id
 }
 
-export async function getConfigurator(id) {
-  const snap = await getDoc(doc(db, 'configurators', id))
+export async function getRuleTable(id) {
+  const snap = await getDoc(doc(db, 'ruleTables', id))
   return snap.exists() ? { id: snap.id, ...snap.data() } : null
 }
 
-export async function getUserConfigurators(uid) {
+export async function getUserRuleTables(uid) {
   const q = query(
-    collection(db, 'configurators'),
+    collection(db, 'ruleTables'),
     where('ownerId', '==', uid),
     orderBy('createdAt', 'desc'),
   )
   const snaps = await getDocs(q)
-  let results = snaps.docs.map((d) => ({ id: d.id, ...d.data() }))
-
-  // Also fetch configurators the user has been given team access to
-  try {
-    const inviteSnaps = await getDocs(query(
-      collection(db, 'teamInvites'),
-      where('memberUid', '==', uid),
-      where('status', '==', 'accepted'),
-    ))
-    for (const inviteDoc of inviteSnaps.docs) {
-      const { ownerUid, configuratorId } = inviteDoc.data()
-      if (configuratorId) {
-        // Per-project invite — fetch only that one configurator
-        const oneSnap = await getDoc(doc(db, 'configurators', configuratorId))
-        if (oneSnap.exists() && oneSnap.data().ownerId === ownerUid) {
-          results.push({ id: oneSnap.id, ...oneSnap.data(), _isTeamOwned: true })
-        }
-        continue
-      }
-      const teamSnaps = await getDocs(query(
-        collection(db, 'configurators'),
-        where('ownerId', '==', ownerUid),
-        orderBy('createdAt', 'desc'),
-      ))
-      const teamConfigs = teamSnaps.docs.map((d) => ({ id: d.id, ...d.data(), _isTeamOwned: true }))
-      results = [...results, ...teamConfigs]
-    }
-    results.sort((a, b) => {
-      const ta = a.createdAt?.toMillis?.() ?? 0
-      const tb = b.createdAt?.toMillis?.() ?? 0
-      return tb - ta
-    })
-  } catch { /* ignore — Firestore rules may not allow cross-owner reads yet */ }
-
-  return results
+  return snaps.docs.map((d) => ({ id: d.id, ...d.data() }))
 }
 
-export async function getPublishedCount(uid) {
-  const q = query(
-    collection(db, 'configurators'),
-    where('ownerId', '==', uid),
-    where('published', '==', true),
-  )
-  const snaps = await getDocs(q)
-  return snaps.size
-}
-
-export async function saveConfigurator(id, data) {
-  await updateDoc(doc(db, 'configurators', id), {
+export async function saveRuleTable(id, data) {
+  await updateDoc(doc(db, 'ruleTables', id), {
     ...data,
     updatedAt: serverTimestamp(),
   })
 }
 
-export async function publishConfigurator(id, published) {
-  await updateDoc(doc(db, 'configurators', id), { published, updatedAt: serverTimestamp() })
+export async function deleteRuleTable(id) {
+  await deleteDoc(doc(db, 'ruleTables', id))
 }
 
-export async function deleteConfigurator(id) {
-  await deleteDoc(doc(db, 'configurators', id))
+// ── Lessons ────────────────────────────────────────────────────────
+
+export async function createLesson(uid, name) {
+  const ref = await addDoc(collection(db, 'lessons'), {
+    ownerId: uid,
+    name,
+    description: '',
+    parameterLocks: {},
+    gradingCriteria: [],
+    ruleTableId: null,
+    modules: [],
+    published: false,
+    classCode: null,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  })
+  return ref.id
 }
 
-// ── Media library ──────────────────────────────────────────────────
+export async function getLesson(id) {
+  const snap = await getDoc(doc(db, 'lessons', id))
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null
+}
+
+export async function getUserLessons(uid) {
+  const q = query(
+    collection(db, 'lessons'),
+    where('ownerId', '==', uid),
+    orderBy('createdAt', 'desc'),
+  )
+  const snaps = await getDocs(q)
+  return snaps.docs.map((d) => ({ id: d.id, ...d.data() }))
+}
+
+export async function saveLesson(id, data) {
+  await updateDoc(doc(db, 'lessons', id), {
+    ...data,
+    updatedAt: serverTimestamp(),
+  })
+}
+
+export async function deleteLesson(id) {
+  await deleteDoc(doc(db, 'lessons', id))
+}
+
+export async function getLessonByClassCode(code) {
+  const q = query(
+    collection(db, 'lessons'),
+    where('classCode', '==', code),
+    where('published', '==', true),
+  )
+  const snaps = await getDocs(q)
+  return snaps.docs[0] ? { id: snaps.docs[0].id, ...snaps.docs[0].data() } : null
+}
+
+// ── Attempts ───────────────────────────────────────────────────────
+
+export async function createAttempt(uid, lessonId, data = {}) {
+  const ref = await addDoc(collection(db, 'attempts'), {
+    studentUid: uid,
+    lessonId,
+    modules: data.modules ?? [],
+    submitted: false,
+    score: null,
+    ruleResults: null,
+    submittedAt: null,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  })
+  return ref.id
+}
+
+export async function getAttempt(id) {
+  const snap = await getDoc(doc(db, 'attempts', id))
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null
+}
+
+export async function saveAttempt(id, data) {
+  await updateDoc(doc(db, 'attempts', id), {
+    ...data,
+    updatedAt: serverTimestamp(),
+  })
+}
+
+export async function submitAttempt(id, { score, ruleResults }) {
+  await updateDoc(doc(db, 'attempts', id), {
+    submitted: true,
+    score,
+    ruleResults,
+    submittedAt: serverTimestamp(),
+  })
+}
+
+export async function getLessonAttempts(lessonId) {
+  const q = query(
+    collection(db, 'attempts'),
+    where('lessonId', '==', lessonId),
+    where('submitted', '==', true),
+    orderBy('score', 'desc'),
+  )
+  const snaps = await getDocs(q)
+  return snaps.docs.map((d) => ({ id: d.id, ...d.data() }))
+}
+
+export async function getStudentAttempts(uid) {
+  const q = query(
+    collection(db, 'attempts'),
+    where('studentUid', '==', uid),
+    orderBy('createdAt', 'desc'),
+  )
+  const snaps = await getDocs(q)
+  return snaps.docs.map((d) => ({ id: d.id, ...d.data() }))
+}
+
+// ── Media library (GLB uploads) ────────────────────────────────────
 
 export async function addMediaFile(uid, { name, url, storagePath, size, contentType }) {
   const ref = await addDoc(collection(db, 'media'), {
@@ -142,254 +191,4 @@ export async function getUserMedia(uid) {
 
 export async function deleteMediaFile(id) {
   await deleteDoc(doc(db, 'media', id))
-}
-
-// Analytics — view tracking
-export async function trackView(id) {
-  const ref = doc(db, 'analytics', id)
-  try {
-    await updateDoc(ref, { views: increment(1) })
-  } catch {
-    await setDoc(ref, { views: 1 })
-  }
-}
-
-export async function getAnalyticsBatch(ids) {
-  if (!ids.length) return {}
-  const results = {}
-  await Promise.all(ids.map(async (id) => {
-    const snap = await getDoc(doc(db, 'analytics', id))
-    results[id] = snap.exists() ? snap.data() : { views: 0 }
-  }))
-  return results
-}
-
-// Duplicate a configurator
-export async function duplicateConfigurator(uid, source) {
-  const { id: _id, createdAt: _c, updatedAt: _u, ...data } = source
-  const ref = await addDoc(collection(db, 'configurators'), {
-    ...data,
-    ownerId: uid,
-    name: data.name + ' (Copy)',
-    published: false,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  })
-  return ref.id
-}
-
-// Orders
-export async function saveOrder(configuratorId, ownerId, { variantId, interiorId, formData, selections, configuratorName }) {
-  const docRef = await addDoc(collection(db, 'orders'), {
-    configuratorId,
-    ownerId,
-    variantId: variantId ?? null,
-    interiorId: interiorId ?? null,
-    formData: formData ?? {},
-    selections: selections ?? null,
-    configuratorName: configuratorName ?? '',
-    createdAt: serverTimestamp(),
-  })
-  return docRef.id
-}
-
-export async function getOrder(id) {
-  const snap = await getDoc(doc(db, 'orders', id))
-  return snap.exists() ? { id: snap.id, ...snap.data() } : null
-}
-
-export async function updateOrder(id, patch) {
-  await updateDoc(doc(db, 'orders', id), patch)
-}
-
-export async function getUserOrders(uid) {
-  const q = query(
-    collection(db, 'orders'),
-    where('ownerId', '==', uid),
-    orderBy('createdAt', 'desc'),
-  )
-  const snaps = await getDocs(q)
-  return snaps.docs.map((d) => ({ id: d.id, ...d.data() }))
-}
-
-// ── Landing pages ──────────────────────────────────────────────────
-
-export async function createLandingPage(uid, name) {
-  const ref = await addDoc(collection(db, 'landingPages'), {
-    ownerId: uid,
-    name,
-    siteName: '',
-    tagline: '',
-    description: '',
-    logoUrl: null,
-    logoPath: null,
-    layout: 'hero',
-    accentColor: '#111111',
-    bgColor: '#ffffff',
-    cardBg: '#f5f5f5',
-    textColor: '#111111',
-    items: [],
-    published: false,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  })
-  return ref.id
-}
-
-export async function getLandingPage(id) {
-  const snap = await getDoc(doc(db, 'landingPages', id))
-  return snap.exists() ? { id: snap.id, ...snap.data() } : null
-}
-
-export async function getUserLandingPages(uid) {
-  const q = query(
-    collection(db, 'landingPages'),
-    where('ownerId', '==', uid),
-    orderBy('createdAt', 'desc'),
-  )
-  const snaps = await getDocs(q)
-  return snaps.docs.map((d) => ({ id: d.id, ...d.data() }))
-}
-
-export async function saveLandingPage(id, data) {
-  await updateDoc(doc(db, 'landingPages', id), {
-    ...data,
-    updatedAt: serverTimestamp(),
-  })
-}
-
-export async function deleteLandingPage(id) {
-  await deleteDoc(doc(db, 'landingPages', id))
-}
-
-export async function getPublishedLandingPageCount(uid) {
-  const q = query(
-    collection(db, 'landingPages'),
-    where('ownerId', '==', uid),
-    where('published', '==', true),
-  )
-  const snaps = await getDocs(q)
-  return snaps.size
-}
-
-export async function publishLandingPage(id, published) {
-  await updateDoc(doc(db, 'landingPages', id), { published, updatedAt: serverTimestamp() })
-}
-
-// ── Invoices ────────────────────────────────────────────────────────
-
-export async function createClientInvoice(data) {
-  const ref = await addDoc(collection(db, 'invoices'), {
-    ...data,
-    issuedAt: serverTimestamp(),
-  })
-  return ref.id
-}
-
-export async function getUserInvoices(uid) {
-  const q = query(
-    collection(db, 'invoices'),
-    where('userId', '==', uid),
-    orderBy('issuedAt', 'desc'),
-  )
-  const snaps = await getDocs(q)
-  return snaps.docs.map((d) => ({ id: d.id, ...d.data() }))
-}
-
-// ── Revisions ───────────────────────────────────────────────────────
-
-const MAX_REVISIONS = 30
-
-export async function saveRevision(configuratorId, ownerId, data) {
-  await addDoc(collection(db, 'revisions'), {
-    configuratorId,
-    ownerId,
-    savedAt: serverTimestamp(),
-    name: data.name ?? '',
-    variantCount: data.variants?.length ?? 0,
-    data,
-  })
-  // Non-blocking cleanup: keep only the most recent MAX_REVISIONS
-  getDocs(
-    query(
-      collection(db, 'revisions'),
-      where('configuratorId', '==', configuratorId),
-      orderBy('savedAt', 'desc'),
-    ),
-  ).then(async (snaps) => {
-    if (snaps.size <= MAX_REVISIONS) return
-    const stale = snaps.docs.slice(MAX_REVISIONS)
-    await Promise.all(stale.map((d) => deleteDoc(d.ref)))
-  }).catch((err) => {
-    console.error('Revision cleanup failed:', err)
-  })
-}
-
-export async function getRevisions(configuratorId, ownerId) {
-  // Both filters must be present so Firestore rules (which check ownerId) accept the query.
-  const snaps = await getDocs(
-    query(
-      collection(db, 'revisions'),
-      where('configuratorId', '==', configuratorId),
-      where('ownerId', '==', ownerId),
-    ),
-  )
-  const docs = snaps.docs.map((d) => ({ id: d.id, ...d.data() }))
-  return docs.sort((a, b) => {
-    const ta = a.savedAt?.toMillis?.() ?? 0
-    const tb = b.savedAt?.toMillis?.() ?? 0
-    return tb - ta
-  })
-}
-
-// ── Team invites ─────────────────────────────────────────────────────
-
-export async function createTeamInvite(ownerUid, ownerEmail, inviteeEmail, code, configuratorId = null) {
-  await setDoc(doc(db, 'teamInvites', code), {
-    ownerUid,
-    ownerEmail,
-    inviteeEmail,
-    code,
-    status: 'pending',
-    memberUid: null,
-    configuratorId,
-    createdAt: serverTimestamp(),
-  })
-}
-
-export async function getTeamInviteByCode(code) {
-  const snap = await getDoc(doc(db, 'teamInvites', code))
-  return snap.exists() ? snap.data() : null
-}
-
-export async function acceptTeamInvite(code, memberUid) {
-  await updateDoc(doc(db, 'teamInvites', code), { status: 'accepted', memberUid })
-}
-
-export async function getTeamMembers(ownerUid) {
-  const q = query(collection(db, 'teamInvites'), where('ownerUid', '==', ownerUid))
-  const snaps = await getDocs(q)
-  return snaps.docs.map((d) => ({ ...d.data(), code: d.id }))
-}
-
-export async function revokeTeamInvite(code) {
-  await updateDoc(doc(db, 'teamInvites', code), { status: 'revoked' })
-}
-
-// ── Public embed — reads config + checks owner subscription ────────
-
-export async function getPublishedConfigurator(id) {
-  const cfg = await getConfigurator(id)
-  if (!cfg || !cfg.published) return null
-  try {
-    const owner = await getUser(cfg.ownerId)
-    if (!owner) return null
-    const active = ['trial', 'active'].includes(owner.subscriptionStatus)
-    return active ? cfg : null
-  } catch {
-    // Unauthenticated visitors cannot read the owner's user doc (Firestore rules).
-    // If the configurator is published, allow it through — subscription enforcement
-    // happens at publish time in the builder.
-    return cfg
-  }
 }

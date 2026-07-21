@@ -53,8 +53,7 @@ describe('signUp', () => {
       expect.objectContaining({
         name: 'Alice',
         email: 'alice@example.com',
-        subscriptionStatus: 'trial',
-        paypalSubscriptionId: null,
+        role: 'student',
       }),
     )
   })
@@ -91,7 +90,7 @@ describe('signInWithGoogle', () => {
       expect.objectContaining({
         name: 'Bob',
         email: 'bob@example.com',
-        subscriptionStatus: 'trial',
+        role: 'student',
       }),
     )
   })
