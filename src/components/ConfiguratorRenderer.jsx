@@ -81,9 +81,11 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
   // show only first partOption group until that's picked too.
   // If an external selection is provided (via URL/postMessage/order link),
   // skip disclosure gates so all chosen state is rendered immediately.
+  // When viewerSettings.expandAllOptions is true, disclosure is disabled per-config.
   const hasInitialSel = !!resolvedInitial
-  const [modelTouched, setModelTouched]         = useState(hasInitialSel)
-  const [firstPartTouched, setFirstPartTouched] = useState(hasInitialSel)
+  const expandAllOptions = viewerSettings?.expandAllOptions ?? false
+  const [modelTouched, setModelTouched]         = useState(hasInitialSel || expandAllOptions)
+  const [firstPartTouched, setFirstPartTouched] = useState(hasInitialSel || expandAllOptions)
   // User-selectable lighting preset (when enableLightingControl is on)
   const [lightPresetKey, setLightPresetKey]     = useState(null)
   // Animation override (when viewerSettings.glbEnableAnimationControls is on)
@@ -494,11 +496,15 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
           ? { playing: animPlaying, speed: animSpeed, restartKey: animRestartKey }
           : null,
       }
+      // When keepViewerMounted is enabled (per-config), skip the variant-id key
+      // so the viewer keeps its camera + WebGL context across variant switches.
+      // Only layers change → smoother than a full remount + refit.
+      const keepMounted = vs.keepViewerMounted ?? false
       if (show3D && glbLayers.length > 0) {
-        return <SaunaViewer3D key={variant.id + '3d'} glbLayers={glbLayers} stackTransform={variant.transform ?? null} {...sharedProps} />
+        return <SaunaViewer3D key={keepMounted ? 'shared-3d' : variant.id + '3d'} glbLayers={glbLayers} stackTransform={variant.transform ?? null} {...sharedProps} />
       }
       if (variant.type === 'glb' && glbLayers.length > 0) {
-        return <SaunaViewer3D key={variant.id} glbLayers={glbLayers} stackTransform={variant.transform ?? null} {...sharedProps} />
+        return <SaunaViewer3D key={keepMounted ? 'shared' : variant.id} glbLayers={glbLayers} stackTransform={variant.transform ?? null} {...sharedProps} />
       }
       if (variant.type === 'spinner' && variant.frames?.length) {
         return (

@@ -1082,6 +1082,60 @@ function MaterialOverrideRow({ mat, override = {}, uid: userUid, onChange, onRen
               )}
             </div>
           )}
+          {type === 'texture' && override.textureUrl && (
+            <div className="mat-texture-tiling" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 8 }}>
+              <label style={{ fontSize: 12 }}>
+                <div>Repeat X (larger = more tiles, smaller = zoom in)</div>
+                <input className="field-input" type="number" step="0.1"
+                  placeholder="1"
+                  value={override.textureRepeatX ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value === '' ? undefined : Number(e.target.value)
+                    onChange({ ...override, textureRepeatX: v })
+                  }} />
+              </label>
+              <label style={{ fontSize: 12 }}>
+                <div>Repeat Y</div>
+                <input className="field-input" type="number" step="0.1"
+                  placeholder="1"
+                  value={override.textureRepeatY ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value === '' ? undefined : Number(e.target.value)
+                    onChange({ ...override, textureRepeatY: v })
+                  }} />
+              </label>
+              <label style={{ fontSize: 12 }}>
+                <div>Offset X</div>
+                <input className="field-input" type="number" step="0.05"
+                  placeholder="0"
+                  value={override.textureOffsetX ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value === '' ? undefined : Number(e.target.value)
+                    onChange({ ...override, textureOffsetX: v })
+                  }} />
+              </label>
+              <label style={{ fontSize: 12 }}>
+                <div>Offset Y</div>
+                <input className="field-input" type="number" step="0.05"
+                  placeholder="0"
+                  value={override.textureOffsetY ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value === '' ? undefined : Number(e.target.value)
+                    onChange({ ...override, textureOffsetY: v })
+                  }} />
+              </label>
+              <label style={{ fontSize: 12, gridColumn: '1 / -1' }}>
+                <div>Rotation (degrees)</div>
+                <input className="field-input" type="number" step="5"
+                  placeholder="0"
+                  value={override.textureRotation ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value === '' ? undefined : Number(e.target.value)
+                    onChange({ ...override, textureRotation: v })
+                  }} />
+              </label>
+            </div>
+          )}
           {showTexturePicker && (
             <MediaPickerModal uid={userUid} accept="image/*"
               onSelect={({ url, storagePath }) => {
@@ -1922,6 +1976,27 @@ function ViewerSettingsEditor({ settings, onChange }) {
           <option value="crosshair">Crosshair</option>
           <option value="move">Move</option>
         </select>
+      </div>
+
+      {/* ── Panel behaviour ── */}
+      <p className="vs-group-label" style={{ marginTop: 16 }}>Panel behaviour</p>
+
+      <div className="vs-row">
+        <label className="vs-label" title="Show all colour + part options immediately, without progressive disclosure gates.">Expand all options</label>
+        <label className="vs-toggle">
+          <input type="checkbox" checked={s.expandAllOptions ?? false}
+            onChange={(e) => set('expandAllOptions', e.target.checked)} />
+          <span className="vs-toggle-track" />
+        </label>
+      </div>
+
+      <div className="vs-row">
+        <label className="vs-label" title="Keep the 3D viewer mounted when switching variants — smoother variant swap, camera preserved.">Keep viewer mounted on variant switch</label>
+        <label className="vs-toggle">
+          <input type="checkbox" checked={s.keepViewerMounted ?? false}
+            onChange={(e) => set('keepViewerMounted', e.target.checked)} />
+          <span className="vs-toggle-track" />
+        </label>
       </div>
 
       {/* ── Animation ── */}

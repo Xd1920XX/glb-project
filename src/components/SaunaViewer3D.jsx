@@ -186,7 +186,34 @@ function Model({ url, materialOverrides = {}, animationConfig = null, animationO
         } else if (ov.type === 'texture' && ov.textureUrl) {
           loadCachedTexture(ov.textureUrl).then((tex) => {
             if (cancelled) return
-            mat.map = tex
+            const rx = Number(ov.textureRepeatX)
+            const ry = Number(ov.textureRepeatY)
+            const ox = Number(ov.textureOffsetX)
+            const oy = Number(ov.textureOffsetY)
+            const rot = Number(ov.textureRotation)
+            const needsClone =
+              (Number.isFinite(rx) && rx !== 1) ||
+              (Number.isFinite(ry) && ry !== 1) ||
+              (Number.isFinite(ox) && ox !== 0) ||
+              (Number.isFinite(oy) && oy !== 0) ||
+              (Number.isFinite(rot) && rot !== 0)
+            let out = tex
+            if (needsClone) {
+              out = tex.clone()
+              out.wrapS = out.wrapT = THREE.RepeatWrapping
+              out.repeat.set(
+                Number.isFinite(rx) ? rx : 1,
+                Number.isFinite(ry) ? ry : 1,
+              )
+              out.offset.set(
+                Number.isFinite(ox) ? ox : 0,
+                Number.isFinite(oy) ? oy : 0,
+              )
+              out.center.set(0.5, 0.5)
+              out.rotation = Number.isFinite(rot) ? rot * Math.PI / 180 : 0
+              out.needsUpdate = true
+            }
+            mat.map = out
             mat.needsUpdate = true
           })
         }
