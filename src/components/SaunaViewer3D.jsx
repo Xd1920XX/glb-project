@@ -482,11 +482,49 @@ function GlbStack({ layers, animationOverride, transform, wireframe = false, ren
 
 function CameraFit({ deps = [] }) {
   const bounds = useBounds()
-  // useProgress().active flips false once suspended GLBs finish loading. Refitting on
-  // that transition ensures the bbox reflects the actual scene rather than an empty
-  // group, so OrbitControls target lands on the real model center (not world origin).
+  const camera = useThree((s) => s.camera)
+  const controls = useThree((s) => s.controls)
+  // useProgress().active flips false once suspended GLBs finish loading.
   const loading = useProgress((s) => s.active)
-  useLayoutEffect(() => { bounds.refresh().fit() }, [...deps, loading]) // eslint-disable-line
+  useLayoutEffect(() => {
+    if (loading) return
+    // Directly snap camera + orbit target to fit — bypass Bounds' animated
+    // .fit()/.reset() so there is no in-flight transition that OrbitControls
+    // can interrupt (which produced a visible jump on first rotate).
+    bounds.refresh()
+    const { center, distance } = bounds.getSize()
+    if (!controls) return
+    const direction = camera.position.clone().sub(center)
+    if (direction.lengthSq() < 1e-6) direction.set(0, 0, 1)
+    direction.normalize()
+    if (camera.isOrthographicCamera) {
+      // For orthographic: keep camera position, snap target + fit via zoom.
+      controls.target.copy(center)
+      const { box } = bounds.getSize()
+      const verts = [
+        new THREE.Vector3(box.min.x, box.min.y, box.min.z),
+        new THREE.Vector3(box.min.x, box.max.y, box.min.z),
+        new THREE.Vector3(box.min.x, box.min.y, box.max.z),
+        new THREE.Vector3(box.min.x, box.max.y, box.max.z),
+        new THREE.Vector3(box.max.x, box.min.y, box.min.z),
+        new THREE.Vector3(box.max.x, box.max.y, box.min.z),
+        new THREE.Vector3(box.max.x, box.min.y, box.max.z),
+        new THREE.Vector3(box.max.x, box.max.y, box.max.z),
+      ]
+      const m = new THREE.Matrix4().lookAt(camera.position, center, camera.up).setPosition(camera.position).invert()
+      let mh = 0, mw = 0
+      for (const v of verts) { v.applyMatrix4(m); mh = Math.max(mh, Math.abs(v.y)); mw = Math.max(mw, Math.abs(v.x)) }
+      mh *= 2; mw *= 2
+      const zh = (camera.top - camera.bottom) / mh
+      const zw = (camera.right - camera.left) / mw
+      camera.zoom = Math.min(zh, zw) / 1.2
+    } else {
+      camera.position.copy(center).addScaledVector(direction, distance)
+      controls.target.copy(center)
+    }
+    camera.updateProjectionMatrix()
+    controls.update()
+  }, [...deps, loading]) // eslint-disable-line
   return null
 }
 
@@ -516,8 +554,10 @@ function ResetViewButton({ resetKey, onReset }) {
 function CameraPoseInit({ deps, defaultYaw, defaultPitch, initialCameraPosition, targetOffset }) {
   const camera = useThree((s) => s.camera)
   const controls = useThree((s) => s.controls)
+  const loading = useProgress((s) => s.active)
   useLayoutEffect(() => {
     if (!controls) return
+    if (loading) return
     if (targetOffset) {
       controls.target.x += Number(targetOffset.x) || 0
       controls.target.y += Number(targetOffset.y) || 0
@@ -549,7 +589,7 @@ function CameraPoseInit({ deps, defaultYaw, defaultPitch, initialCameraPosition,
     }
     camera.lookAt(controls.target)
     controls.update?.()
-  }, deps) // eslint-disable-line
+  }, [...deps, loading]) // eslint-disable-line
   return null
 }
 
@@ -595,13 +635,15 @@ function InteractWatcher({ lastInteractRef }) {
 function ZoomAdjust({ deps, initialZoomMul }) {
   const camera = useThree((s) => s.camera)
   const controls = useThree((s) => s.controls)
+  const loading = useProgress((s) => s.active)
   useLayoutEffect(() => {
     if (!controls || !initialZoomMul || initialZoomMul === 1) return
+    if (loading) return
     const offset = new THREE.Vector3().subVectors(camera.position, controls.target)
     offset.multiplyScalar(Number(initialZoomMul) || 1)
     camera.position.copy(controls.target).add(offset)
     controls.update?.()
-  }, deps) // eslint-disable-line
+  }, [...deps, loading]) // eslint-disable-line
   return null
 }
 
