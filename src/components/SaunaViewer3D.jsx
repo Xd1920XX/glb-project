@@ -482,7 +482,11 @@ function GlbStack({ layers, animationOverride, transform, wireframe = false, ren
 
 function CameraFit({ deps = [] }) {
   const bounds = useBounds()
-  useLayoutEffect(() => { bounds.refresh().fit() }, deps) // eslint-disable-line
+  // useProgress().active flips false once suspended GLBs finish loading. Refitting on
+  // that transition ensures the bbox reflects the actual scene rather than an empty
+  // group, so OrbitControls target lands on the real model center (not world origin).
+  const loading = useProgress((s) => s.active)
+  useLayoutEffect(() => { bounds.refresh().fit() }, [...deps, loading]) // eslint-disable-line
   return null
 }
 
@@ -819,7 +823,7 @@ export function SaunaViewer3D({
 
         <SceneFog enabled={fogEnabled} color={fogColor} density={fogDensity} near={fogNear} far={fogFar} type={fogType} />
 
-        <Bounds fit clip margin={1.2}>
+        <Bounds fit clip margin={1.2} maxDuration={0}>
           <GlbStack
             layers={layers}
             animationOverride={animationOverride}
