@@ -370,10 +370,15 @@ function Model({ url, materialOverrides = {}, animationConfig = null, animationO
   })
 
   // Expose the cloned scene so the parent stack can compute a shared bounding box.
+  // onSceneRef is captured in a ref so a fresh inline callback from the parent does
+  // not retrigger the attach/detach cycle every render (which caused a re-render
+  // storm when the parent used the callback to bump state).
+  const onSceneRefRef = useRef(onSceneRef)
+  useEffect(() => { onSceneRefRef.current = onSceneRef })
   useEffect(() => {
-    onSceneRef?.(cloned)
-    return () => onSceneRef?.(null)
-  }, [cloned, onSceneRef])
+    onSceneRefRef.current?.(cloned)
+    return () => onSceneRefRef.current?.(null)
+  }, [cloned])
 
   // Per-layer transform (offset + rotation° + scale) inside the stack group.
   const lt = layerTransform || {}
@@ -400,59 +405,78 @@ function Model({ url, materialOverrides = {}, animationConfig = null, animationO
 }
 
 // Wraps all GLB layers of a variant inside ONE group so transform applies to the entire stack.
-function GlbStack({ layers, animationOverride, transform, wireframe = false, renderMode = 'solid', xrayOpacity = 0.35, flatShading = false, crossfade = 0, globalCastShadow = true, globalReceiveShadow = true }) {
+function GlbStack({ layers, animationOverride, transform, wireframe = false, renderMode = 'solid', xrayOpacity = 0.35, flatShading = false, crossfade = 0, globalCastShadow = true, globalReceiveShadow = true, groupOutRef = null }) {
   const groupRef = useRef(null)
+  useLayoutEffect(() => {
+    if (groupOutRef) groupOutRef.current = groupRef.current
+    return () => { if (groupOutRef) groupOutRef.current = null }
+  }, [groupOutRef])
   const sceneMapRef = useRef(new Map())
+  // Bumped whenever a Model attaches/detaches its scene — used to re-run autoCenter
+  // once the actual GLB scenes are present (they arrive after Suspense resolves,
+  // which is after the initial useLayoutEffect pass).
+  const [scenesTick, setScenesTick] = useState(0)
 
   const offset = transform?.offset ?? null
   const rotation = transform?.rotation ?? null
   const scaleProp = transform?.scale ?? null
   const autoCenter = !!transform?.autoCenter
 
-  // Group transform from CMS-side offset/rotation/scale.
-  const pos = offset ? [Number(offset.x) || 0, Number(offset.y) || 0, Number(offset.z) || 0] : [0, 0, 0]
-  const rot = rotation
-    ? [
-        (Number(rotation.x) || 0) * Math.PI / 180,
-        (Number(rotation.y) || 0) * Math.PI / 180,
-        (Number(rotation.z) || 0) * Math.PI / 180,
-      ]
-    : [0, 0, 0]
-  const scl = scaleProp != null
-    ? (typeof scaleProp === 'number' ? [scaleProp, scaleProp, scaleProp] : [Number(scaleProp.x) || 1, Number(scaleProp.y) || 1, Number(scaleProp.z) || 1])
-    : [1, 1, 1]
-
-  // Auto-center: compute a SHARED bounding box across all loaded layers, then
-  // shift the wrapping group so the combined centre sits at the origin.
-  // Preserves layer alignment because every layer moves together.
+  // NOTE: intentionally NO position/rotation/scale JSX props on the wrapping
+  // <group> below — passing them lets r3f re-apply on every reconcile, which
+  // undoes the autoCenter shift the moment anything triggers a re-render (e.g.
+  // pointerdown → forceCursorRender). Same pattern drei's <Center> uses.
+  // All transforms are applied imperatively in the useLayoutEffect below.
   useLayoutEffect(() => {
     const grp = groupRef.current
     if (!grp) return
-    if (grp.userData._origPos === undefined) grp.userData._origPos = grp.position.clone()
-    grp.position.copy(grp.userData._origPos)
-    if (!autoCenter) return
+    // 1) Base transform from CMS-side offset/rotation/scale.
+    const baseX = offset ? Number(offset.x) || 0 : 0
+    const baseY = offset ? Number(offset.y) || 0 : 0
+    const baseZ = offset ? Number(offset.z) || 0 : 0
+    grp.position.set(baseX, baseY, baseZ)
+    if (rotation) {
+      grp.rotation.set(
+        (Number(rotation.x) || 0) * Math.PI / 180,
+        (Number(rotation.y) || 0) * Math.PI / 180,
+        (Number(rotation.z) || 0) * Math.PI / 180,
+      )
+    } else grp.rotation.set(0, 0, 0)
+    if (scaleProp != null) {
+      if (typeof scaleProp === 'number') grp.scale.set(scaleProp, scaleProp, scaleProp)
+      else grp.scale.set(Number(scaleProp.x) || 1, Number(scaleProp.y) || 1, Number(scaleProp.z) || 1)
+    } else grp.scale.set(1, 1, 1)
+    // 2) autoCenter: shift by -bbox.centre so combined visible+hidden meshes
+    //    are centred at world origin.
+    if (!autoCenter) { console.log('[autoCenter] SKIP no autoCenter'); return }
     const scenes = Array.from(sceneMapRef.current.values()).filter(Boolean)
-    if (scenes.length === 0) return
+    if (scenes.length === 0) { console.log('[autoCenter] SKIP no scenes, mapRef.size=', sceneMapRef.current.size); return }
+    // Force refresh of world matrices — position.set alone does not propagate
+    // to matrixWorld until the next render tick, so setFromObject reads stale
+    // world coords and computes a bbox as-if the shift were already applied.
+    grp.updateMatrixWorld(true)
     const box = new THREE.Box3()
     let any = false
     for (const s of scenes) {
       const sb = new THREE.Box3().setFromObject(s)
       if (isFinite(sb.min.x)) { box.union(sb); any = true }
     }
-    if (!any) return
+    if (!any) { console.log('[autoCenter] SKIP no finite bbox'); return }
     const c = new THREE.Vector3()
     box.getCenter(c)
     grp.position.sub(c)
-  // Recompute when toggle changes OR when the set of layers changes (so re-loads pick up new bbox)
-  }, [autoCenter, layers])
+    grp.updateMatrixWorld(true)
+    console.log('[autoCenter] shifted by -', c.toArray().map(v => v.toFixed(4)), 'final pos', grp.position.toArray().map(v => v.toFixed(4)), 'scenes=' + scenes.length)
+  })  // no dep array — runs every render so r3f reconciles cannot desync the transform
 
   function setSceneFor(layerKey, scene) {
     if (scene == null) sceneMapRef.current.delete(layerKey)
     else sceneMapRef.current.set(layerKey, scene)
+    setScenesTick((n) => n + 1)
   }
 
   return (
-    <group ref={groupRef} position={pos} rotation={rot} scale={scl}>
+    <group ref={groupRef}>
       {layers.map((layer, idx) => {
         const key = layer.id ?? `${idx}:${layer.url}`
         return (
@@ -480,51 +504,136 @@ function GlbStack({ layers, animationOverride, transform, wireframe = false, ren
 
 // ── Camera auto-fit ───────────────────────────────────────────────
 
-function CameraFit({ deps = [] }) {
+function CameraFit({ deps = [], modelRootRef = null }) {
   const bounds = useBounds()
   const camera = useThree((s) => s.camera)
   const controls = useThree((s) => s.controls)
-  // useProgress().active flips false once suspended GLBs finish loading.
-  const loading = useProgress((s) => s.active)
-  useLayoutEffect(() => {
-    if (loading) return
-    // Directly snap camera + orbit target to fit — bypass Bounds' animated
-    // .fit()/.reset() so there is no in-flight transition that OrbitControls
-    // can interrupt (which produced a visible jump on first rotate).
-    bounds.refresh()
-    const { center, distance } = bounds.getSize()
-    if (!controls) return
-    const direction = camera.position.clone().sub(center)
-    if (direction.lengthSq() < 1e-6) direction.set(0, 0, 1)
-    direction.normalize()
-    if (camera.isOrthographicCamera) {
-      // For orthographic: keep camera position, snap target + fit via zoom.
-      controls.target.copy(center)
-      const { box } = bounds.getSize()
-      const verts = [
-        new THREE.Vector3(box.min.x, box.min.y, box.min.z),
-        new THREE.Vector3(box.min.x, box.max.y, box.min.z),
-        new THREE.Vector3(box.min.x, box.min.y, box.max.z),
-        new THREE.Vector3(box.min.x, box.max.y, box.max.z),
-        new THREE.Vector3(box.max.x, box.min.y, box.min.z),
-        new THREE.Vector3(box.max.x, box.max.y, box.min.z),
-        new THREE.Vector3(box.max.x, box.min.y, box.max.z),
-        new THREE.Vector3(box.max.x, box.max.y, box.max.z),
-      ]
-      const m = new THREE.Matrix4().lookAt(camera.position, center, camera.up).setPosition(camera.position).invert()
-      let mh = 0, mw = 0
-      for (const v of verts) { v.applyMatrix4(m); mh = Math.max(mh, Math.abs(v.y)); mw = Math.max(mw, Math.abs(v.x)) }
-      mh *= 2; mw *= 2
-      const zh = (camera.top - camera.bottom) / mh
-      const zw = (camera.right - camera.left) / mw
-      camera.zoom = Math.min(zh, zw) / 1.2
-    } else {
-      camera.position.copy(center).addScaledVector(direction, distance)
-      controls.target.copy(center)
+  // Fit exactly once per deps change. Polls with rAF because GLBs stream in via
+  // Suspense (onSceneRef fires in useEffect — after this layoutEffect), so the
+  // scene tree is empty on the initial pass. Bbox is computed manually from
+  // ONLY visible meshes (Three.js Box3.setFromObject includes hidden geometry,
+  // which pulled the centre off toward hidden waste-type variants in the same GLB).
+  useEffect(() => {
+    console.log('[CameraFit] useEffect fired, controls?', !!controls, 'modelRootRef?', !!modelRootRef, 'modelRootRef.current?', !!modelRootRef?.current)
+    if (!controls) { console.log('[CameraFit] EARLY EXIT no controls'); return }
+    let done = false
+    let attempts = 0
+    const doFit = () => {
+      if (done) return
+      attempts++
+      const root = modelRootRef?.current
+      if (attempts === 1 || attempts % 30 === 0) console.log('[CameraFit] doFit attempt', attempts, 'root?', !!root)
+      if (!root) {
+        if (attempts < 120) { rafId = requestAnimationFrame(doFit); return }
+        console.log('[CameraFit] GIVE UP no root after 120 attempts')
+        done = true
+        return
+      }
+      root.updateWorldMatrix(true, true)
+      // Two bboxes: (a) all-meshes (Three.js default, ignores visibility)
+      // (b) visible-only (respects Model's visibility filter). Prefer visible-only,
+      // fall back to all-meshes if empty.
+      const allBox = new THREE.Box3().setFromObject(root)
+      const visBox = new THREE.Box3()
+      const tmp = new THREE.Box3()
+      let visHits = 0
+      root.traverse((n) => {
+        if (!n.isMesh || !n.visible) return
+        let cur = n.parent
+        while (cur && cur !== root) { if (cur.visible === false) return; cur = cur.parent }
+        if (!n.geometry.boundingBox) n.geometry.computeBoundingBox()
+        tmp.copy(n.geometry.boundingBox).applyMatrix4(n.matrixWorld)
+        visBox.union(tmp)
+        visHits++
+      })
+      const box = (visHits > 0 && !visBox.isEmpty()) ? visBox : allBox
+      if (attempts === 1 || attempts % 30 === 0) console.log('[CameraFit] box empty?', box.isEmpty(), 'visHits', visHits, 'attempts', attempts)
+      if (box.isEmpty()) {
+        if (attempts < 120) { rafId = requestAnimationFrame(doFit); return }
+        console.log('[CameraFit] GIVE UP empty box after 120 attempts')
+        done = true
+        return
+      }
+      const interacting = controls.enabled && (controls?.state ?? -1) !== -1
+      if (interacting && attempts < 300) {
+        rafId = requestAnimationFrame(doFit)
+        return
+      }
+      done = true
+      {
+        const c = new THREE.Vector3(); box.getCenter(c)
+        const s = new THREE.Vector3(); box.getSize(s)
+        const ac = new THREE.Vector3(); allBox.getCenter(ac)
+        const asz = new THREE.Vector3(); allBox.getSize(asz)
+        console.log('[CameraFit] visHits', visHits, 'visCenter', c.toArray(), 'visSize', s.toArray(), 'allCenter', ac.toArray(), 'allSize', asz.toArray(), 'attempts', attempts)
+      }
+      const center = new THREE.Vector3()
+      const size = new THREE.Vector3()
+      box.getCenter(center)
+      box.getSize(size)
+      const maxSize = Math.max(size.x, size.y, size.z)
+      const isOrtho = !!camera.isOrthographicCamera
+      const fov = camera.fov
+      const fitH = isOrtho ? maxSize * 4 : maxSize / (2 * Math.atan(Math.PI * fov / 360))
+      const fitW = isOrtho ? maxSize * 4 : fitH / camera.aspect
+      const distance = 1.2 * Math.max(fitH, fitW)
+      const direction = camera.position.clone().sub(center)
+      if (direction.lengthSq() < 1e-6) direction.set(0, 0, 1)
+      direction.normalize()
+      if (isOrtho) {
+        controls.target.copy(center)
+        const verts = [
+          new THREE.Vector3(box.min.x, box.min.y, box.min.z),
+          new THREE.Vector3(box.min.x, box.max.y, box.min.z),
+          new THREE.Vector3(box.min.x, box.min.y, box.max.z),
+          new THREE.Vector3(box.min.x, box.max.y, box.max.z),
+          new THREE.Vector3(box.max.x, box.min.y, box.min.z),
+          new THREE.Vector3(box.max.x, box.max.y, box.min.z),
+          new THREE.Vector3(box.max.x, box.min.y, box.max.z),
+          new THREE.Vector3(box.max.x, box.max.y, box.max.z),
+        ]
+        const m = new THREE.Matrix4().lookAt(camera.position, center, camera.up).setPosition(camera.position).invert()
+        let mh = 0, mw = 0
+        for (const v of verts) { v.applyMatrix4(m); mh = Math.max(mh, Math.abs(v.y)); mw = Math.max(mw, Math.abs(v.x)) }
+        mh *= 2; mw *= 2
+        const zh = (camera.top - camera.bottom) / mh
+        const zw = (camera.right - camera.left) / mw
+        camera.zoom = Math.min(zh, zw) / 1.2
+      } else {
+        camera.position.copy(center).addScaledVector(direction, distance)
+        controls.target.copy(center)
+      }
+      camera.near = distance / 100
+      camera.far = distance * 100
+      camera.updateProjectionMatrix()
+      // OrbitControls clamps camera-target radius to [minDistance, maxDistance] on
+      // every update(). If the CMS-configured minDistance is larger than our fit
+      // distance, camera gets pushed farther out on first update, breaking framing
+      // AND making rotation appear to "jump" as the clamp fires.
+      controls.minDistance = Math.min(controls.minDistance, distance * 0.5)
+      controls.maxDistance = Math.max(controls.maxDistance, distance * 5)
+      controls.update()
+      console.log('[CameraFit] AFTER FIT camera.pos', camera.position.toArray(), 'target', controls.target.toArray(), 'distance', distance)
+      const groupPos = () => modelRootRef?.current ? modelRootRef.current.position.toArray().map(v => v.toFixed(4)) : 'n/a'
+      const onStart = () => console.log('[CameraFit] drag start — cam', camera.position.toArray().map(v => v.toFixed(3)), 'target', controls.target.toArray().map(v => v.toFixed(3)), 'group.pos', groupPos())
+      const onEnd   = () => console.log('[CameraFit] drag end   — cam', camera.position.toArray().map(v => v.toFixed(3)), 'target', controls.target.toArray().map(v => v.toFixed(3)), 'group.pos', groupPos())
+      let changeCount = 0
+      let prevY = camera.position.y
+      const onChange = () => {
+        changeCount++
+        const dy = camera.position.y - prevY
+        prevY = camera.position.y
+        if (changeCount <= 100) {
+          console.log('[CameraFit] #' + changeCount, 'y=' + camera.position.y.toFixed(4), 'dy=' + dy.toFixed(4), 'pos', camera.position.toArray().map(v => v.toFixed(3)))
+        }
+      }
+      controls.addEventListener('start', () => { changeCount = 0; onStart() })
+      controls.addEventListener('end', onEnd)
+      controls.addEventListener('change', onChange)
     }
-    camera.updateProjectionMatrix()
-    controls.update()
-  }, [...deps, loading]) // eslint-disable-line
+    let rafId = requestAnimationFrame(doFit)
+    return () => { done = true; cancelAnimationFrame(rafId) }
+  }, [...deps, controls]) // eslint-disable-line
   return null
 }
 
@@ -554,10 +663,8 @@ function ResetViewButton({ resetKey, onReset }) {
 function CameraPoseInit({ deps, defaultYaw, defaultPitch, initialCameraPosition, targetOffset }) {
   const camera = useThree((s) => s.camera)
   const controls = useThree((s) => s.controls)
-  const loading = useProgress((s) => s.active)
   useLayoutEffect(() => {
     if (!controls) return
-    if (loading) return
     if (targetOffset) {
       controls.target.x += Number(targetOffset.x) || 0
       controls.target.y += Number(targetOffset.y) || 0
@@ -589,7 +696,7 @@ function CameraPoseInit({ deps, defaultYaw, defaultPitch, initialCameraPosition,
     }
     camera.lookAt(controls.target)
     controls.update?.()
-  }, [...deps, loading]) // eslint-disable-line
+  }, deps) // eslint-disable-line
   return null
 }
 
@@ -635,15 +742,13 @@ function InteractWatcher({ lastInteractRef }) {
 function ZoomAdjust({ deps, initialZoomMul }) {
   const camera = useThree((s) => s.camera)
   const controls = useThree((s) => s.controls)
-  const loading = useProgress((s) => s.active)
   useLayoutEffect(() => {
     if (!controls || !initialZoomMul || initialZoomMul === 1) return
-    if (loading) return
     const offset = new THREE.Vector3().subVectors(camera.position, controls.target)
     offset.multiplyScalar(Number(initialZoomMul) || 1)
     camera.position.copy(controls.target).add(offset)
     controls.update?.()
-  }, [...deps, loading]) // eslint-disable-line
+  }, deps) // eslint-disable-line
   return null
 }
 
@@ -782,6 +887,7 @@ export function SaunaViewer3D({
   const fitDepsWithReset = useMemo(() => [...fitDeps, resetCounter], [fitDeps, resetCounter])
 
   const wrapperRef = useRef(null)
+  const modelRootRef = useRef(null)
   const hoveredRef = useRef(false)
   const lastInteractRef = useRef(0)
   const pausedRef = useRef(false)
@@ -865,7 +971,7 @@ export function SaunaViewer3D({
 
         <SceneFog enabled={fogEnabled} color={fogColor} density={fogDensity} near={fogNear} far={fogFar} type={fogType} />
 
-        <Bounds fit clip margin={1.2} maxDuration={0}>
+        <Bounds clip margin={1.2} maxDuration={0}>
           <GlbStack
             layers={layers}
             animationOverride={animationOverride}
@@ -877,8 +983,9 @@ export function SaunaViewer3D({
             crossfade={animationCrossfade}
             globalCastShadow={shadows}
             globalReceiveShadow={shadows}
+            groupOutRef={modelRootRef}
           />
-          <CameraFit deps={fitDepsWithReset} />
+          <CameraFit deps={fitDepsWithReset} modelRootRef={modelRootRef} />
         </Bounds>
 
         <CameraPoseInit
