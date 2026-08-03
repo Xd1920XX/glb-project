@@ -1,5 +1,5 @@
 import { Canvas, useThree, useFrame } from '@react-three/fiber'
-import { useGLTF, OrbitControls, Bounds, useBounds, Environment, ContactShadows, Grid, Stats, useProgress } from '@react-three/drei'
+import { useGLTF, OrbitControls, Bounds, Environment, ContactShadows, Grid, Stats, useProgress } from '@react-three/drei'
 import { Suspense, useLayoutEffect, useMemo, useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 
@@ -448,12 +448,11 @@ function GlbStack({ layers, animationOverride, transform, wireframe = false, ren
     } else grp.scale.set(1, 1, 1)
     // 2) autoCenter: shift by -bbox.centre so combined visible+hidden meshes
     //    are centred at world origin.
-    if (!autoCenter) { console.log('[autoCenter] SKIP no autoCenter'); return }
+    if (!autoCenter) return
     const scenes = Array.from(sceneMapRef.current.values()).filter(Boolean)
-    if (scenes.length === 0) { console.log('[autoCenter] SKIP no scenes, mapRef.size=', sceneMapRef.current.size); return }
-    // Force refresh of world matrices — position.set alone does not propagate
-    // to matrixWorld until the next render tick, so setFromObject reads stale
-    // world coords and computes a bbox as-if the shift were already applied.
+    if (scenes.length === 0) return
+    // matrixWorld would otherwise reflect the pre-reset position — force refresh
+    // so setFromObject sees the meshes in their true local coordinates.
     grp.updateMatrixWorld(true)
     const box = new THREE.Box3()
     let any = false
@@ -461,12 +460,11 @@ function GlbStack({ layers, animationOverride, transform, wireframe = false, ren
       const sb = new THREE.Box3().setFromObject(s)
       if (isFinite(sb.min.x)) { box.union(sb); any = true }
     }
-    if (!any) { console.log('[autoCenter] SKIP no finite bbox'); return }
+    if (!any) return
     const c = new THREE.Vector3()
     box.getCenter(c)
     grp.position.sub(c)
     grp.updateMatrixWorld(true)
-    console.log('[autoCenter] shifted by -', c.toArray().map(v => v.toFixed(4)), 'final pos', grp.position.toArray().map(v => v.toFixed(4)), 'scenes=' + scenes.length)
   })  // no dep array — runs every render so r3f reconciles cannot desync the transform
 
   function setSceneFor(layerKey, scene) {
@@ -505,34 +503,28 @@ function GlbStack({ layers, animationOverride, transform, wireframe = false, ren
 // ── Camera auto-fit ───────────────────────────────────────────────
 
 function CameraFit({ deps = [], modelRootRef = null }) {
-  const bounds = useBounds()
   const camera = useThree((s) => s.camera)
   const controls = useThree((s) => s.controls)
-  // Fit exactly once per deps change. Polls with rAF because GLBs stream in via
-  // Suspense (onSceneRef fires in useEffect — after this layoutEffect), so the
-  // scene tree is empty on the initial pass. Bbox is computed manually from
-  // ONLY visible meshes (Three.js Box3.setFromObject includes hidden geometry,
-  // which pulled the centre off toward hidden waste-type variants in the same GLB).
+  // Fit exactly once per deps change. rAF polls until Suspense-loaded scenes are
+  // actually attached (Model.onSceneRef fires in useEffect, which runs after this
+  // useEffect). Bbox prefers visible-only meshes — Three.js Box3.setFromObject
+  // includes hidden geometry which would drag the centre toward hidden variants
+  // packed in the same GLB (e.g. all 7 waste-type sticker meshes at one lid slot).
   useEffect(() => {
-    console.log('[CameraFit] useEffect fired, controls?', !!controls, 'modelRootRef?', !!modelRootRef, 'modelRootRef.current?', !!modelRootRef?.current)
-    if (!controls) { console.log('[CameraFit] EARLY EXIT no controls'); return }
+    if (!controls) return
     let done = false
     let attempts = 0
+    let rafId = 0
     const doFit = () => {
       if (done) return
       attempts++
       const root = modelRootRef?.current
-      if (attempts === 1 || attempts % 30 === 0) console.log('[CameraFit] doFit attempt', attempts, 'root?', !!root)
       if (!root) {
         if (attempts < 120) { rafId = requestAnimationFrame(doFit); return }
-        console.log('[CameraFit] GIVE UP no root after 120 attempts')
         done = true
         return
       }
       root.updateWorldMatrix(true, true)
-      // Two bboxes: (a) all-meshes (Three.js default, ignores visibility)
-      // (b) visible-only (respects Model's visibility filter). Prefer visible-only,
-      // fall back to all-meshes if empty.
       const allBox = new THREE.Box3().setFromObject(root)
       const visBox = new THREE.Box3()
       const tmp = new THREE.Box3()
@@ -547,26 +539,18 @@ function CameraFit({ deps = [], modelRootRef = null }) {
         visHits++
       })
       const box = (visHits > 0 && !visBox.isEmpty()) ? visBox : allBox
-      if (attempts === 1 || attempts % 30 === 0) console.log('[CameraFit] box empty?', box.isEmpty(), 'visHits', visHits, 'attempts', attempts)
       if (box.isEmpty()) {
         if (attempts < 120) { rafId = requestAnimationFrame(doFit); return }
-        console.log('[CameraFit] GIVE UP empty box after 120 attempts')
         done = true
         return
       }
+      // Skip if user is mid-drag — snapping camera would look like a jump.
       const interacting = controls.enabled && (controls?.state ?? -1) !== -1
       if (interacting && attempts < 300) {
         rafId = requestAnimationFrame(doFit)
         return
       }
       done = true
-      {
-        const c = new THREE.Vector3(); box.getCenter(c)
-        const s = new THREE.Vector3(); box.getSize(s)
-        const ac = new THREE.Vector3(); allBox.getCenter(ac)
-        const asz = new THREE.Vector3(); allBox.getSize(asz)
-        console.log('[CameraFit] visHits', visHits, 'visCenter', c.toArray(), 'visSize', s.toArray(), 'allCenter', ac.toArray(), 'allSize', asz.toArray(), 'attempts', attempts)
-      }
       const center = new THREE.Vector3()
       const size = new THREE.Vector3()
       box.getCenter(center)
@@ -613,25 +597,8 @@ function CameraFit({ deps = [], modelRootRef = null }) {
       controls.minDistance = Math.min(controls.minDistance, distance * 0.5)
       controls.maxDistance = Math.max(controls.maxDistance, distance * 5)
       controls.update()
-      console.log('[CameraFit] AFTER FIT camera.pos', camera.position.toArray(), 'target', controls.target.toArray(), 'distance', distance)
-      const groupPos = () => modelRootRef?.current ? modelRootRef.current.position.toArray().map(v => v.toFixed(4)) : 'n/a'
-      const onStart = () => console.log('[CameraFit] drag start — cam', camera.position.toArray().map(v => v.toFixed(3)), 'target', controls.target.toArray().map(v => v.toFixed(3)), 'group.pos', groupPos())
-      const onEnd   = () => console.log('[CameraFit] drag end   — cam', camera.position.toArray().map(v => v.toFixed(3)), 'target', controls.target.toArray().map(v => v.toFixed(3)), 'group.pos', groupPos())
-      let changeCount = 0
-      let prevY = camera.position.y
-      const onChange = () => {
-        changeCount++
-        const dy = camera.position.y - prevY
-        prevY = camera.position.y
-        if (changeCount <= 100) {
-          console.log('[CameraFit] #' + changeCount, 'y=' + camera.position.y.toFixed(4), 'dy=' + dy.toFixed(4), 'pos', camera.position.toArray().map(v => v.toFixed(3)))
-        }
-      }
-      controls.addEventListener('start', () => { changeCount = 0; onStart() })
-      controls.addEventListener('end', onEnd)
-      controls.addEventListener('change', onChange)
     }
-    let rafId = requestAnimationFrame(doFit)
+    rafId = requestAnimationFrame(doFit)
     return () => { done = true; cancelAnimationFrame(rafId) }
   }, [...deps, controls]) // eslint-disable-line
   return null
