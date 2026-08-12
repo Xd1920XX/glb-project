@@ -510,7 +510,7 @@ function openInvoice(inv) {
 
 <div class="header">
   <div>
-    <div class="brand">${s.name ?? 'Nordic Render OÜ'}</div>
+    <div class="brand">${s.name ?? 'GLB Configurator OÜ'}</div>
     <div class="brand-sub">Software as a Service</div>
   </div>
   <div class="inv-meta">
@@ -522,7 +522,7 @@ function openInvoice(inv) {
 <div class="parties">
   <div>
     <div class="party-label">From</div>
-    <div class="party-line name">${s.name ?? 'Nordic Render OÜ'}</div>
+    <div class="party-line name">${s.name ?? 'GLB Configurator OÜ'}</div>
     <div class="party-line">Reg. no: ${s.regCode ?? '16885822'}</div>
     <div class="party-line">VAT ID: ${s.vatId ?? 'EE102691294'}</div>
     <div class="party-line">${s.address ?? 'A. H. Tammsaare tee 47, 11316 Tallinn, Estonia'}</div>
@@ -580,7 +580,7 @@ function openInvoice(inv) {
 </div>
 
 <div class="footer">
-  <strong>${s.name ?? 'Nordic Render OÜ'}</strong> · Reg. no ${s.regCode ?? '16885822'} · VAT ${s.vatId ?? 'EE102691294'}<br>
+  <strong>${s.name ?? 'GLB Configurator OÜ'}</strong> · Reg. no ${s.regCode ?? '16885822'} · VAT ${s.vatId ?? 'EE102691294'}<br>
   ${s.address ?? 'A. H. Tammsaare tee 47, Kristiine linnaosa, 11316 Tallinn, Estonia'}<br>
   Payment processed via ${inv.provider === 'demo' ? 'Demo' : 'PayPal'} · Transaction ID: ${inv.transactionId ?? '—'}
 </div>

@@ -64,7 +64,7 @@ function emailWrapper(preheader, body) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Nordic Render</title>
+<title>GLB Configurator</title>
 </head>
 <body style="margin:0;padding:0;background:#f4f4f2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
   <span style="display:none;max-height:0;overflow:hidden;color:transparent;">${preheader}</span>
@@ -75,7 +75,7 @@ function emailWrapper(preheader, body) {
         <!-- Header -->
         <tr>
           <td style="padding-bottom:24px;">
-            <span style="font-size:18px;font-weight:700;color:#111;letter-spacing:-0.3px;">Nordic Render</span>
+            <span style="font-size:18px;font-weight:700;color:#111;letter-spacing:-0.3px;">GLB Configurator</span>
           </td>
         </tr>
 
@@ -89,7 +89,7 @@ function emailWrapper(preheader, body) {
         <!-- Footer -->
         <tr>
           <td style="padding-top:24px;font-size:11px;color:#888;line-height:1.6;">
-            Nordic Render OÜ &nbsp;·&nbsp; Reg. 16885822 &nbsp;·&nbsp; VAT EE102691294<br>
+            GLB Configurator OÜ &nbsp;·&nbsp; Reg. 16885822 &nbsp;·&nbsp; VAT EE102691294<br>
             A. H. Tammsaare tee 47, 11316 Tallinn, Estonia<br>
             <a href="${APP_URL}" style="color:#888;">glbconfigurator.com</a>
           </td>
@@ -139,9 +139,9 @@ function welcomeEmail(name, trialEndDate) {
     ${btn('Open Dashboard →', `${APP_URL}/dashboard`)}
   `
   return {
-    subject: 'Welcome to Nordic Render — your trial has started',
+    subject: 'Welcome to GLB Configurator — your trial has started',
     html:    emailWrapper('Your 3-day free trial has started. Build your first 3D configurator.', body),
-    text:    `Welcome to Nordic Render, ${name}!\n\nYour 3-day free trial has started.\nTrial ends: ${trialEndDate}\n\nOpen your dashboard: ${APP_URL}/dashboard`,
+    text:    `Welcome to GLB Configurator, ${name}!\n\nYour 3-day free trial has started.\nTrial ends: ${trialEndDate}\n\nOpen your dashboard: ${APP_URL}/dashboard`,
   }
 }
 
@@ -277,7 +277,7 @@ function teamInviteEmail(ownerEmail, inviteUrl, projectName) {
   const body = `
     <h1 style="font-size:22px;font-weight:700;color:#111;margin:0 0 8px;">You're invited</h1>
     <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 8px;">
-      ${ownerEmail || 'A teammate'} invited you to Nordic Render.
+      ${ownerEmail || 'A teammate'} invited you to GLB Configurator.
     </p>
     <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 24px;">
       ${scopeLine}
@@ -287,9 +287,9 @@ function teamInviteEmail(ownerEmail, inviteUrl, projectName) {
     ${btn('Accept invite →', inviteUrl)}
   `
   return {
-    subject: projectName ? `Invite to edit "${projectName}" on Nordic Render` : 'Invite to collaborate on Nordic Render',
-    html:    emailWrapper(`You've been invited to Nordic Render${projectName ? ` — ${projectName}` : ''}.`, body),
-    text:    `${ownerEmail || 'A teammate'} invited you to Nordic Render.\n\n${scopeLine.replace(/<[^>]+>/g, '')}\n\nAccept: ${inviteUrl}`,
+    subject: projectName ? `Invite to edit "${projectName}" on GLB Configurator` : 'Invite to collaborate on GLB Configurator',
+    html:    emailWrapper(`You've been invited to GLB Configurator${projectName ? ` — ${projectName}` : ''}.`, body),
+    text:    `${ownerEmail || 'A teammate'} invited you to GLB Configurator.\n\n${scopeLine.replace(/<[^>]+>/g, '')}\n\nAccept: ${inviteUrl}`,
   }
 }
 
@@ -336,10 +336,10 @@ function contactAutoReplyEmail(name) {
     <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 24px;">
       In the meantime, feel free to explore the platform — your dashboard has everything you need to start a configurator.
     </p>
-    ${btn('Open Nordic Render →', APP_URL)}
+    ${btn('Open GLB Configurator →', APP_URL)}
   `
   return {
-    subject: 'We received your message — Nordic Render',
+    subject: 'We received your message — GLB Configurator',
     html:    emailWrapper('We received your message — we will reply within one business day.', body),
     text:    `Hi ${name},\n\nWe received your message and will get back to you within one business day.\n\n${APP_URL}`,
   }
@@ -386,7 +386,7 @@ function subscriptionCancelledEmail(name, planLabel) {
     ${btn('Reactivate Plan →', `${APP_URL}/billing`)}
   `
   return {
-    subject: 'Your Nordic Render subscription has been cancelled',
+    subject: 'Your GLB Configurator subscription has been cancelled',
     html:    emailWrapper('Your subscription is cancelled. Resubscribe any time.', body),
     text:    `Your ${planLabel} subscription has been cancelled.\n\nReactivate: ${APP_URL}/billing`,
   }
@@ -405,7 +405,7 @@ function paymentFailedEmail(name, planLabel) {
     ${btn('Fix Payment →', `${APP_URL}/billing`)}
   `
   return {
-    subject: 'Action required — payment failed for your Nordic Render subscription',
+    subject: 'Action required — payment failed for your GLB Configurator subscription',
     html:    emailWrapper('Update your payment method to keep your subscription active.', body),
     text:    `Payment failed for your ${planLabel} plan.\n\nUpdate: ${APP_URL}/billing`,
   }
@@ -424,7 +424,7 @@ function trialEndingEmail(name, trialEndDate) {
     ${btn('Choose a Plan →', `${APP_URL}/billing`)}
   `
   return {
-    subject: 'Your Nordic Render trial ends tomorrow',
+    subject: 'Your GLB Configurator trial ends tomorrow',
     html:    emailWrapper(`Your free trial ends on ${trialEndDate}.`, body),
     text:    `Your trial ends on ${trialEndDate}.\n\nChoose a plan: ${APP_URL}/billing`,
   }
@@ -435,7 +435,7 @@ function trialExpiredEmail(name) {
   const body = `
     <h1 style="font-size:22px;font-weight:700;color:#111;margin:0 0 8px;">Your trial has ended</h1>
     <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 16px;">
-      ${name ? `Hi ${name}, ` : ''}your free trial of Nordic Render has ended.
+      ${name ? `Hi ${name}, ` : ''}your free trial of GLB Configurator has ended.
     </p>
     <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 24px;">
       Subscribe to a plan to keep building and publishing. Your account stays intact — pick up right where you left off.
@@ -443,7 +443,7 @@ function trialExpiredEmail(name) {
     ${btn('Subscribe Now →', `${APP_URL}/billing`)}
   `
   return {
-    subject: 'Your Nordic Render trial has ended',
+    subject: 'Your GLB Configurator trial has ended',
     html:    emailWrapper('Your free trial has ended — subscribe to keep building.', body),
     text:    `Your trial has ended.\n\nSubscribe: ${APP_URL}/billing`,
   }
@@ -547,16 +547,16 @@ function accountDeletedEmail(name) {
   const body = `
     <h1 style="font-size:22px;font-weight:700;color:#111;margin:0 0 8px;">Account deleted</h1>
     <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 16px;">
-      ${name ? `Hi ${name}, y` : 'Y'}our Nordic Render account has been deleted. All published configurators and embeds are now offline.
+      ${name ? `Hi ${name}, y` : 'Y'}our GLB Configurator account has been deleted. All published configurators and embeds are now offline.
     </p>
     <p style="font-size:13px;color:#777;margin:0 0 16px;">
       If this wasn't you, please contact support immediately.
     </p>
   `
   return {
-    subject: 'Your Nordic Render account has been deleted',
+    subject: 'Your GLB Configurator account has been deleted',
     html:    emailWrapper('Your account has been deleted.', body),
-    text:    `Your Nordic Render account has been deleted.${name ? ` (${name})` : ''}\n\nIf this wasn't you, contact support.`,
+    text:    `Your GLB Configurator account has been deleted.${name ? ` (${name})` : ''}\n\nIf this wasn't you, contact support.`,
   }
 }
 
@@ -627,7 +627,7 @@ function trialInactiveEmail(name) {
   const body = `
     <h1 style="font-size:22px;font-weight:700;color:#111;margin:0 0 8px;">Need a hand getting started?</h1>
     <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 16px;">
-      ${name ? `Hi ${name}, ` : ''}you signed up for Nordic Render but haven't built your first configurator yet.
+      ${name ? `Hi ${name}, ` : ''}you signed up for GLB Configurator but haven't built your first configurator yet.
     </p>
     <p style="font-size:13px;color:#777;margin:0 0 16px;">
       Trials last 3 days. Start now to make the most of yours — most users have something published within 15 minutes.
@@ -668,7 +668,7 @@ function weeklyDigestEmail(name, stats) {
 // ── Seller info ────────────────────────────────────────────────────
 
 const SELLER = {
-  name:    'Nordic Render OÜ',
+  name:    'GLB Configurator OÜ',
   regCode: '16885822',
   vatId:   'EE102691294',
   address: 'A. H. Tammsaare tee 47, Kristiine linnaosa, 11316 Tallinn, Estonia',

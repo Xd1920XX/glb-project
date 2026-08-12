@@ -9,7 +9,7 @@ export default function TermsOfService() {
       </div>
       <div className="legal-container">
         <div className="legal-header">
-          <p className="legal-eyebrow">Nordic Render OÜ</p>
+          <p className="legal-eyebrow">GLB Configurator OÜ</p>
           <h1>Terms of Service</h1>
           <p className="legal-updated">Last updated: 23 April 2026</p>
         </div>
@@ -18,7 +18,7 @@ export default function TermsOfService() {
 
           <section>
             <h2>1. Agreement</h2>
-            <p>These Terms of Service ("Terms") constitute a legally binding agreement between you ("Customer") and <strong>Nordic Render OÜ</strong> (Reg. no. 16885822, A. H. Tammsaare tee 47, 11316 Tallinn, Estonia) governing your use of the GLB Configurator platform at <strong>glbconfigurator.com</strong> ("Service").</p>
+            <p>These Terms of Service ("Terms") constitute a legally binding agreement between you ("Customer") and <strong>GLB Configurator OÜ</strong> (Reg. no. 16885822, A. H. Tammsaare tee 47, 11316 Tallinn, Estonia) governing your use of the GLB Configurator platform at <strong>glbconfigurator.com</strong> ("Service").</p>
             <p>By creating an account or using the Service you agree to these Terms. If you do not agree, do not use the Service.</p>
           </section>
 
@@ -88,7 +88,7 @@ export default function TermsOfService() {
 
           <section>
             <h2>8. Our intellectual property</h2>
-            <p>The GLB Configurator platform, including its software, design, and documentation, is owned by Nordic Render OÜ and protected by copyright and other intellectual property laws. Nothing in these Terms grants you any rights to our intellectual property beyond the limited licence to use the Service.</p>
+            <p>The GLB Configurator platform, including its software, design, and documentation, is owned by GLB Configurator OÜ and protected by copyright and other intellectual property laws. Nothing in these Terms grants you any rights to our intellectual property beyond the limited licence to use the Service.</p>
           </section>
 
           <section>
@@ -103,13 +103,13 @@ export default function TermsOfService() {
 
           <section>
             <h2>11. Limitation of liability</h2>
-            <p>To the maximum extent permitted by law, Nordic Render OÜ's total liability for any claim arising under these Terms shall not exceed the amount paid by you in the 12 months preceding the claim.</p>
+            <p>To the maximum extent permitted by law, GLB Configurator OÜ's total liability for any claim arising under these Terms shall not exceed the amount paid by you in the 12 months preceding the claim.</p>
             <p>We are not liable for indirect, incidental, consequential, or special damages including loss of revenue, loss of data, or loss of business, even if advised of the possibility of such damages.</p>
           </section>
 
           <section>
             <h2>12. Indemnification</h2>
-            <p>You agree to indemnify and hold harmless Nordic Render OÜ and its officers, directors, and employees from any claims, damages, or expenses (including legal fees) arising from your use of the Service, your Customer Content, or your breach of these Terms.</p>
+            <p>You agree to indemnify and hold harmless GLB Configurator OÜ and its officers, directors, and employees from any claims, damages, or expenses (including legal fees) arising from your use of the Service, your Customer Content, or your breach of these Terms.</p>
           </section>
 
           <section>
@@ -125,7 +125,7 @@ export default function TermsOfService() {
 
           <section>
             <h2>15. Contact</h2>
-            <p><strong>Nordic Render OÜ</strong><br />
+            <p><strong>GLB Configurator OÜ</strong><br />
             A. H. Tammsaare tee 47, 11316 Tallinn, Estonia<br />
             <a href="mailto:support@nordicrender.com">support@nordicrender.com</a></p>
           </section>

@@ -9,7 +9,7 @@ export default function CookiePolicy() {
       </div>
       <div className="legal-container">
         <div className="legal-header">
-          <p className="legal-eyebrow">Nordic Render OÜ</p>
+          <p className="legal-eyebrow">GLB Configurator OÜ</p>
           <h1>Cookie Policy</h1>
           <p className="legal-updated">Last updated: 23 April 2026</p>
         </div>

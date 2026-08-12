@@ -8,7 +8,7 @@ export default function PrivacyPolicy() {
       </div>
       <div className="legal-container">
         <div className="legal-header">
-          <p className="legal-eyebrow">Nordic Render OÜ</p>
+          <p className="legal-eyebrow">GLB Configurator OÜ</p>
           <h1>Privacy Policy</h1>
           <p className="legal-updated">Last updated: 23 April 2026</p>
         </div>
@@ -17,7 +17,7 @@ export default function PrivacyPolicy() {
 
           <section>
             <h2>1. Who we are</h2>
-            <p>This Privacy Policy applies to the GLB Configurator platform operated by <strong>Nordic Render OÜ</strong>, a private limited company registered in Estonia (Reg. no. 16885822, VAT EE102691294), with registered address at A. H. Tammsaare tee 47, Kristiine linnaosa, 11316 Tallinn, Estonia.</p>
+            <p>This Privacy Policy applies to the GLB Configurator platform operated by <strong>GLB Configurator OÜ</strong>, a private limited company registered in Estonia (Reg. no. 16885822, VAT EE102691294), with registered address at A. H. Tammsaare tee 47, Kristiine linnaosa, 11316 Tallinn, Estonia.</p>
             <p>We are the data controller for personal data collected through our platform at <strong>glbconfigurator.com</strong>.</p>
             <p>Contact us: <a href="mailto:privacy@nordicrender.com">privacy@nordicrender.com</a></p>
           </section>
@@ -106,7 +106,7 @@ export default function PrivacyPolicy() {
 
           <section>
             <h2>10. Contact</h2>
-            <p><strong>Nordic Render OÜ</strong><br />
+            <p><strong>GLB Configurator OÜ</strong><br />
             A. H. Tammsaare tee 47, 11316 Tallinn, Estonia<br />
             <a href="mailto:privacy@nordicrender.com">privacy@nordicrender.com</a></p>
           </section>
@@ -122,7 +122,7 @@ export function LegalFooter() {
   return (
     <footer className="legal-footer">
       <div className="legal-footer-inner">
-        <span>© {new Date().getFullYear()} Nordic Render OÜ · Reg. 16885822 · VAT EE102691294</span>
+        <span>© {new Date().getFullYear()} GLB Configurator OÜ · Reg. 16885822 · VAT EE102691294</span>
         <div className="legal-footer-links">
           <Link to="/privacy">Privacy Policy</Link>
           <Link to="/terms">Terms of Service</Link>

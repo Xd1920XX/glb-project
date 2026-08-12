@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 
-const PAGE_TITLE = 'Product Configurators & Product Visualizers — Nordic Render'
+const PAGE_TITLE = 'Product Configurators & Product Visualizers — GLB Configurator'
 const PAGE_DESC  = 'Interactive product configurators and product visualizers for manufacturers, furniture brands, building products, and industrial companies. Custom-developed, scalable, and optimized for sales.'
 
 const DEMO_IMAGES = [
@@ -190,7 +190,7 @@ export default function Solutions() {
           </div>
         </div>
         <div className="landing-footer-bottom">
-          <span>© {new Date().getFullYear()} Nordic Render OÜ · Reg. 16885822 · VAT EE102691294</span>
+          <span>© {new Date().getFullYear()} GLB Configurator OÜ · Reg. 16885822 · VAT EE102691294</span>
           <div className="landing-footer-legal">
             <Link to="/privacy">Privacy Policy</Link>
             <Link to="/terms">Terms of Service</Link>
