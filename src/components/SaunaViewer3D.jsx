@@ -289,11 +289,9 @@ function Model({ url, materialOverrides = {}, animationConfig = null, animationO
       for (const f of visibleNodeFilters) if (f && f.length) filters.push(f)
     }
     const hides = hideNodes && hideNodes.length ? hideNodes : null
+    const visList = []
     cloned.traverse((node) => {
       if (!node.isMesh) return
-      // Include ancestor group names in the search — GLTFLoader wraps multi-primitive
-      // meshes in a group named after the glTF node, so per-position filtering only
-      // works if we check the parent chain too.
       const names = []
       let cur = node
       while (cur) { if (cur.name) names.push(cur.name); cur = cur.parent }
@@ -301,7 +299,9 @@ function Model({ url, materialOverrides = {}, animationConfig = null, animationO
       if (hides && hides.some((p) => combined.includes(p))) { node.visible = false; return }
       if (filters.length === 0) { node.visible = true; return }
       node.visible = filters.every((f) => f.some((p) => combined.includes(p)))
+      if (node.visible) visList.push(names[0])
     })
+    console.log('[Model FILTER]', url.split('/').pop().slice(0,40), 'filters=', JSON.stringify(filters), 'visible=', visList)
   }, [cloned, JSON.stringify(visibleNodes), JSON.stringify(visibleNodeFilters), JSON.stringify(hideNodes)]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Animations ────────────────────────────────────────────────
