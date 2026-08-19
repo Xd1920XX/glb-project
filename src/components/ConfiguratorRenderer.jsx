@@ -312,7 +312,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
     for (const grp of variant?.partOptions ?? []) {
       const sel = grp.options?.find((o) => o.label === partSel[grp.label])
         ?? grp.options?.find((o) => o.id === grp.defaultOptionId)
-        ?? grp.options?.[0]
+        ?? (grp.noDefault ? null : grp.options?.[0])
       if (sel?.hidesGroups) sel.hidesGroups.forEach((l) => set.add(l))
     }
     return set
@@ -332,10 +332,12 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
     }
     const resolveOption = (grp) => {
       const selLabel = partSel[grp.label]
-      return grp.options?.find((o) => o.label === selLabel)
+      const hit = grp.options?.find((o) => o.label === selLabel)
         ?? grp.options?.find((o) => o.id === grp.defaultOptionId)
-        ?? grp.options?.[0]
-        ?? null
+      if (hit) return hit
+      // noDefault groups suppress the layer entirely until user picks.
+      if (grp.noDefault) return { hidden: true }
+      return grp.options?.[0] ?? null
     }
     // Accumulate filters across all matching partOption groups so multiple
     // groups can compose (e.g. position group + hole group + sticker group
@@ -574,7 +576,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
           if (suppressedPartGroups.has(grp.label)) return null
           const opt = grp.options?.find((o) => o.label === partSel[grp.label])
             ?? grp.options?.find((o) => o.id === grp.defaultOptionId)
-            ?? grp.options?.[0]
+            ?? (grp.noDefault ? null : grp.options?.[0])
           return opt ? `${grp.label}: ${opt.label}` : null
         }).filter(Boolean)
 
@@ -602,7 +604,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
             if (suppressedPartGroups.has(grp.label)) return acc
             const opt = grp.options?.find((o) => o.label === partSel[grp.label])
               ?? grp.options?.find((o) => o.id === grp.defaultOptionId)
-              ?? grp.options?.[0]
+              ?? (grp.noDefault ? null : grp.options?.[0])
             if (opt) acc[grp.label] = opt.label
             return acc
           }, {}),
@@ -610,7 +612,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
             if (suppressedPartGroups.has(grp.label)) return acc
             const opt = grp.options?.find((o) => o.label === partSel[grp.label])
               ?? grp.options?.find((o) => o.id === grp.defaultOptionId)
-              ?? grp.options?.[0]
+              ?? (grp.noDefault ? null : grp.options?.[0])
             if (opt) acc[grp.id] = opt.id
             return acc
           }, {}),
@@ -898,7 +900,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
                   if (idx > 0 && !firstPartTouched) return null
                   const selOpt = grp.options.find((o) => o.label === partSel[grp.label])
                     ?? grp.options.find((o) => o.id === grp.defaultOptionId)
-                    ?? grp.options[0]
+                    ?? (grp.noDefault ? null : grp.options[0])
                   return (
                     <div key={grp.id} className="variant-group-section">
                       <p className="section-label">{grp.label}</p>
@@ -1034,7 +1036,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
                       if (suppressedPartGroups.has(grp.label)) return null
                       const opt = grp.options?.find((o) => o.label === partSel[grp.label])
                         ?? grp.options?.find((o) => o.id === grp.defaultOptionId)
-                        ?? grp.options?.[0]
+                        ?? (grp.noDefault ? null : grp.options?.[0])
                       if (!opt) return null
                       return (
                         <div key={grp.id} className="order-summary-row">
