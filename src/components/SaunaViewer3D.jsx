@@ -499,7 +499,7 @@ function GlbStack({ layers, animationOverride, transform, wireframe = false, ren
 
 // ── Camera auto-fit ───────────────────────────────────────────────
 
-function CameraFit({ deps = [], modelRootRef = null }) {
+function CameraFit({ deps = [], modelRootRef = null, defaultYaw = 0, defaultPitch = 0, initialCameraPosition = null, targetOffset = null }) {
   const camera = useThree((s) => s.camera)
   const controls = useThree((s) => s.controls)
   // Fit exactly once per deps change. rAF polls until Suspense-loaded scenes are
@@ -593,6 +593,37 @@ function CameraFit({ deps = [], modelRootRef = null }) {
       // AND making rotation appear to "jump" as the clamp fires.
       controls.minDistance = Math.min(controls.minDistance, distance * 0.5)
       controls.maxDistance = Math.max(controls.maxDistance, distance * 5)
+      // Apply configured pose overrides AFTER Bounds/fit — otherwise CameraFit
+      // clobbers CameraPoseInit's earlier layout-effect settings.
+      if (targetOffset) {
+        controls.target.x += Number(targetOffset.x) || 0
+        controls.target.y += Number(targetOffset.y) || 0
+        controls.target.z += Number(targetOffset.z) || 0
+      }
+      if (initialCameraPosition) {
+        camera.position.set(
+          Number(initialCameraPosition.x) || camera.position.x,
+          Number(initialCameraPosition.y) || camera.position.y,
+          Number(initialCameraPosition.z) || camera.position.z,
+        )
+      }
+      const yawRad = (Number(defaultYaw) || 0) * Math.PI / 180
+      const pitchRad = (Number(defaultPitch) || 0) * Math.PI / 180
+      if (yawRad !== 0 || pitchRad !== 0) {
+        const t = controls.target
+        const offset = new THREE.Vector3().subVectors(camera.position, t)
+        const radius = offset.length() || 1
+        const baseAzimuth = Math.atan2(offset.x, offset.z)
+        const basePolar = Math.acos(Math.max(-1, Math.min(1, offset.y / radius)))
+        const az = baseAzimuth + yawRad
+        const po = Math.max(0.01, Math.min(Math.PI - 0.01, basePolar + pitchRad))
+        camera.position.set(
+          t.x + radius * Math.sin(po) * Math.sin(az),
+          t.y + radius * Math.cos(po),
+          t.z + radius * Math.sin(po) * Math.cos(az),
+        )
+      }
+      camera.lookAt(controls.target)
       controls.update()
     }
     rafId = requestAnimationFrame(doFit)
@@ -621,47 +652,6 @@ function ResetViewButton({ resetKey, onReset }) {
       ⟳ Reset
     </button>
   )
-}
-
-// Apply default yaw/pitch + initial camera position + target offset after Bounds fit.
-function CameraPoseInit({ deps, defaultYaw, defaultPitch, initialCameraPosition, targetOffset }) {
-  const camera = useThree((s) => s.camera)
-  const controls = useThree((s) => s.controls)
-  useLayoutEffect(() => {
-    if (!controls) return
-    if (targetOffset) {
-      controls.target.x += Number(targetOffset.x) || 0
-      controls.target.y += Number(targetOffset.y) || 0
-      controls.target.z += Number(targetOffset.z) || 0
-    }
-    if (initialCameraPosition) {
-      camera.position.set(
-        Number(initialCameraPosition.x) || camera.position.x,
-        Number(initialCameraPosition.y) || camera.position.y,
-        Number(initialCameraPosition.z) || camera.position.z,
-      )
-    }
-    // Apply yaw/pitch by rotating camera around target on a sphere of current radius.
-    const yaw = (Number(defaultYaw) || 0) * Math.PI / 180
-    const pitch = (Number(defaultPitch) || 0) * Math.PI / 180
-    if (yaw !== 0 || pitch !== 0) {
-      const t = controls.target
-      const offset = new THREE.Vector3().subVectors(camera.position, t)
-      const radius = offset.length() || 1
-      const baseAzimuth = Math.atan2(offset.x, offset.z)
-      const basePolar = Math.acos(Math.max(-1, Math.min(1, offset.y / radius)))
-      const az = baseAzimuth + yaw
-      const po = Math.max(0.01, Math.min(Math.PI - 0.01, basePolar + pitch))
-      camera.position.set(
-        t.x + radius * Math.sin(po) * Math.sin(az),
-        t.y + radius * Math.cos(po),
-        t.z + radius * Math.sin(po) * Math.cos(az),
-      )
-    }
-    camera.lookAt(controls.target)
-    controls.update?.()
-  }, deps) // eslint-disable-line
-  return null
 }
 
 // Custom auto-rotate — supports x/y/z axis + idle delay + external pause.
@@ -949,16 +939,16 @@ export function SaunaViewer3D({
             globalReceiveShadow={shadows}
             groupOutRef={modelRootRef}
           />
-          <CameraFit deps={fitDepsWithReset} modelRootRef={modelRootRef} />
+          <CameraFit
+            deps={fitDepsWithReset}
+            modelRootRef={modelRootRef}
+            defaultYaw={defaultYaw}
+            defaultPitch={defaultPitch}
+            initialCameraPosition={initialCameraPosition}
+            targetOffset={targetOffset}
+          />
         </Bounds>
 
-        <CameraPoseInit
-          deps={fitDepsWithReset}
-          defaultYaw={defaultYaw}
-          defaultPitch={defaultPitch}
-          initialCameraPosition={initialCameraPosition}
-          targetOffset={targetOffset}
-        />
         <ZoomAdjust deps={fitDepsWithReset} initialZoomMul={initialZoomMul} />
         <InteractWatcher lastInteractRef={lastInteractRef} />
         <CustomAutoRotate
