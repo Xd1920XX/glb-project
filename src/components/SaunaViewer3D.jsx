@@ -409,6 +409,10 @@ function GlbStack({ layers, animationOverride, transform, wireframe = false, ren
     return () => { if (groupOutRef) groupOutRef.current = null }
   }, [groupOutRef])
   const sceneMapRef = useRef(new Map())
+  // Cache the autoCenter shift so kaas / paneel swaps (which load new scenes for
+  // one slot) don't recompute the whole-model bbox and re-shift the model — that
+  // showed up to the user as the camera "jumping" on every option pick.
+  const centerShiftRef = useRef(null)
   // Bumped whenever a Model attaches/detaches its scene — used to re-run autoCenter
   // once the actual GLB scenes are present (they arrive after Suspense resolves,
   // which is after the initial useLayoutEffect pass).
@@ -418,6 +422,16 @@ function GlbStack({ layers, animationOverride, transform, wireframe = false, ren
   const rotation = transform?.rotation ?? null
   const scaleProp = transform?.scale ?? null
   const autoCenter = !!transform?.autoCenter
+
+  // Reset cached center shift whenever the layer stack shape changes (variant
+  // switch adds/removes layer slots). Layer URL swaps within same shape reuse
+  // the cached shift.
+  const layerShapeKey = layers.map((l) => l.label ?? '').join('|') + `#${layers.length}`
+  const lastShapeRef = useRef(layerShapeKey)
+  if (lastShapeRef.current !== layerShapeKey) {
+    lastShapeRef.current = layerShapeKey
+    centerShiftRef.current = null
+  }
 
   // NOTE: intentionally NO position/rotation/scale JSX props on the wrapping
   // <group> below — passing them lets r3f re-apply on every reconcile, which
@@ -444,23 +458,26 @@ function GlbStack({ layers, animationOverride, transform, wireframe = false, ren
       else grp.scale.set(Number(scaleProp.x) || 1, Number(scaleProp.y) || 1, Number(scaleProp.z) || 1)
     } else grp.scale.set(1, 1, 1)
     // 2) autoCenter: shift by -bbox.centre so combined visible+hidden meshes
-    //    are centred at world origin.
+    //    are centred at world origin. Shift is cached — re-applied every render
+    //    from the same cached value so kaas / paneel option swaps (which load
+    //    new scenes for one slot) don't reshuffle the model centre.
     if (!autoCenter) return
-    const scenes = Array.from(sceneMapRef.current.values()).filter(Boolean)
-    if (scenes.length === 0) return
-    // matrixWorld would otherwise reflect the pre-reset position — force refresh
-    // so setFromObject sees the meshes in their true local coordinates.
-    grp.updateMatrixWorld(true)
-    const box = new THREE.Box3()
-    let any = false
-    for (const s of scenes) {
-      const sb = new THREE.Box3().setFromObject(s)
-      if (isFinite(sb.min.x)) { box.union(sb); any = true }
+    if (!centerShiftRef.current) {
+      const scenes = Array.from(sceneMapRef.current.values()).filter(Boolean)
+      if (scenes.length === 0) return
+      grp.updateMatrixWorld(true)
+      const box = new THREE.Box3()
+      let any = false
+      for (const s of scenes) {
+        const sb = new THREE.Box3().setFromObject(s)
+        if (isFinite(sb.min.x)) { box.union(sb); any = true }
+      }
+      if (!any) return
+      const c = new THREE.Vector3()
+      box.getCenter(c)
+      centerShiftRef.current = c.clone()
     }
-    if (!any) return
-    const c = new THREE.Vector3()
-    box.getCenter(c)
-    grp.position.sub(c)
+    grp.position.sub(centerShiftRef.current)
     grp.updateMatrixWorld(true)
   })  // no dep array — runs every render so r3f reconciles cannot desync the transform
 
@@ -833,9 +850,17 @@ export function SaunaViewer3D({
   const toneMap = TONE_MAPPINGS[toneMapping] ?? THREE.ACESFilmicToneMapping
   const dprClamped = Math.max(0.5, Math.min(3, Number(dpr) || 2))
 
+  // Only refit when the model shape actually changes: variant switch (layer
+  // count / labels / stack transform) or explicit camera config change. Kaas /
+  // paneel swaps mutate a layer's URL only — refitting there yanked the camera
+  // back through yaw/pitch each swap, so we exclude per-layer URLs from deps.
+  const layersShape = useMemo(
+    () => layers.map((l) => l.label ?? '').join('|') + `#${layers.length}`,
+    [layers],
+  )
   const fitDeps = useMemo(
-    () => [layers.map((l) => l.url).join('|'), JSON.stringify(stackTransform), JSON.stringify(initialCameraPosition), JSON.stringify(targetOffset), defaultYaw, defaultPitch, initialZoomMul, fov],
-    [layers, stackTransform, initialCameraPosition, targetOffset, defaultYaw, defaultPitch, initialZoomMul, fov],
+    () => [layersShape, JSON.stringify(stackTransform), JSON.stringify(initialCameraPosition), JSON.stringify(targetOffset), defaultYaw, defaultPitch, initialZoomMul, fov],
+    [layersShape, stackTransform, initialCameraPosition, targetOffset, defaultYaw, defaultPitch, initialZoomMul, fov],
   )
   const [resetCounter, setResetCounter] = useResetCounter()
   const fitDepsWithReset = useMemo(() => [...fitDeps, resetCounter], [fitDeps, resetCounter])
