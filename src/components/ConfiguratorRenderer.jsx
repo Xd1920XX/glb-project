@@ -524,10 +524,13 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
     return <div className="preview-empty">No preview available</div>
   }
 
-  const can3D = (view === 'exterior' || view === 'order') && (
-    variant?.glbLayers?.some((l) => l.visible !== false && l.glbUrl) ||
-    !!variant?.glbUrl
-  )
+  // Only meaningful when the variant has BOTH spinner frames (renders) and GLB
+  // layers — the button toggles between them. Pure-GLB variants have no
+  // alternative view, so the toggle is a no-op and the button should stay
+  // hidden.
+  const hasGlb = !!(variant?.glbLayers?.some((l) => l.visible !== false && l.glbUrl) || variant?.glbUrl)
+  const hasSpinner = variant?.type === 'spinner' && (variant?.frames?.length ?? 0) > 0
+  const can3D = (view === 'exterior' || view === 'order') && hasGlb && hasSpinner
 
   const captureCanvasBlob = useCallback(async () => {
     const pane = viewerPaneRef.current
