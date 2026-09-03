@@ -236,5 +236,19 @@ export function resolveSelectionAgainstConfig(selection, config) {
     selection.variants = { ...(selection.variants || {}), [gid]: selection.__firstGroupVariant }
     delete selection.__firstGroupVariant
   }
+  // Resolve color param against the active variant's colorOptions. Accept
+  // either the label (any locale) or the option id, case-insensitive. Rewrite
+  // to the current locale's label so downstream label-based lookups match.
+  if (selection.color) {
+    const activeVid = selection.variants ? Object.values(selection.variants)[0] : null
+    const active = activeVid
+      ? (config.variants || []).find((v) => v.id === activeVid)
+      : (config.variants || [])[0]
+    const opts = active?.colorOptions || []
+    const q = String(selection.color).trim().toLowerCase()
+    const hit = opts.find((c) => (c.label || '').toLowerCase() === q)
+              ?? opts.find((c) => (c.id || '').toLowerCase() === q)
+    if (hit) selection.color = hit.label
+  }
   return selection
 }
