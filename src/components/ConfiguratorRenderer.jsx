@@ -346,7 +346,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
     const resolvePartLayer = (l) => {
       let layer = l
       const filters = l.visibleNodes && l.visibleNodes.length ? [l.visibleNodes] : []
-      const hideNodes = []
+      const hideNodes = Array.isArray(l.hideNodes) ? [...l.hideNodes] : []
       let hide = false
       for (const grp of variant.partOptions ?? []) {
         if (!grp.matchLayerLabels?.includes(l.label)) continue
