@@ -93,6 +93,12 @@ function Model({ url, materialOverrides = {}, animationConfig = null, animationO
     const root = scene.clone(true)
     root.traverse((node) => {
       if (!node.isMesh) return
+      // Sortaider panel/kaas GLBs have wrapper nodes referencing a shared
+      // mesh definition — THREE assigns Mesh.name from the (shared) meshDef,
+      // so multiple wrapper positions collide on the same substring. Rename
+      // mesh.name to inherit the immediate parent's name so hideNodes /
+      // visibleNodes filters can distinguish wrappers.
+      if (node.parent?.name) node.name = node.parent.name
       node.castShadow = castShadow
       node.receiveShadow = receiveShadow
       const list = Array.isArray(node.material) ? node.material : [node.material]
