@@ -302,6 +302,35 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
 
   const vs = viewerSettings
 
+  // Selected option id per group label — for conditional overrides.
+  const selectedOptionIds = useMemo(() => {
+    const map = {}
+    for (const grp of variant?.partOptions ?? []) {
+      const sel = grp.options?.find((o) => o.label === partSel[grp.label])
+        ?? grp.options?.find((o) => o.id === grp.defaultOptionId)
+        ?? (grp.noDefault ? null : grp.options?.[0])
+      if (sel) map[grp.label] = sel.id
+    }
+    return map
+  }, [variant, partSel])
+
+  // Apply option-level `overrides` — array of { when, ...fields } where `when`
+  // is `[{ group, optionId }]`. If every condition matches the current
+  // selection, the override fields (glbUrl, visibleNodes, hidesGroups, ...)
+  // shallow-merge onto the option, replacing base fields.
+  const applyOverrides = (opt) => {
+    if (!Array.isArray(opt?.overrides)) return opt
+    let out = opt
+    for (const ov of opt.overrides) {
+      const conds = Array.isArray(ov.when) ? ov.when : [ov.when]
+      const match = conds.every((c) => c && selectedOptionIds[c.group] === c.optionId)
+      if (!match) continue
+      const { when: _w, ...fields } = ov
+      out = { ...out, ...fields }
+    }
+    return out
+  }
+
   // Groups suppressed by the currently selected partOptions.
   // An option may declare `hidesGroups: [groupLabel,...]` to hide other groups
   // (and exclude their visibleNodes filters) when that option is active.
@@ -313,10 +342,11 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
       const sel = grp.options?.find((o) => o.label === partSel[grp.label])
         ?? grp.options?.find((o) => o.id === grp.defaultOptionId)
         ?? (grp.noDefault ? null : grp.options?.[0])
-      if (sel?.hidesGroups) sel.hidesGroups.forEach((l) => set.add(l))
+      const applied = applyOverrides(sel)
+      if (applied?.hidesGroups) applied.hidesGroups.forEach((l) => set.add(l))
     }
     return set
-  }, [variant, partSel])
+  }, [variant, partSel, selectedOptionIds])
 
   // Resolved GLB layers for the active variant — shared by viewer + AR button.
   const activeGlbLayers = useMemo(() => {
@@ -334,10 +364,10 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
       const selLabel = partSel[grp.label]
       const hit = grp.options?.find((o) => o.label === selLabel)
         ?? grp.options?.find((o) => o.id === grp.defaultOptionId)
-      if (hit) return hit
+      if (hit) return applyOverrides(hit)
       // noDefault groups suppress the layer entirely until user picks.
       if (grp.noDefault) return { hidden: true }
-      return grp.options?.[0] ?? null
+      return applyOverrides(grp.options?.[0] ?? null)
     }
     // Accumulate filters across all matching partOption groups so multiple
     // groups can compose (e.g. position group + hole group + sticker group
