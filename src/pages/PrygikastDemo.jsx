@@ -6,12 +6,12 @@ import { parseSelectionFromQuery } from '../embed/embedApi.js'
 const ENC = (p) => encodeURI(p)
 
 const LID_TYPES = [
+  { id: 'puhas',  label: 'Puhas',  swatch: '#EBEBEB' },
   { id: 'bio',    label: 'Bio',    swatch: '#5A8A3C' },
   { id: 'klaas',  label: 'Klaas',  swatch: '#4A7FA5' },
   { id: 'paber',  label: 'Paber',  swatch: '#6B9FBE' },
   { id: 'pakend', label: 'Pakend', swatch: '#E8A844' },
   { id: 'prugi',  label: 'Prügi',  swatch: '#888888' },
-  { id: 'puhas',  label: 'Puhas',  swatch: '#EBEBEB' },
   { id: 'taara',  label: 'Taara',  swatch: '#CC4477' },
 ]
 
@@ -52,7 +52,7 @@ function buildPartOptions(p) {
       id: `pos${p}-kaas`,
       label: `Pos ${p} kaas`,
       matchLayerLabels: [lidLabel],
-      defaultOptionId: 'bio',
+      defaultOptionId: 'puhas',
       options: LID_TYPES.map((t) => ({
         id: t.id,
         label: t.label,
@@ -87,7 +87,7 @@ function buildPartOptions(p) {
       id: `pos${p}-paneel`,
       label: `Pos ${p} paneel`,
       matchLayerLabels: [panelLabel],
-      defaultOptionId: 'bio',
+      defaultOptionId: 'puhas',
       options: LID_TYPES.map((t) => ({
         id: t.id,
         label: t.label,
@@ -119,7 +119,7 @@ function buildVariant(n) {
     glbLayers: [
       { id: 'frame', label: 'Frame', glbUrl: FRAME_GLB(n) },
       ...positions.flatMap((p) => [
-        { id: `lid-${p}`,   label: `Lid ${p}`,   glbUrl: LID_GLB('bio'),         visibleNodes: [`Pos${p}_`] },
+        { id: `lid-${p}`,   label: `Lid ${p}`,   glbUrl: LID_GLB('puhas'),       visibleNodes: [`Pos${p}_`] },
         { id: `panel-${p}`, label: `Panel ${p}`, glbUrl: PANEL_GLB(DEFAULT_LANG), visibleNodes: [`Pos${p}_`] },
       ]),
     ],
