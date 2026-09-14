@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth.jsx'
-import { createTeamInvite, getTeamMembers, revokeTeamInvite } from '../firebase/db.js'
+import { createTeamInvite, getTeamMembers, revokeTeamInvite, getUserConfigurators } from '../firebase/db.js'
 import { CmsSidebar } from '../components/CmsSidebar.jsx'
 
 function genCode() {
@@ -15,26 +15,47 @@ export default function Team() {
   const [inviting, setInviting]   = useState(false)
   const [newLink, setNewLink]     = useState(null)
   const [copied, setCopied]       = useState(false)
+  // Scope: "all" = full-team access, "some" = per-configurator selection
+  const [scope, setScope]         = useState('all')
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [configs, setConfigs]     = useState([])
 
   useEffect(() => {
     if (!user) return
     getTeamMembers(user.uid).then((list) => { setInvites(list); setLoading(false) })
+    getUserConfigurators(user.uid).then((list) => {
+      // Only offer configs owned by this user — team-shared ones can't be re-shared.
+      setConfigs(list.filter((c) => !c._isTeamOwned))
+    })
   }, [user])
+
+  function toggleConfig(id) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   async function handleInvite(e) {
     e.preventDefault()
     if (!email.trim()) return
+    if (scope === 'some' && selectedIds.size === 0) return
     setInviting(true)
     setNewLink(null)
     const code = genCode()
-    await createTeamInvite(user.uid, profile?.email ?? user.email ?? '', email.trim(), code)
+    const ids = scope === 'some' ? Array.from(selectedIds) : null
+    await createTeamInvite(user.uid, profile?.email ?? user.email ?? '', email.trim(), code, ids)
     const link = `${window.location.origin}/join/${code}`
     setNewLink(link)
     setInvites((prev) => [
       ...prev,
-      { ownerUid: user.uid, inviteeEmail: email.trim(), code, status: 'pending', memberUid: null },
+      { ownerUid: user.uid, inviteeEmail: email.trim(), code, status: 'pending', memberUid: null, configuratorIds: ids },
     ])
     setEmail('')
+    setSelectedIds(new Set())
+    setScope('all')
     setInviting(false)
   }
 
@@ -75,10 +96,62 @@ export default function Team() {
               onChange={(e) => setEmail(e.target.value)}
               required
             />
-            <button className="btn-primary" type="submit" disabled={inviting}>
+            <button
+              className="btn-primary"
+              type="submit"
+              disabled={inviting || (scope === 'some' && selectedIds.size === 0)}
+            >
               {inviting ? 'Generating…' : 'Generate invite link'}
             </button>
           </form>
+
+          <div className="team-scope">
+            <label className="team-scope-option">
+              <input
+                type="radio"
+                name="team-scope"
+                value="all"
+                checked={scope === 'all'}
+                onChange={() => setScope('all')}
+              />
+              <span>Full team access — every configurator, including future ones</span>
+            </label>
+            <label className="team-scope-option">
+              <input
+                type="radio"
+                name="team-scope"
+                value="some"
+                checked={scope === 'some'}
+                onChange={() => setScope('some')}
+              />
+              <span>Only specific configurators</span>
+            </label>
+            {scope === 'some' && (
+              <div className="team-config-list">
+                {configs.length === 0 ? (
+                  <p className="team-empty">No configurators to share yet.</p>
+                ) : configs.map((c) => (
+                  <label key={c.id} className="team-config-row">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(c.id)}
+                      onChange={() => toggleConfig(c.id)}
+                    />
+                    <span className="team-config-name">{c.name || 'Untitled configurator'}</span>
+                    <span className="team-config-id">{c.id}</span>
+                  </label>
+                ))}
+                {configs.length > 0 && (
+                  <p className="team-invite-hint" style={{ marginTop: 8 }}>
+                    {selectedIds.size === 0
+                      ? 'Pick at least one configurator.'
+                      : `${selectedIds.size} configurator${selectedIds.size === 1 ? '' : 's'} selected`}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
           {newLink && (
             <div className="team-invite-link-box">
               <code className="team-invite-link">{newLink}</code>
@@ -102,6 +175,7 @@ export default function Team() {
                   <div className="team-member-info">
                     <span className="team-member-email">{inv.inviteeEmail}</span>
                     <span className="team-member-badge team-badge--active">Active</span>
+                    <ScopeBadge invite={inv} configs={configs} />
                   </div>
                   <button className="btn-ghost btn-sm" onClick={() => handleRevoke(inv)}>Revoke</button>
                 </div>

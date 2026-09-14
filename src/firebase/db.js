@@ -68,12 +68,18 @@ export async function getUserConfigurators(uid) {
       where('status', '==', 'accepted'),
     ))
     for (const inviteDoc of inviteSnaps.docs) {
-      const { ownerUid, configuratorId } = inviteDoc.data()
-      if (configuratorId) {
-        // Per-project invite — fetch only that one configurator
-        const oneSnap = await getDoc(doc(db, 'configurators', configuratorId))
-        if (oneSnap.exists() && oneSnap.data().ownerId === ownerUid) {
-          results.push({ id: oneSnap.id, ...oneSnap.data(), _isTeamOwned: true })
+      const { ownerUid, configuratorIds, configuratorId } = inviteDoc.data()
+      // Accept legacy single-id `configuratorId` field.
+      const ids = Array.isArray(configuratorIds) && configuratorIds.length
+        ? configuratorIds
+        : (configuratorId ? [configuratorId] : null)
+      if (ids) {
+        // Per-project invite — fetch only the listed configurators
+        for (const cid of ids) {
+          const oneSnap = await getDoc(doc(db, 'configurators', cid))
+          if (oneSnap.exists() && oneSnap.data().ownerId === ownerUid) {
+            results.push({ id: oneSnap.id, ...oneSnap.data(), _isTeamOwned: true })
+          }
         }
         continue
       }
@@ -344,7 +350,16 @@ export async function getRevisions(configuratorId, ownerId) {
 
 // ── Team invites ─────────────────────────────────────────────────────
 
-export async function createTeamInvite(ownerUid, ownerEmail, inviteeEmail, code, configuratorId = null) {
+export async function createTeamInvite(ownerUid, ownerEmail, inviteeEmail, code, configuratorIds = null) {
+  // configuratorIds accepts: null (full team), string (legacy single), or array of ids.
+  // Normalizes to array on write; empty array is stored as null (full-team invite).
+  let ids = null
+  if (Array.isArray(configuratorIds)) {
+    ids = configuratorIds.filter(Boolean)
+    if (!ids.length) ids = null
+  } else if (typeof configuratorIds === 'string' && configuratorIds) {
+    ids = [configuratorIds]
+  }
   await setDoc(doc(db, 'teamInvites', code), {
     ownerUid,
     ownerEmail,
@@ -352,7 +367,7 @@ export async function createTeamInvite(ownerUid, ownerEmail, inviteeEmail, code,
     code,
     status: 'pending',
     memberUid: null,
-    configuratorId,
+    configuratorIds: ids,
     createdAt: serverTimestamp(),
   })
 }
