@@ -858,12 +858,105 @@ function PartOptionEditor({ option, uid: userUid, onChange, onDelete, onMoveUp, 
               </datalist>
             )}
           </label>
+
+          <OptionMaterialOverridesEditor
+            option={option}
+            uid={userUid}
+            onChange={onChange} />
         </div>
       )}
       {showPicker && (
         <MediaPickerModal uid={userUid} accept=".glb"
           onSelect={({ url, storagePath }) => { setShowPicker(false); onChange({ ...option, glbUrl: url, glbStoragePath: storagePath }) }}
           onClose={() => setShowPicker(false)} />
+      )}
+    </div>
+  )
+}
+
+// Per-option material overrides editor. Enables texture/color per material
+// name on individual partOption options — used e.g. to override kaas
+// sticker texture per selected category.
+function OptionMaterialOverridesEditor({ option, uid: userUid, onChange }) {
+  const overrides = option.materialOverrides ?? {}
+  const names = Object.keys(overrides)
+  const [scanning, setScanning] = useState(false)
+  const [scanError, setScanError] = useState('')
+  const [newName, setNewName] = useState('')
+
+  function setOverride(matName, ov) {
+    onChange({ ...option, materialOverrides: { ...overrides, [matName]: ov } })
+  }
+  function renameOverride(oldName, newN) {
+    if (!newN || newN === oldName) return
+    const next = {}
+    for (const [k, v] of Object.entries(overrides)) next[k === oldName ? newN : k] = v
+    onChange({ ...option, materialOverrides: next })
+  }
+  function deleteOverride(matName) {
+    const next = { ...overrides }
+    delete next[matName]
+    onChange({ ...option, materialOverrides: next })
+  }
+  function addOverride() {
+    const n = newName.trim()
+    if (!n || overrides[n]) return
+    setOverride(n, { type: 'color', color: '#ffffff' })
+    setNewName('')
+  }
+  async function handleScan() {
+    if (!option.glbUrl) { setScanError('Add an Option GLB first, or scan the layer instead.'); return }
+    setScanning(true); setScanError('')
+    try {
+      const info = await extractGLBMaterials(option.glbUrl)
+      const next = { ...overrides }
+      for (const m of info.materials) {
+        if (!next[m.name]) next[m.name] = { type: 'none' }
+      }
+      onChange({ ...option, materialOverrides: next })
+    } catch {
+      setScanError('Could not read materials from GLB.')
+    } finally {
+      setScanning(false)
+    }
+  }
+
+  return (
+    <div className="mat-accordion" style={{ marginTop: 4 }}>
+      <div className="mat-accordion-header">
+        <span className="mat-accordion-label">Material / texture overrides ({names.length})</span>
+        <div className="mat-accordion-actions">
+          <button className="btn-add" disabled={scanning || !option.glbUrl} onClick={handleScan}>
+            {scanning ? 'Scanning…' : 'Scan option GLB'}
+          </button>
+        </div>
+      </div>
+      {scanError && <p className="mat-scan-error">{scanError}</p>}
+      {names.map((matName) => (
+        <MaterialOverrideRow
+          key={matName}
+          mat={{ id: matName, name: matName, baseColor: '#888888' }}
+          override={overrides[matName]}
+          uid={userUid}
+          onChange={(ov) => setOverride(matName, ov)}
+          onRename={(newN) => renameOverride(matName, newN)}
+          onDelete={() => deleteOverride(matName)} />
+      ))}
+      <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+        <input
+          className="field-input inline"
+          placeholder="Material name (exact match in GLB)"
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addOverride() } }}
+          style={{ flex: 1, fontSize: 12 }} />
+        <button className="btn-add" onClick={addOverride} disabled={!newName.trim()}>+ Add</button>
+      </div>
+      {names.length === 0 && (
+        <p className="mat-empty-hint" style={{ fontSize: 11 }}>
+          Type a material name (must match exactly a material inside this option's GLB) then Add.
+          Overrides apply only when this option is active.
+        </p>
       )}
     </div>
   )
