@@ -17,11 +17,16 @@ service cloud.firestore {
 
     // Configurators: published ones are public (for embeds);
     // any authenticated user can read (covers team members);
-    // only the owner can write/create/delete
+    // owner + accepted team members can write; only owner creates/deletes
     match /configurators/{id} {
       allow read:   if resource.data.published == true || request.auth != null;
-      allow write:  if request.auth != null && request.auth.uid == resource.data.ownerId;
+      allow update: if request.auth != null && (
+                      request.auth.uid == resource.data.ownerId
+                      || (resource.data.teamMemberUids is list
+                          && request.auth.uid in resource.data.teamMemberUids)
+                    );
       allow create: if request.auth != null && request.auth.uid == request.resource.data.ownerId;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.ownerId;
     }
 
     // Orders: anyone can create (submitted from public embed, no auth).
@@ -62,14 +67,32 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // Revisions: owner can read/write their own
+    // Revisions: owner can read/write; team members granted access to the
+    // parent configurator can also read/create revisions on it.
     match /revisions/{revId} {
-      allow read, write: if request.auth != null
-                         && request.auth.uid == resource.data.ownerId;
-      allow create: if request.auth != null
-                    && request.auth.uid == request.resource.data.ownerId;
-      allow delete: if request.auth != null
-                    && request.auth.uid == resource.data.ownerId;
+      function cfgTeam(cid) {
+        return get(/databases/$(database)/documents/configurators/$(cid)).data.teamMemberUids;
+      }
+      allow read: if request.auth != null && (
+                    request.auth.uid == resource.data.ownerId
+                    || (cfgTeam(resource.data.configuratorId) is list
+                        && request.auth.uid in cfgTeam(resource.data.configuratorId))
+                  );
+      allow update: if request.auth != null && (
+                      request.auth.uid == resource.data.ownerId
+                      || (cfgTeam(resource.data.configuratorId) is list
+                          && request.auth.uid in cfgTeam(resource.data.configuratorId))
+                    );
+      allow create: if request.auth != null && (
+                      request.auth.uid == request.resource.data.ownerId
+                      || (cfgTeam(request.resource.data.configuratorId) is list
+                          && request.auth.uid in cfgTeam(request.resource.data.configuratorId))
+                    );
+      allow delete: if request.auth != null && (
+                      request.auth.uid == resource.data.ownerId
+                      || (cfgTeam(resource.data.configuratorId) is list
+                          && request.auth.uid in cfgTeam(resource.data.configuratorId))
+                    );
     }
 
     // Invoice counter (server-only)

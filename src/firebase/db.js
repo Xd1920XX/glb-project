@@ -2,6 +2,7 @@ import {
   collection, doc,
   addDoc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
   query, where, orderBy, serverTimestamp, increment,
+  arrayUnion, arrayRemove,
 } from 'firebase/firestore'
 import { db } from './config.js'
 
@@ -379,6 +380,21 @@ export async function getTeamInviteByCode(code) {
 
 export async function acceptTeamInvite(code, memberUid) {
   await updateDoc(doc(db, 'teamInvites', code), { status: 'accepted', memberUid })
+  // Mirror membership onto the configurator docs so Firestore rules can grant
+  // write access without a cross-doc query in the rule.
+  const inviteSnap = await getDoc(doc(db, 'teamInvites', code))
+  if (!inviteSnap.exists()) return
+  const { ownerUid, configuratorIds, configuratorId } = inviteSnap.data()
+  const ids = Array.isArray(configuratorIds) && configuratorIds.length
+    ? configuratorIds
+    : (configuratorId ? [configuratorId] : null)
+  const targets = ids
+    ? ids
+    : (await getDocs(query(collection(db, 'configurators'), where('ownerId', '==', ownerUid)))).docs.map((d) => d.id)
+  await Promise.all(targets.map((cid) =>
+    updateDoc(doc(db, 'configurators', cid), { teamMemberUids: arrayUnion(memberUid) })
+      .catch((err) => console.warn('failed to add teamMember on', cid, err.message))
+  ))
 }
 
 export async function getTeamMembers(ownerUid) {
@@ -388,7 +404,22 @@ export async function getTeamMembers(ownerUid) {
 }
 
 export async function revokeTeamInvite(code) {
+  // Grab invite state before flipping status so we know which configs to purge.
+  const inviteSnap = await getDoc(doc(db, 'teamInvites', code))
+  const invite = inviteSnap.exists() ? inviteSnap.data() : null
   await updateDoc(doc(db, 'teamInvites', code), { status: 'revoked' })
+  if (!invite || !invite.memberUid) return
+  const { ownerUid, memberUid, configuratorIds, configuratorId } = invite
+  const ids = Array.isArray(configuratorIds) && configuratorIds.length
+    ? configuratorIds
+    : (configuratorId ? [configuratorId] : null)
+  const targets = ids
+    ? ids
+    : (await getDocs(query(collection(db, 'configurators'), where('ownerId', '==', ownerUid)))).docs.map((d) => d.id)
+  await Promise.all(targets.map((cid) =>
+    updateDoc(doc(db, 'configurators', cid), { teamMemberUids: arrayRemove(memberUid) })
+      .catch((err) => console.warn('failed to remove teamMember on', cid, err.message))
+  ))
 }
 
 // ── Public embed — reads config + checks owner subscription ────────
