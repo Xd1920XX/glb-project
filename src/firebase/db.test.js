@@ -378,7 +378,35 @@ describe('createTeamInvite', () => {
         code: 'code123',
         status: 'pending',
         memberUid: null,
+        configuratorIds: null,
       }),
+    )
+  })
+
+  it('stores array of configurator ids when provided', async () => {
+    setDoc.mockResolvedValue(undefined)
+    await createTeamInvite('o', 'o@x.com', 'm@x.com', 'c1', ['cfg1', 'cfg2'])
+    expect(setDoc).toHaveBeenCalledWith(
+      MOCK_DOC_REF,
+      expect.objectContaining({ configuratorIds: ['cfg1', 'cfg2'] }),
+    )
+  })
+
+  it('wraps a legacy single string configurator id into an array', async () => {
+    setDoc.mockResolvedValue(undefined)
+    await createTeamInvite('o', 'o@x.com', 'm@x.com', 'c1', 'cfg1')
+    expect(setDoc).toHaveBeenCalledWith(
+      MOCK_DOC_REF,
+      expect.objectContaining({ configuratorIds: ['cfg1'] }),
+    )
+  })
+
+  it('normalizes an empty array to null (full-team invite)', async () => {
+    setDoc.mockResolvedValue(undefined)
+    await createTeamInvite('o', 'o@x.com', 'm@x.com', 'c1', [])
+    expect(setDoc).toHaveBeenCalledWith(
+      MOCK_DOC_REF,
+      expect.objectContaining({ configuratorIds: null }),
     )
   })
 })
