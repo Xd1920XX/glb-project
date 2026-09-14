@@ -194,6 +194,7 @@ export default function Team() {
                   <div className="team-member-info">
                     <span className="team-member-email">{inv.inviteeEmail}</span>
                     <span className="team-member-badge team-badge--pending">Pending</span>
+                    <ScopeBadge invite={inv} configs={configs} />
                   </div>
                   <div className="team-member-actions">
                     <button className="btn-ghost btn-sm" onClick={() => copyLink(inv.code)}>
@@ -209,4 +210,14 @@ export default function Team() {
       </main>
     </div>
   )
+}
+
+function ScopeBadge({ invite, configs }) {
+  const ids = Array.isArray(invite.configuratorIds) && invite.configuratorIds.length
+    ? invite.configuratorIds
+    : (invite.configuratorId ? [invite.configuratorId] : null)
+  if (!ids) return <span className="team-scope-badge team-scope-badge--full">All configurators</span>
+  const names = ids.map((id) => configs.find((c) => c.id === id)?.name).filter(Boolean)
+  const label = names.length ? names.join(', ') : `${ids.length} configurator${ids.length === 1 ? '' : 's'}`
+  return <span className="team-scope-badge" title={label}>{label}</span>
 }
