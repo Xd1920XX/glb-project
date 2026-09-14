@@ -82,7 +82,7 @@ function loadCachedTexture(url) {
 
 // ── Model with optional material overrides ────────────────────────
 
-function Model({ url, materialOverrides = {}, animationConfig = null, animationOverride = null, visibleNodes = null, visibleNodeFilters = null, hideNodes = null, onSceneRef = null, castShadow = true, receiveShadow = true, wireframe = false, renderMode = 'solid', xrayOpacity = 0.35, flatShading = false, layerTransform = null, crossfade = 0 }) {
+function Model({ url, materialOverrides = {}, animationConfig = null, animationOverride = null, visibleNodes = null, visibleNodeFilters = null, hideNodes = null, onSceneRef = null, castShadow = true, receiveShadow = true, wireframe = false, renderMode = 'solid', xrayOpacity = 0.35, flatShading = false, layerTransform = null, crossfade = 0, onMeshClick = null, highlightedMeshUuid = null }) {
   const { scene, animations } = useGLTF(url)
   const { gl } = useThree()
   const maxAniso = useMemo(() => gl?.capabilities?.getMaxAnisotropy?.() ?? 8, [gl])
@@ -387,6 +387,47 @@ function Model({ url, materialOverrides = {}, animationConfig = null, animationO
         : [Number(lt.scale.x) || 1, Number(lt.scale.y) || 1, Number(lt.scale.z) || 1])
     : [1, 1, 1]
 
+  // Apply emissive tint to the highlighted mesh (updated imperatively so a
+  // click doesn't force the whole scene to re-clone).
+  useEffect(() => {
+    cloned.traverse((node) => {
+      if (!node.isMesh) return
+      const list = Array.isArray(node.material) ? node.material : [node.material]
+      for (const m of list) {
+        if (!m) continue
+        if (node.uuid === highlightedMeshUuid) {
+          if (!m.userData._origEmissive) {
+            m.userData._origEmissive = { hex: m.emissive?.getHex?.() ?? 0, intensity: m.emissiveIntensity ?? 1 }
+          }
+          m.emissive?.setHex(0x2f6b4f)
+          m.emissiveIntensity = 0.6
+        } else if (m.userData._origEmissive) {
+          m.emissive?.setHex(m.userData._origEmissive.hex)
+          m.emissiveIntensity = m.userData._origEmissive.intensity
+          delete m.userData._origEmissive
+        }
+        m.needsUpdate = true
+      }
+    })
+  }, [cloned, highlightedMeshUuid])
+
+  const handleClick = (e) => {
+    if (!onMeshClick) return
+    if (!e.object?.isMesh) return
+    if (!e.object.visible) return
+    e.stopPropagation()
+    const chain = []
+    let cur = e.object
+    while (cur) { if (cur.name) chain.push(cur.name); cur = cur.parent }
+    onMeshClick({
+      meshName: e.object.name,
+      meshUuid: e.object.uuid,
+      ancestorNames: chain,
+      combined: chain.join(' '),
+      point: e.point,
+    })
+  }
+
   return (
     <group
       position={[Number(lOff.x) || 0, Number(lOff.y) || 0, Number(lOff.z) || 0]}
@@ -396,13 +437,18 @@ function Model({ url, materialOverrides = {}, animationConfig = null, animationO
         (Number(lRot.z) || 0) * Math.PI / 180,
       ]}
       scale={lScl}>
-      <primitive object={cloned} />
+      <primitive
+        object={cloned}
+        onClick={onMeshClick ? handleClick : undefined}
+        onPointerOver={onMeshClick ? (e) => { e.stopPropagation(); document.body.style.cursor = 'pointer' } : undefined}
+        onPointerOut={onMeshClick ? () => { document.body.style.cursor = '' } : undefined}
+      />
     </group>
   )
 }
 
 // Wraps all GLB layers of a variant inside ONE group so transform applies to the entire stack.
-function GlbStack({ layers, animationOverride, transform, wireframe = false, renderMode = 'solid', xrayOpacity = 0.35, flatShading = false, crossfade = 0, globalCastShadow = true, globalReceiveShadow = true, groupOutRef = null }) {
+function GlbStack({ layers, animationOverride, transform, wireframe = false, renderMode = 'solid', xrayOpacity = 0.35, flatShading = false, crossfade = 0, globalCastShadow = true, globalReceiveShadow = true, groupOutRef = null, onMeshClick = null, highlightedMeshUuid = null }) {
   const groupRef = useRef(null)
   useLayoutEffect(() => {
     if (groupOutRef) groupOutRef.current = groupRef.current
@@ -507,6 +553,8 @@ function GlbStack({ layers, animationOverride, transform, wireframe = false, ren
             xrayOpacity={xrayOpacity}
             flatShading={flatShading}
             crossfade={crossfade}
+            onMeshClick={onMeshClick ? (info) => onMeshClick({ ...info, layerId: layer.id, layerLabel: layer.label }) : null}
+            highlightedMeshUuid={highlightedMeshUuid}
             onSceneRef={(s) => setSceneFor(key, s)} />
         )
       })}
@@ -839,6 +887,9 @@ export function SaunaViewer3D({
   cursorStyle        = 'grab',
   // ── animation extras ──
   animationCrossfade = 0,
+  // ── interactive pick ──
+  onMeshClick        = null,
+  highlightedMeshUuid = null,
 }) {
   const env = ENV_PRESETS.includes(environment) ? environment : 'studio'
 
@@ -963,6 +1014,8 @@ export function SaunaViewer3D({
             globalCastShadow={shadows}
             globalReceiveShadow={shadows}
             groupOutRef={modelRootRef}
+            onMeshClick={onMeshClick}
+            highlightedMeshUuid={highlightedMeshUuid}
           />
           <CameraFit
             deps={fitDepsWithReset}

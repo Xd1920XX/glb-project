@@ -77,6 +77,10 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
   // colorSel: color.label (e.g. 'Natural' | 'Dark')
   const [partSel, setPartSel] = useState(resolvedInitial?.partOptions ?? {})
   const [colorSel, setColorSel] = useState(resolvedInitial?.color ?? null)
+  // Interactive pick: user clicks a mesh in the viewer → highlight it +
+  // scroll the sidebar to the matching partOption group.
+  const [highlightedMeshUuid, setHighlightedMeshUuid] = useState(null)
+  const [focusedGroupLabel,   setFocusedGroupLabel]   = useState(null)
   // Progressive disclosure: hide partOptions until model picked,
   // show only first partOption group until that's picked too.
   // If an external selection is provided (via URL/postMessage/order link),
@@ -433,6 +437,62 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
         : []
   }, [variant, view, colorSel, layerVisByVariant, partSel, suppressedPartGroups])
 
+  // ── Mesh pick → highlight + scroll to matching partOption ─────
+  // Matches the clicked mesh's ancestor chain against every partOption
+  // group's currently-selected option filters. The most specific match
+  // wins (option whose visibleNodes are longest — a Pos<N>_<Cat> filter
+  // outranks a broader Auguga/Ulal filter).
+  function handleMeshClick(info) {
+    if (!variant || !info) return
+    setHighlightedMeshUuid(info.meshUuid)
+    const combined = info.combined ?? info.ancestorNames?.join(' ') ?? info.meshName ?? ''
+    let best = null
+    let bestSpecificity = -1
+    for (const grp of variant.partOptions ?? []) {
+      const sel = grp.options?.find((o) => o.label === partSel[grp.label])
+        ?? grp.options?.find((o) => o.id === grp.defaultOptionId)
+        ?? (grp.noDefault ? null : grp.options?.[0])
+      if (!sel) continue
+      const patterns = Array.isArray(sel.visibleNodes) ? sel.visibleNodes : []
+      if (!patterns.length) continue
+      const matches = patterns.some((p) => p && combined.includes(p))
+      if (!matches) continue
+      // Specificity = max pattern length; a longer pattern is more specific.
+      const specificity = patterns.reduce((m, p) => Math.max(m, p ? p.length : 0), 0)
+      if (specificity > bestSpecificity) {
+        best = grp.label
+        bestSpecificity = specificity
+      }
+    }
+    if (best) {
+      setFocusedGroupLabel(best)
+      // Notify any external editor (Builder) so it can expand its own
+      // collapsed section for this group and scroll to it.
+      if (typeof document !== 'undefined') {
+        document.dispatchEvent(new CustomEvent('builder:focus-part-group', {
+          detail: { label: best },
+        }))
+      }
+      // Defer DOM scroll to next frame so any conditional render (e.g. progressive
+      // disclosure) has flushed.
+      requestAnimationFrame(() => {
+        if (typeof document === 'undefined') return
+        const el = document.querySelector(`[data-part-group-label="${cssEscape(best)}"]`)
+        if (!el) return
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        el.classList.remove('part-group-flash')
+        void el.offsetWidth  // reflow so animation restarts
+        el.classList.add('part-group-flash')
+      })
+    }
+  }
+
+  // Minimal CSS.escape polyfill for older browsers.
+  function cssEscape(s) {
+    if (typeof CSS !== 'undefined' && CSS.escape) return CSS.escape(s)
+    return String(s).replace(/["\\]/g, (c) => '\\' + c)
+  }
+
   // ── Viewer ──────────────────────────────────────────────────────
   function renderViewer() {
     if (view.startsWith('custom:')) {
@@ -527,6 +587,8 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
         animationOverride: vs.glbEnableAnimationControls
           ? { playing: animPlaying, speed: animSpeed, restartKey: animRestartKey }
           : null,
+        onMeshClick: handleMeshClick,
+        highlightedMeshUuid,
       }
       // When keepViewerMounted is enabled (per-config), skip the variant-id key
       // so the viewer keeps its camera + WebGL context across variant switches.
@@ -935,7 +997,7 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
                     ?? grp.options.find((o) => o.id === grp.defaultOptionId)
                     ?? (grp.noDefault ? null : grp.options[0])
                   return (
-                    <div key={grp.id} className="variant-group-section">
+                    <div key={grp.id} className={`variant-group-section${focusedGroupLabel === grp.label ? ' variant-group-section--focused' : ''}`} data-part-group-label={grp.label}>
                       <p className="section-label">{grp.label}</p>
                       <div className="color-grid">
                         {grp.options.map((o) => {

@@ -15,6 +15,8 @@ vi.mock('firebase/firestore', () => ({
   orderBy:         vi.fn((...args) => args),
   serverTimestamp: vi.fn(() => 'SERVER_TS'),
   increment:       vi.fn((n) => ({ _increment: n })),
+  arrayUnion:      vi.fn((...vals) => ({ _arrayUnion: vals })),
+  arrayRemove:     vi.fn((...vals) => ({ _arrayRemove: vals })),
 }))
 
 vi.mock('./config.js', () => ({ db: {}, auth: {}, storage: {} }))
@@ -424,21 +426,56 @@ describe('getTeamInviteByCode', () => {
 })
 
 describe('acceptTeamInvite', () => {
-  it('updates status to accepted and sets memberUid', async () => {
+  it('updates status + mirrors membership onto scoped configurators', async () => {
     updateDoc.mockResolvedValue(undefined)
+    getDoc.mockResolvedValue(makeSnap(true, 'code123', {
+      ownerUid: 'owner1', configuratorIds: ['cfg1', 'cfg2'],
+    }))
     await acceptTeamInvite('code123', 'member1')
-    expect(updateDoc).toHaveBeenCalledWith(
-      MOCK_DOC_REF,
-      { status: 'accepted', memberUid: 'member1' },
+    // First call: mark invite accepted
+    expect(updateDoc).toHaveBeenNthCalledWith(
+      1, MOCK_DOC_REF, { status: 'accepted', memberUid: 'member1' },
     )
+    // Then one arrayUnion per configurator (order not asserted)
+    const teamCalls = updateDoc.mock.calls.filter((c) => c[1]?.teamMemberUids)
+    expect(teamCalls).toHaveLength(2)
+    for (const [, patch] of teamCalls) {
+      expect(patch.teamMemberUids).toEqual({ _arrayUnion: ['member1'] })
+    }
+  })
+
+  it('fans out to all owner configs when invite has no scope', async () => {
+    updateDoc.mockResolvedValue(undefined)
+    getDoc.mockResolvedValue(makeSnap(true, 'code123', {
+      ownerUid: 'owner1', configuratorIds: null,
+    }))
+    getDocs.mockResolvedValue(makeDocsSnap([['cfg1', {}], ['cfg2', {}], ['cfg3', {}]]))
+    await acceptTeamInvite('code123', 'member1')
+    const teamCalls = updateDoc.mock.calls.filter((c) => c[1]?.teamMemberUids)
+    expect(teamCalls).toHaveLength(3)
   })
 })
 
 describe('revokeTeamInvite', () => {
-  it('updates status to revoked', async () => {
+  it('flips status + removes membership from scoped configurators', async () => {
     updateDoc.mockResolvedValue(undefined)
+    getDoc.mockResolvedValue(makeSnap(true, 'code123', {
+      ownerUid: 'owner1', memberUid: 'member1', configuratorIds: ['cfg1'],
+    }))
     await revokeTeamInvite('code123')
-    expect(updateDoc).toHaveBeenCalledWith(MOCK_DOC_REF, { status: 'revoked' })
+    expect(updateDoc).toHaveBeenNthCalledWith(1, MOCK_DOC_REF, { status: 'revoked' })
+    const teamCalls = updateDoc.mock.calls.filter((c) => c[1]?.teamMemberUids)
+    expect(teamCalls).toHaveLength(1)
+    expect(teamCalls[0][1].teamMemberUids).toEqual({ _arrayRemove: ['member1'] })
+  })
+
+  it('skips membership purge when invite never accepted', async () => {
+    updateDoc.mockResolvedValue(undefined)
+    getDoc.mockResolvedValue(makeSnap(true, 'code123', {
+      ownerUid: 'owner1', memberUid: null, configuratorIds: ['cfg1'],
+    }))
+    await revokeTeamInvite('code123')
+    expect(updateDoc).toHaveBeenCalledTimes(1)
   })
 })
 

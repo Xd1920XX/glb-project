@@ -871,9 +871,29 @@ function PartOptionEditor({ option, uid: userUid, onChange, onDelete, onMoveUp, 
 
 function PartOptionGroupEditor({ group, glbLayers, allGroups, uid: userUid, onChange, onDelete, onMoveUp, onMoveDown }) {
   const [collapsed, setCollapsed] = useState(true)
+  const rootRef = useRef(null)
   const options = group.options ?? []
   const layerLabels = (glbLayers ?? []).map((l) => l.label).filter(Boolean)
   const otherGroupLabels = (allGroups ?? []).filter((g) => g.id !== group.id).map((g) => g.label).filter(Boolean)
+
+  // Expand + flash when the viewer emits a mesh-click for this group.
+  useEffect(() => {
+    function onFocus(e) {
+      if (!e?.detail) return
+      if (e.detail.label !== group.label && e.detail.id !== group.id) return
+      setCollapsed(false)
+      requestAnimationFrame(() => {
+        const el = rootRef.current
+        if (!el) return
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        el.classList.remove('part-group-flash')
+        void el.offsetWidth
+        el.classList.add('part-group-flash')
+      })
+    }
+    document.addEventListener('builder:focus-part-group', onFocus)
+    return () => document.removeEventListener('builder:focus-part-group', onFocus)
+  }, [group.id, group.label])
 
   function updateOptions(next) { onChange({ ...group, options: next }) }
   function addOption() {
@@ -893,7 +913,12 @@ function PartOptionGroupEditor({ group, glbLayers, allGroups, uid: userUid, onCh
   }
 
   return (
-    <div className="part-option-group-block" style={{ border: '1px solid #ccc', borderRadius: 4, padding: 8, marginBottom: 8 }}>
+    <div
+      ref={rootRef}
+      className="part-option-group-block"
+      data-part-group-label={group.label}
+      data-part-group-id={group.id}
+      style={{ border: '1px solid #ccc', borderRadius: 4, padding: 8, marginBottom: 8 }}>
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
         <button className="variant-collapse-btn" onClick={() => setCollapsed((v) => !v)}>
           <span className={`bacc-chevron${collapsed ? '' : ' open'}`} />
