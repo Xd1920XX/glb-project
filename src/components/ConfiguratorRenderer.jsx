@@ -438,32 +438,50 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
   }, [variant, view, colorSel, layerVisByVariant, partSel, suppressedPartGroups])
 
   // ── Mesh pick → highlight + scroll to matching partOption ─────
-  // Matches the clicked mesh's ancestor chain against every partOption
-  // group's currently-selected option filters. The most specific match
-  // wins (option whose visibleNodes are longest — a Pos<N>_<Cat> filter
-  // outranks a broader Auguga/Ulal filter).
+  // Selection rules:
+  //   1. Candidates = partOption groups whose matchLayerLabels includes the
+  //      clicked layer's label. That scopes to groups that actually control
+  //      this layer (e.g. Sortaider Lid 1 has kaas + auk + suund all matching
+  //      it; clicking Panel 1 mesh only sees paneel groups).
+  //   2. If the mesh path contains "PosN_", require the group label to
+  //      reference that same PosN (e.g. "Pos 3 kaas").
+  //   3. Among remaining candidates, prefer the group whose active option
+  //      supplies a glbUrl (that's the primary swap group — kaas, not
+  //      auk/suund which only add filters).
+  //   4. Then break ties by earliest position in the group list, so
+  //      results are deterministic and match the visual sidebar order.
   function handleMeshClick(info) {
     if (!variant || !info) return
     setHighlightedMeshUuid(info.meshUuid)
     const combined = info.combined ?? info.ancestorNames?.join(' ') ?? info.meshName ?? ''
-    let best = null
-    let bestSpecificity = -1
-    for (const grp of variant.partOptions ?? []) {
+    const layerLabel = info.layerLabel ?? null
+    const posMatch = combined.match(/Pos\s*_?(\d+)/i)  // matches "Pos1_" and "Pos 1"
+    const posNum = posMatch ? parseInt(posMatch[1], 10) : null
+
+    const groups = variant.partOptions ?? []
+    const candidates = []
+    for (let i = 0; i < groups.length; i++) {
+      const grp = groups[i]
+      if (layerLabel && Array.isArray(grp.matchLayerLabels)
+          && grp.matchLayerLabels.length
+          && !grp.matchLayerLabels.includes(layerLabel)) continue
+      if (posNum != null) {
+        const groupPos = (grp.label ?? '').match(/Pos\s*(\d+)/i)
+        if (groupPos && parseInt(groupPos[1], 10) !== posNum) continue
+      }
       const sel = grp.options?.find((o) => o.label === partSel[grp.label])
         ?? grp.options?.find((o) => o.id === grp.defaultOptionId)
         ?? (grp.noDefault ? null : grp.options?.[0])
       if (!sel) continue
-      const patterns = Array.isArray(sel.visibleNodes) ? sel.visibleNodes : []
-      if (!patterns.length) continue
-      const matches = patterns.some((p) => p && combined.includes(p))
-      if (!matches) continue
-      // Specificity = max pattern length; a longer pattern is more specific.
-      const specificity = patterns.reduce((m, p) => Math.max(m, p ? p.length : 0), 0)
-      if (specificity > bestSpecificity) {
-        best = grp.label
-        bestSpecificity = specificity
-      }
+      const hasGlb = !!sel.glbUrl
+      candidates.push({ label: grp.label, idx: i, hasGlb })
     }
+    // Prefer glbUrl-bearing option (primary swap group) then earliest.
+    candidates.sort((a, b) => {
+      if (a.hasGlb !== b.hasGlb) return a.hasGlb ? -1 : 1
+      return a.idx - b.idx
+    })
+    const best = candidates[0]?.label ?? null
     if (best) {
       setFocusedGroupLabel(best)
       // Notify any external editor (Builder) so it can expand its own
