@@ -2929,6 +2929,99 @@ export default function Builder() {
         if (input.exteriorLabel) setExteriorLabel(input.exteriorLabel)
         if (input.interiorLabel) setInteriorLabel(input.interiorLabel)
         return
+
+      // ── PartOption groups + options ──
+      case 'update_part_option_group': {
+        const allowedGroup = ['label', 'matchLayerLabels', 'defaultOptionId', 'noDefault']
+        const patch = Object.fromEntries(
+          Object.entries(input.fields ?? {}).filter(([k]) => allowedGroup.includes(k))
+        )
+        setVariants((vs) => vs.map((v) => v.id !== input.variantId ? v : ({
+          ...v,
+          partOptions: (v.partOptions ?? []).map((g) =>
+            g.id === input.groupId ? { ...g, ...patch } : g),
+        })))
+        return
+      }
+      case 'add_part_option': {
+        const opt = { id: uid(), ...(input.option ?? {}) }
+        setVariants((vs) => vs.map((v) => v.id !== input.variantId ? v : ({
+          ...v,
+          partOptions: (v.partOptions ?? []).map((g) =>
+            g.id === input.groupId
+              ? { ...g, options: [...(g.options ?? []), opt] }
+              : g),
+        })))
+        return
+      }
+      case 'update_part_option': {
+        const allowedOpt = ['label', 'visibleNodes', 'hideNodes', 'hidesGroups', 'disableFilters', 'hidden', 'glbUrl']
+        const patch = Object.fromEntries(
+          Object.entries(input.fields ?? {}).filter(([k]) => allowedOpt.includes(k))
+        )
+        setVariants((vs) => vs.map((v) => v.id !== input.variantId ? v : ({
+          ...v,
+          partOptions: (v.partOptions ?? []).map((g) => g.id !== input.groupId ? g : ({
+            ...g,
+            options: (g.options ?? []).map((o) =>
+              o.id === input.optionId ? { ...o, ...patch } : o),
+          })),
+        })))
+        return
+      }
+      case 'delete_part_option': {
+        setVariants((vs) => vs.map((v) => v.id !== input.variantId ? v : ({
+          ...v,
+          partOptions: (v.partOptions ?? []).map((g) => g.id !== input.groupId ? g : ({
+            ...g,
+            options: (g.options ?? []).filter((o) => o.id !== input.optionId),
+          })),
+        })))
+        return
+      }
+
+      // ── Material overrides on an option ──
+      case 'set_option_material_override': {
+        const { materialName, override } = input
+        if (!materialName || !override) return
+        setVariants((vs) => vs.map((v) => v.id !== input.variantId ? v : ({
+          ...v,
+          partOptions: (v.partOptions ?? []).map((g) => g.id !== input.groupId ? g : ({
+            ...g,
+            options: (g.options ?? []).map((o) => {
+              if (o.id !== input.optionId) return o
+              const cur = o.materialOverrides ?? {}
+              const next = override.type === 'none'
+                ? Object.fromEntries(Object.entries(cur).filter(([k]) => k !== materialName))
+                : { ...cur, [materialName]: override }
+              return { ...o, materialOverrides: next }
+            }),
+          })),
+        })))
+        return
+      }
+
+      // ── GLB layers ──
+      case 'update_layer': {
+        const allowedLayer = ['label', 'visibleNodes', 'hideNodes', 'visible', 'defaultOn', 'togglable']
+        const patch = Object.fromEntries(
+          Object.entries(input.fields ?? {}).filter(([k]) => allowedLayer.includes(k))
+        )
+        setVariants((vs) => vs.map((v) => v.id !== input.variantId ? v : ({
+          ...v,
+          glbLayers: (v.glbLayers ?? []).map((l) =>
+            l.id === input.layerId ? { ...l, ...patch } : l),
+        })))
+        return
+      }
+      case 'delete_layer': {
+        setVariants((vs) => vs.map((v) => v.id !== input.variantId ? v : ({
+          ...v,
+          glbLayers: (v.glbLayers ?? []).filter((l) => l.id !== input.layerId),
+        })))
+        return
+      }
+
       default:
         throw new Error(`Unknown tool: ${name}`)
     }
