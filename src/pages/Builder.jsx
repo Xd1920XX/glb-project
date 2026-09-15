@@ -3021,6 +3021,122 @@ export default function Builder() {
         })))
         return
       }
+      case 'add_layer': {
+        const layer = { id: uid(), visible: true, ...(input.layer ?? {}) }
+        setVariants((vs) => vs.map((v) => v.id !== input.variantId ? v : ({
+          ...v,
+          glbLayers: [...(v.glbLayers ?? []), layer],
+        })))
+        return
+      }
+
+      // ── PartOption group CRUD ──
+      case 'add_part_option_group': {
+        const g = { id: uid(), options: [], matchLayerLabels: [], ...(input.group ?? {}) }
+        setVariants((vs) => vs.map((v) => v.id !== input.variantId ? v : ({
+          ...v,
+          partOptions: [...(v.partOptions ?? []), g],
+        })))
+        return
+      }
+      case 'delete_part_option_group': {
+        setVariants((vs) => vs.map((v) => v.id !== input.variantId ? v : ({
+          ...v,
+          partOptions: (v.partOptions ?? []).filter((g) => g.id !== input.groupId),
+        })))
+        return
+      }
+      case 'reorder_part_option': {
+        const dir = input.direction === -1 ? -1 : 1
+        setVariants((vs) => vs.map((v) => v.id !== input.variantId ? v : ({
+          ...v,
+          partOptions: (v.partOptions ?? []).map((g) => {
+            if (g.id !== input.groupId) return g
+            const opts = [...(g.options ?? [])]
+            const idx = opts.findIndex((o) => o.id === input.optionId)
+            if (idx < 0) return g
+            const target = idx + dir
+            if (target < 0 || target >= opts.length) return g
+            ;[opts[idx], opts[target]] = [opts[target], opts[idx]]
+            return { ...g, options: opts }
+          }),
+        })))
+        return
+      }
+
+      // ── Color options ──
+      case 'add_color_option': {
+        const c = { id: uid(), materialOverridesByMaterial: {}, ...(input.color ?? {}) }
+        setVariants((vs) => vs.map((v) => v.id !== input.variantId ? v : ({
+          ...v,
+          colorOptions: [...(v.colorOptions ?? []), c],
+        })))
+        return
+      }
+      case 'update_color_option': {
+        const allowedColor = ['label', 'swatch', 'materialOverridesByMaterial']
+        const patch = Object.fromEntries(
+          Object.entries(input.fields ?? {}).filter(([k]) => allowedColor.includes(k))
+        )
+        setVariants((vs) => vs.map((v) => v.id !== input.variantId ? v : ({
+          ...v,
+          colorOptions: (v.colorOptions ?? []).map((c) =>
+            c.id === input.colorId ? { ...c, ...patch } : c),
+        })))
+        return
+      }
+      case 'delete_color_option': {
+        setVariants((vs) => vs.map((v) => v.id !== input.variantId ? v : ({
+          ...v,
+          colorOptions: (v.colorOptions ?? []).filter((c) => c.id !== input.colorId),
+        })))
+        return
+      }
+
+      // ── Interiors ──
+      case 'add_interior': {
+        const i = { id: uid(), mode: 'pano', ...(input.interior ?? {}) }
+        setInteriors((xs) => [...xs, i])
+        return
+      }
+      case 'update_interior': {
+        const allowedInt = ['label', 'mode', 'panoramaUrl']
+        const patch = Object.fromEntries(
+          Object.entries(input.fields ?? {}).filter(([k]) => allowedInt.includes(k))
+        )
+        setInteriors((xs) => xs.map((x) => x.id === input.interiorId ? { ...x, ...patch } : x))
+        return
+      }
+      case 'delete_interior':
+        setInteriors((xs) => xs.filter((x) => x.id !== input.interiorId))
+        return
+
+      // ── Meta / misc ──
+      case 'set_config_name':
+        if (typeof input.name === 'string') setName(input.name)
+        return
+      case 'set_watermark': {
+        const allowedWm = ['enabled', 'imageUrl', 'position', 'opacity', 'size']
+        const patch = Object.fromEntries(
+          Object.entries(input ?? {}).filter(([k]) => allowedWm.includes(k))
+        )
+        setWatermark((w) => ({ ...(w ?? {}), ...patch }))
+        return
+      }
+      case 'set_variant_transform': {
+        const allowedT = ['defaultYaw', 'defaultPitch', 'autoCenter', 'initialZoomMul', 'fov']
+        const patch = Object.fromEntries(
+          Object.entries(input.transform ?? {}).filter(([k]) => allowedT.includes(k))
+        )
+        setVariants((vs) => vs.map((v) => v.id !== input.variantId ? v : ({
+          ...v,
+          transform: { ...(v.transform ?? {}), ...patch },
+        })))
+        return
+      }
+      case 'publish':
+        setPublished(!!input.published)
+        return
 
       default:
         throw new Error(`Unknown tool: ${name}`)
