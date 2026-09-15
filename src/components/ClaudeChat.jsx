@@ -70,7 +70,9 @@ export function ClaudeChat({ config, onApplyTool }) {
 
   async function send(overrideText) {
     if (busy) return
-    const text = overrideText ?? input
+    // Guard against being wired directly to onClick={send} — the browser passes
+    // a SyntheticEvent whose `.trim()` blows up. Only accept strings.
+    const text = typeof overrideText === 'string' ? overrideText : input
     if (!text.trim() && !image) return
     setError('')
     const userTurn = {
