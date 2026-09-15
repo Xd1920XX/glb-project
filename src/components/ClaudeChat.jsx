@@ -170,7 +170,12 @@ export function ClaudeChat({ config, onApplyTool }) {
                 {quota.used} / {quota.limit}
               </span>
             )}
-          <button className="claude-chat-close" onClick={() => setShowSettings((v) => !v)} title="Settings">⚙</button>
+          <button
+            className="claude-chat-key-btn"
+            onClick={() => setShowSettings((v) => !v)}
+            title="Use your own Anthropic API key">
+            🔑 {byokKey ? 'Key set' : 'Set key'}
+          </button>
           <button className="claude-chat-close" onClick={() => setOpen(false)} title="Close">✕</button>
         </div>
       </div>
@@ -178,26 +183,23 @@ export function ClaudeChat({ config, onApplyTool }) {
       {showSettings && (
         <div className="claude-chat-settings">
           <div className="claude-chat-settings-row">
-            <label className="claude-chat-settings-label">Your Anthropic API key (optional)</label>
+            <label className="claude-chat-settings-label">Your Anthropic API key (optional — bypasses shared quota)</label>
             <input
               type="password"
               className="claude-chat-settings-input"
               placeholder="sk-ant-…"
               value={byokKey}
-              onChange={(e) => saveByok(e.target.value)} />
+              onChange={(e) => saveByok(e.target.value)}
+              autoFocus />
             <p className="claude-chat-settings-hint">
-              Stored in this browser only. Bypasses platform quota. Get a key at{' '}
+              Saved in this browser only. Leave empty to use the shared platform key.
+              Get your own at{' '}
               <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer">console.anthropic.com</a>.
+              {byokKey && (
+                <> · <button className="btn-link" onClick={() => saveByok('')}>Clear key</button></>
+              )}
             </p>
           </div>
-          {!byokKey && quota && !quota.enabled && (
-            <div className="claude-chat-settings-row">
-              <p className="claude-chat-settings-hint">
-                AI assistant add-on is not active on your account.{' '}
-                <Link to="/billing">Enable in Billing</Link> (€5/mo) or paste your own key above.
-              </p>
-            </div>
-          )}
         </div>
       )}
 
