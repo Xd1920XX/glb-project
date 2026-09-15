@@ -41,7 +41,7 @@ function computeVisibleGroups(groups, selectedByGroup) {
  * Generic configurator renderer.
  * config = { variants, interiors, background, viewerSettings, variantGroups, hotspots, watermark }
  */
-export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotPlace = null, initialSelection = null, enableEmbedApi = false, locales = null, currentLocale = null, onLocaleChange = null, onSelectionChange = null }) {
+export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotPlace = null, initialSelection = null, enableEmbedApi = false, locales = null, currentLocale = null, onLocaleChange = null, onSelectionChange = null, enablePartPicker = false }) {
   const { variants = [], interiors = [], background, viewerSettings = {}, exteriorLabel, interiorLabel, orderForm, theme = 'minimal', darkMode = false, themeColors = {}, variantGroups = [], hotspots = [], watermark, hideInteriorTab = false, hide3DButton = false, enableLightingControl = false, customViews = [] } = config
 
   const resolvedInitial = useMemo(
@@ -605,8 +605,9 @@ export function ConfiguratorRenderer({ config, hotspotPlaceId = null, onHotspotP
         animationOverride: vs.glbEnableAnimationControls
           ? { playing: animPlaying, speed: animSpeed, restartKey: animRestartKey }
           : null,
-        onMeshClick: handleMeshClick,
-        highlightedMeshUuid,
+        // Part picker only in Builder (edit mode). Public embed gets no click handler.
+        onMeshClick: enablePartPicker ? handleMeshClick : null,
+        highlightedMeshUuid: enablePartPicker ? highlightedMeshUuid : null,
       }
       // When keepViewerMounted is enabled (per-config), skip the variant-id key
       // so the viewer keeps its camera + WebGL context across variant switches.

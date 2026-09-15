@@ -3418,6 +3418,7 @@ export default function Builder() {
             ? <div className="preview-empty">Add variants or interiors to preview</div>
             : <ConfiguratorRenderer
                 config={config}
+                enablePartPicker
                 hotspotPlaceId={hotspotPlaceId}
                 onHotspotPlace={(x, y) => {
                   setHotspots((hs) => hs.map((h) => h.id === hotspotPlaceId ? { ...h, x, y } : h))
