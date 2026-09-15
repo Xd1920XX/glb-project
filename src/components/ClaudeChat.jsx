@@ -62,10 +62,26 @@ export function ClaudeChat({ config, onApplyTool }) {
     if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight
   }, [messages, busy])
 
-  function buildHistory() {
-    return messages
-      .filter((m) => m.role === 'user' || m.role === 'assistant')
-      .map((m) => ({ role: m.role, content: m.apiContent ?? [{ type: 'text', text: m.text ?? '' }] }))
+  // Build the history exactly the way Anthropic requires: after each
+  // assistant tool_use we must emit a user tool_result before the next
+  // real user turn. `pendingToolResults` is populated by the prior response
+  // handler; here we just splice them onto the correct user message.
+  function buildHistoryForSend(newUserContent, pendingToolResults) {
+    const out = []
+    for (const m of messages) {
+      if (m.role === 'user') {
+        out.push({ role: 'user', content: m.apiContent ?? [{ type: 'text', text: m.text ?? '' }] })
+      } else if (m.role === 'assistant') {
+        out.push({ role: 'assistant', content: m.apiContent ?? [{ type: 'text', text: m.text ?? '' }] })
+      }
+    }
+    // The final message will be the new user turn. If the previous assistant
+    // turn contained tool_use blocks, we prepend matching tool_result blocks.
+    const nextUserContent = [
+      ...(pendingToolResults ?? []),
+      ...newUserContent,
+    ]
+    return { history: out, nextUserContent }
   }
 
   async function send(overrideText) {
@@ -75,24 +91,52 @@ export function ClaudeChat({ config, onApplyTool }) {
     const text = typeof overrideText === 'string' ? overrideText : input
     if (!text.trim() && !image) return
     setError('')
+
+    // Collect any pending tool_result blocks left over from the previous
+    // assistant turn. These MUST be sent as the first blocks of the next
+    // user message per Anthropic's tool_use protocol.
+    const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant')
+    const pendingToolResults = lastAssistant?.pendingToolResults ?? []
+
+    const newUserBlocks = []
+    if (image?.data && image?.mediaType) {
+      newUserBlocks.push({
+        type: 'image',
+        source: { type: 'base64', media_type: image.mediaType, data: image.data },
+      })
+    }
+    if (text.trim()) newUserBlocks.push({ type: 'text', text })
+
     const userTurn = {
       id: uid(),
       role: 'user',
       text,
       imagePreview: image?.preview ?? null,
+      // Record what we actually send so subsequent replays match.
+      apiContent: [...pendingToolResults, ...newUserBlocks],
     }
-    setMessages((m) => [...m, userTurn])
-    const userMessage = text
+    setMessages((m) => {
+      // Clear pendingToolResults from the assistant turn we just consumed.
+      const updated = m.map((x) =>
+        x.id === lastAssistant?.id
+          ? { ...x, pendingToolResults: [] }
+          : x)
+      return [...updated, userTurn]
+    })
     const sendImage = image
     setInput('')
     setImage(null)
     setBusy(true)
 
     try {
+      const { history, nextUserContent } = buildHistoryForSend(newUserBlocks, pendingToolResults)
       const payload = {
-        history: buildHistory(),
-        userMessage,
+        history,
+        userMessage: text,
         config,
+        // New shape: server may prefer explicit user content blocks. Kept
+        // userMessage for backward compat with the existing function code.
+        userContent: nextUserContent,
       }
       if (sendImage) {
         payload.image = { data: sendImage.base64, mediaType: sendImage.mediaType }
@@ -107,14 +151,21 @@ export function ClaudeChat({ config, onApplyTool }) {
       const textBlocks = content.filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim()
       const toolBlocks = content.filter((b) => b.type === 'tool_use')
 
+      // Apply tools + capture matching tool_result blocks. These will be
+      // attached to the assistant message and consumed by the next send().
       const applied = []
+      const nextResults = []
       for (const tb of toolBlocks) {
+        let resultText
         try {
           onApplyTool(tb.name, tb.input)
           applied.push(tb.name)
+          resultText = 'ok'
         } catch (e) {
           applied.push(`${tb.name} (failed: ${e.message})`)
+          resultText = `error: ${e.message}`
         }
+        nextResults.push({ type: 'tool_result', tool_use_id: tb.id, content: resultText })
       }
 
       setMessages((m) => [...m, {
@@ -123,6 +174,7 @@ export function ClaudeChat({ config, onApplyTool }) {
         text: textBlocks || (applied.length ? '' : '(no response)'),
         applied,
         apiContent: content,
+        pendingToolResults: nextResults,
       }])
     } catch (e) {
       setError(e.message || 'Chat failed')
