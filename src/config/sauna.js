@@ -32,10 +32,10 @@ export const MODELS = {
       glb:         '/Mudelid/02_City XS/Sauna City XS.glb',
     }),
     interiors: [
-      { id: 'harvia',    label: 'Harvia Spirit 9kw WI-FI',            icon: ICON.harvia,   path: encode('/Mudelid/02_City XS/CIty XS_6k_Harvia.jpg') },
-      { id: 'harvia-ir', label: 'Harvia Spirit 9kw WI-FI + Infrared', icon: ICON.harviaIR, path: encode('/Mudelid/02_City XS/CIty XS_6k_Harvia+infrared Harvia.jpg') },
-      { id: 'huum',      label: 'Huum Drop 9kw WI-FI',                icon: ICON.huum,     path: encode('/Mudelid/02_City XS/CIty XS_6k_Huum.jpg') },
-      { id: 'huum-eos',  label: 'Huum Drop 9kw WI-FI + EOS',          icon: ICON.huumEOS,  path: encode('/Mudelid/02_City XS/CIty XS_6k_Huum+Eos.jpg') },
+      { id: 'harvia',    label: 'Harvia Spirit 6kw WI-FI',            icon: ICON.harvia,   path: encode('/Mudelid/02_City XS/CIty XS_6k_Harvia.jpg') },
+      { id: 'harvia-ir', label: 'Harvia Spirit 6kw WI-FI + Infrared', icon: ICON.harviaIR, path: encode('/Mudelid/02_City XS/CIty XS_6k_Harvia+infrared Harvia.jpg') },
+      { id: 'huum',      label: 'Huum Drop 6kw WI-FI',                icon: ICON.huum,     path: encode('/Mudelid/02_City XS/CIty XS_6k_Huum.jpg') },
+      { id: 'huum-eos',  label: 'Huum Drop 6kw WI-FI + EOS',          icon: ICON.huumEOS,  path: encode('/Mudelid/02_City XS/CIty XS_6k_Huum+Eos.jpg') },
     ],
   },
 
@@ -77,10 +77,10 @@ export const MODELS = {
       glb:         '/Mudelid/05_City XL/Sauna City XL.glb',
     }),
     interiors: [
-      { id: 'huum-flow',     label: 'Huum Flow 8.5kw',                icon: ICON.flow,    path: encode('/Mudelid/05_City XL/CIty XL_6k_Huum Flow.jpg') },
-      { id: 'huum-flow-eos', label: 'Huum Flow 8.5kw + Infrared EOS', icon: ICON.flowEOS, path: encode('/Mudelid/05_City XL/CIty XL_6k_Huum Flow+infrared EOS.jpg') },
-      { id: 'huum-hive',     label: 'Huum Hive 9kw',                  icon: ICON.huum,    path: encode('/Mudelid/05_City XL/CIty XL_6k_Huum Hive.jpg') },
-      { id: 'huum-hive-eos', label: 'Huum Hive 9kw + Infrared EOS',   icon: ICON.huumEOS, path: encode('/Mudelid/05_City XL/CIty XL_6k_Huum Hive+infrared EOS.jpg') },
+      { id: 'huum-flow',     label: 'Huum Flow Mini 8.5kw',                icon: ICON.flow,    path: encode('/Mudelid/05_City XL/CIty XL_6k_Huum Flow.jpg') },
+      { id: 'huum-flow-eos', label: 'Huum Flow Mini 8.5kw + Infrared EOS', icon: ICON.flowEOS, path: encode('/Mudelid/05_City XL/CIty XL_6k_Huum Flow+infrared EOS.jpg') },
+      { id: 'huum-hive',     label: 'Huum Hive Mini 11kw WI-FI',                  icon: ICON.huum,    path: encode('/Mudelid/05_City XL/CIty XL_6k_Huum Hive.jpg') },
+      { id: 'huum-hive-eos', label: 'Huum Hive Mini 11kw WI-FI + Infrared EOS',   icon: ICON.huumEOS, path: encode('/Mudelid/05_City XL/CIty XL_6k_Huum Hive+infrared EOS.jpg') },
     ],
   },
 
@@ -92,10 +92,10 @@ export const MODELS = {
       glb:         '/Mudelid/06_Panorama/Sauna City Panorama.glb',
     }),
     interiors: [
-      { id: 'huum-flow',     label: 'Huum Flow 8.5kw',                icon: ICON.flow,    path: encode('/Mudelid/06_Panorama/CIty Panorama_6k_Huum Flow.jpg') },
-      { id: 'huum-flow-eos', label: 'Huum Flow 8.5kw + Infrared EOS', icon: ICON.flowEOS, path: encode('/Mudelid/06_Panorama/CIty Panorama_6k_Huum Flow+infrared EOS.jpg') },
-      { id: 'huum-hive',     label: 'Huum Hive 9kw',                  icon: ICON.huum,    path: encode('/Mudelid/06_Panorama/CIty Panorama_6k_Huum Hive.jpg') },
-      { id: 'huum-hive-eos', label: 'Huum Hive 9kw + Infrared EOS',   icon: ICON.huumEOS, path: encode('/Mudelid/06_Panorama/CIty Panorama_6k_Huum Hive+infrared EOS.jpg') },
+      { id: 'huum-flow',     label: 'Huum Flow Mini 8.5kw',                icon: ICON.flow,    path: encode('/Mudelid/06_Panorama/CIty Panorama_6k_Huum Flow.jpg') },
+      { id: 'huum-flow-eos', label: 'Huum Flow Mini 8.5kw + Infrared EOS', icon: ICON.flowEOS, path: encode('/Mudelid/06_Panorama/CIty Panorama_6k_Huum Flow+infrared EOS.jpg') },
+      { id: 'huum-hive',     label: 'Huum Hive Mini 11kw WI-FI',                  icon: ICON.huum,    path: encode('/Mudelid/06_Panorama/CIty Panorama_6k_Huum Hive.jpg') },
+      { id: 'huum-hive-eos', label: 'Huum Hive Mini 11kw WI-FI + Infrared EOS',   icon: ICON.huumEOS, path: encode('/Mudelid/06_Panorama/CIty Panorama_6k_Huum Hive+infrared EOS.jpg') },
     ],
   },
 
@@ -126,10 +126,10 @@ export const MODELS = {
       glb:         '/Mudelid/08_Grande/Saun Grande.glb',
     }),
     interiors: [
-      { id: 'huum-flow',     label: 'Huum Flow 8.5kw',                icon: ICON.flow,    path: encode('/Mudelid/08_Grande/Saun Grande_6k_Huum Flow.jpg') },
-      { id: 'huum-flow-eos', label: 'Huum Flow 8.5kw + Infrared EOS', icon: ICON.flowEOS, path: encode('/Mudelid/08_Grande/Saun Grande_6k_Huum Flow_infrared EOS.jpg') },
-      { id: 'huum-hive',     label: 'Huum Hive 9kw',                  icon: ICON.huum,    path: encode('/Mudelid/08_Grande/Saun Grande_6k_Huum Hive.jpg') },
-      { id: 'huum-hive-eos', label: 'Huum Hive 9kw + Infrared EOS',   icon: ICON.huumEOS, path: encode('/Mudelid/08_Grande/Saun Grande_6k_Huum Hive_infrared EOS.jpg') },
+      { id: 'huum-flow',     label: 'Huum Flow Mini 8.5kw',                icon: ICON.flow,    path: encode('/Mudelid/08_Grande/Saun Grande_6k_Huum Flow.jpg') },
+      { id: 'huum-flow-eos', label: 'Huum Flow Mini 8.5kw + Infrared EOS', icon: ICON.flowEOS, path: encode('/Mudelid/08_Grande/Saun Grande_6k_Huum Flow_infrared EOS.jpg') },
+      { id: 'huum-hive',     label: 'Huum Hive 12kw WI-FI',                  icon: ICON.huum,    path: encode('/Mudelid/08_Grande/Saun Grande_6k_Huum Hive.jpg') },
+      { id: 'huum-hive-eos', label: 'Huum Hive 12kw WI-FI + Infrared EOS',   icon: ICON.huumEOS, path: encode('/Mudelid/08_Grande/Saun Grande_6k_Huum Hive_infrared EOS.jpg') },
     ],
   },
 
@@ -145,30 +145,30 @@ export const MODELS = {
       { id: 'changing', label: 'Changing room', path: encode('/Mudelid/09_Saun Elegant/Saun Elegant_6k_2nd room.jpg') },
     ],
     interiors: [
-      { id: 'huum-flow',     label: 'Huum Flow 8.5kw',        icon: ICON.flow,    path: encode('/Mudelid/09_Saun Elegant/Saun Elegant_6k_Huum Flow.jpg') },
-      { id: 'huum-flow-eos', label: 'Huum Flow 8.5kw + EOS',  icon: ICON.flowEOS, path: encode('/Mudelid/09_Saun Elegant/Saun Elegant_6k_Huum Flow+EOS.jpg') },
-      { id: 'huum-hive',     label: 'Huum Hive 9kw',          icon: ICON.huum,    path: encode('/Mudelid/09_Saun Elegant/Saun Elegant_6k_Huum Hive.jpg') },
-      { id: 'huum-hive-eos', label: 'Huum Hive 9kw + EOS',    icon: ICON.huumEOS, path: encode('/Mudelid/09_Saun Elegant/Saun Elegant_6k_Huum Hive+EOS.jpg') },
+      { id: 'huum-flow',     label: 'Huum Flow Mini 8.5kw',        icon: ICON.flow,    path: encode('/Mudelid/09_Saun Elegant/Saun Elegant_6k_Huum Flow.jpg') },
+      { id: 'huum-flow-eos', label: 'Huum Flow Mini 8.5kw + EOS',  icon: ICON.flowEOS, path: encode('/Mudelid/09_Saun Elegant/Saun Elegant_6k_Huum Flow+EOS.jpg') },
+      { id: 'huum-hive',     label: 'Huum Hive Mini 11kw WI-FI',          icon: ICON.huum,    path: encode('/Mudelid/09_Saun Elegant/Saun Elegant_6k_Huum Hive.jpg') },
+      { id: 'huum-hive-eos', label: 'Huum Hive Mini 11kw WI-FI + EOS',    icon: ICON.huumEOS, path: encode('/Mudelid/09_Saun Elegant/Saun Elegant_6k_Huum Hive+EOS.jpg') },
     ],
   },
 
   'denmark': {
-    name: 'Denmark',
+    name: 'Nordic',
     colors: makeColors({
       blackFolder: '/Mudelid/10_Denmark/Pööratav must',
       brownFolder: '/Mudelid/10_Denmark/Pööratav pruun',
       glb:         '/Mudelid/10_Denmark/Saun Denmark.glb',
     }),
     interiors: [
-      { id: 'huum-flow',     label: 'Huum Flow 8.5kw',        icon: ICON.flow,    path: encode('/Mudelid/10_Denmark/Saun Denmark_6k_Huum Flow.jpg') },
-      { id: 'huum-flow-eos', label: 'Huum Flow 8.5kw + EOS',  icon: ICON.flowEOS, path: encode('/Mudelid/10_Denmark/Saun Denmark_6k_Huum Flow+EOS.jpg') },
-      { id: 'huum-hive',     label: 'Huum Hive 9kw',          icon: ICON.huum,    path: encode('/Mudelid/10_Denmark/Saun Denmark_6k_Huum Hive.jpg') },
-      { id: 'huum-hive-eos', label: 'Huum Hive 9kw + EOS',    icon: ICON.huumEOS, path: encode('/Mudelid/10_Denmark/Saun Denmark_6k_Huum Hive+EOS.jpg') },
+      { id: 'huum-flow',     label: 'Huum Flow Mini 8.5kw',        icon: ICON.flow,    path: encode('/Mudelid/10_Denmark/Saun Denmark_6k_Huum Flow.jpg') },
+      { id: 'huum-flow-eos', label: 'Huum Flow Mini 8.5kw + EOS',  icon: ICON.flowEOS, path: encode('/Mudelid/10_Denmark/Saun Denmark_6k_Huum Flow+EOS.jpg') },
+      { id: 'huum-hive',     label: 'Huum Hive Mini 11kw WI-FI',          icon: ICON.huum,    path: encode('/Mudelid/10_Denmark/Saun Denmark_6k_Huum Hive.jpg') },
+      { id: 'huum-hive-eos', label: 'Huum Hive Mini 11kw WI-FI + EOS',    icon: ICON.huumEOS, path: encode('/Mudelid/10_Denmark/Saun Denmark_6k_Huum Hive+EOS.jpg') },
     ],
   },
 
   'sauna-dushiga': {
-    name: 'Saun Duširuumiga',
+    name: 'Imperial',
     colors: makeColors({
       blackFolder: '/Mudelid/01_Saun Duširuumiga/Pööratav must',
       brownFolder: '/Mudelid/01_Saun Duširuumiga/Pööratav pruun',
@@ -180,10 +180,10 @@ export const MODELS = {
       { id: 'changing', label: 'Changing room', path: encode('/Mudelid/01_Saun Duširuumiga/Saun Duširuumiga_6k_2nd room.jpg') },
     ],
     interiors: [
-      { id: 'huum-flow',     label: 'Huum Flow 8.5kw',                icon: ICON.flow,    path: encode('/Mudelid/01_Saun Duširuumiga/Saun Duširuumiga_6k_Huum Flow.jpg') },
-      { id: 'huum-flow-eos', label: 'Huum Flow 8.5kw + Infrared EOS', icon: ICON.flowEOS, path: encode('/Mudelid/01_Saun Duširuumiga/Saun Duširuumiga_6k_Huum Flow+infrared EOS.jpg') },
-      { id: 'huum-hive',     label: 'Huum Hive 9kw',                  icon: ICON.huum,    path: encode('/Mudelid/01_Saun Duširuumiga/Saun Duširuumiga_6k_Huum Hive.jpg') },
-      { id: 'huum-hive-eos', label: 'Huum Hive 9kw + Infrared EOS',   icon: ICON.huumEOS, path: encode('/Mudelid/01_Saun Duširuumiga/Saun Duširuumiga_6k_Huum Hive+infrared EOS.jpg') },
+      { id: 'huum-flow',     label: 'Huum Flow Mini 8.5kw',                icon: ICON.flow,    path: encode('/Mudelid/01_Saun Duširuumiga/Saun Duširuumiga_6k_Huum Flow.jpg') },
+      { id: 'huum-flow-eos', label: 'Huum Flow Mini 8.5kw + Infrared EOS', icon: ICON.flowEOS, path: encode('/Mudelid/01_Saun Duširuumiga/Saun Duširuumiga_6k_Huum Flow+infrared EOS.jpg') },
+      { id: 'huum-hive',     label: 'Huum Hive Mini 11kw WI-FI',                  icon: ICON.huum,    path: encode('/Mudelid/01_Saun Duširuumiga/Saun Duširuumiga_6k_Huum Hive.jpg') },
+      { id: 'huum-hive-eos', label: 'Huum Hive Mini 11kw WI-FI + Infrared EOS',   icon: ICON.huumEOS, path: encode('/Mudelid/01_Saun Duširuumiga/Saun Duširuumiga_6k_Huum Hive+infrared EOS.jpg') },
     ],
   },
 }

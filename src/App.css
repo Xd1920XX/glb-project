@@ -1041,6 +1041,21 @@ body {
   margin-bottom: 48px;
 }
 
+.sl-collection {
+  margin-bottom: 56px;
+}
+.sl-collection:last-child {
+  margin-bottom: 0;
+}
+.sl-collection-label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: rgba(240,237,232,0.55);
+  margin: 0 0 20px;
+}
+
 .sl-models-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
