@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 
 const FRAMES = 16
-const FRAME_MS = 90
+const FRAME_MS = 180
 
 const COLLECTIONS = [
   {
@@ -32,11 +32,12 @@ const COLLECTIONS = [
 const frameUrl = (folder, n) => encodeURI(`${folder}/${n}.jpg`)
 
 function ModelCard({ model, onClick }) {
-  const [frame, setFrame] = useState(1)
+  // Two layered images cross-fade for smooth transitions between frames
+  const [slots, setSlots] = useState({ a: 1, b: 1, active: 'a' })
   const timerRef = useRef(null)
+  const frameRef = useRef(1)
 
   useEffect(() => {
-    // Preload all frames so hover-cycle is smooth
     for (let i = 1; i <= FRAMES; i++) {
       const img = new Image()
       img.src = frameUrl(model.folder, i)
@@ -46,7 +47,10 @@ function ModelCard({ model, onClick }) {
   const start = () => {
     if (timerRef.current) return
     timerRef.current = setInterval(() => {
-      setFrame((f) => (f % FRAMES) + 1)
+      frameRef.current = (frameRef.current % FRAMES) + 1
+      setSlots((s) => s.active === 'a'
+        ? { a: s.a, b: frameRef.current, active: 'b' }
+        : { a: frameRef.current, b: s.b, active: 'a' })
     }, FRAME_MS)
   }
   const stop = () => {
@@ -54,7 +58,8 @@ function ModelCard({ model, onClick }) {
       clearInterval(timerRef.current)
       timerRef.current = null
     }
-    setFrame(1)
+    frameRef.current = 1
+    setSlots({ a: 1, b: 1, active: 'a' })
   }
 
   useEffect(() => () => stop(), [])
@@ -67,7 +72,18 @@ function ModelCard({ model, onClick }) {
       onMouseLeave={stop}
     >
       <div className="sl-model-img-wrap">
-        <img src={frameUrl(model.folder, frame)} alt={model.name} loading="lazy" />
+        <img
+          src={frameUrl(model.folder, slots.a)}
+          alt={model.name}
+          loading="lazy"
+          className={`sl-model-frame ${slots.active === 'a' ? 'is-active' : ''}`}
+        />
+        <img
+          src={frameUrl(model.folder, slots.b)}
+          alt=""
+          aria-hidden="true"
+          className={`sl-model-frame ${slots.active === 'b' ? 'is-active' : ''}`}
+        />
         <div className="sl-model-overlay">
           <span className="sl-model-configure">Configure →</span>
         </div>

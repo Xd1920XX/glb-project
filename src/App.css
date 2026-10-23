@@ -1048,12 +1048,12 @@ body {
   margin-bottom: 0;
 }
 .sl-collection-label {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 2.5px;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 3px;
   text-transform: uppercase;
-  color: rgba(240,237,232,0.55);
-  margin: 0 0 20px;
+  color: rgba(240,237,232,0.75);
+  margin: 0 0 28px;
 }
 
 .sl-models-grid {
@@ -1084,11 +1084,19 @@ body {
   width: 100%; height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 0.4s ease, filter 0.3s;
   filter: brightness(0.9);
 }
-.sl-model-card:hover .sl-model-img-wrap img {
-  transform: scale(1.04);
+.sl-model-frame {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 260ms ease, filter 0.3s;
+  will-change: opacity;
+}
+.sl-model-frame.is-active {
+  opacity: 1;
+}
+.sl-model-card:hover .sl-model-frame {
   filter: brightness(1);
 }
 
