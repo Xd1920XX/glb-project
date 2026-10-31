@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { t } from '../i18n.js'
 
 function encodeForm(data) {
   return Object.entries(data)
@@ -6,7 +7,7 @@ function encodeForm(data) {
     .join('&')
 }
 
-function OrderForm({ color, interior }) {
+function OrderForm({ color, interior, strings }) {
   const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', message: '' })
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState(null)
@@ -35,7 +36,7 @@ function OrderForm({ color, interior }) {
       if (!res.ok) throw new Error('Submission failed')
       setSubmitted(true)
     } catch {
-      setError('Something went wrong. Please try again or contact us directly.')
+      setError(strings.errGeneric)
     } finally {
       setLoading(false)
     }
@@ -45,9 +46,9 @@ function OrderForm({ color, interior }) {
     return (
       <div className="order-success">
         <div className="order-success-icon">✓</div>
-        <h3>Thank you!</h3>
-        <p>Your order request has been prepared. Please send the email that just opened in your mail client.</p>
-        <button className="order-btn" onClick={() => setSubmitted(false)}>Back</button>
+        <h3>{strings.thanks}</h3>
+        <p>{strings.thanksBody}</p>
+        <button className="order-btn" onClick={() => setSubmitted(false)}>{strings.back}</button>
       </div>
     )
   }
@@ -55,46 +56,46 @@ function OrderForm({ color, interior }) {
   return (
     <form className="order-form" onSubmit={handleSubmit}>
       <div className="order-summary">
-        <p className="section-label">Your configuration</p>
+        <p className="section-label">{strings.yourConfig}</p>
         <div className="order-summary-row">
-          <span>Color</span>
+          <span>{strings.color}</span>
           <span>
             <span className="order-swatch" style={{ background: color.swatch }} />
             {color.label}
           </span>
         </div>
         <div className="order-summary-row">
-          <span>Heater</span>
+          <span>{strings.heater}</span>
           <span>{interior.label}</span>
         </div>
       </div>
 
       <div className="order-fields">
         <div className="order-field">
-          <label>Full name *</label>
-          <input name="name" value={form.name} onChange={handleChange} required placeholder="Jane Smith" />
+          <label>{strings.fullName}</label>
+          <input name="name" value={form.name} onChange={handleChange} required placeholder={strings.phName} />
         </div>
         <div className="order-field">
-          <label>Email *</label>
-          <input name="email" type="email" value={form.email} onChange={handleChange} required placeholder="jane@example.com" />
+          <label>{strings.email}</label>
+          <input name="email" type="email" value={form.email} onChange={handleChange} required placeholder={strings.phEmail} />
         </div>
         <div className="order-field">
-          <label>Phone</label>
-          <input name="phone" type="tel" value={form.phone} onChange={handleChange} placeholder="+1 234 567 8900" />
+          <label>{strings.phone}</label>
+          <input name="phone" type="tel" value={form.phone} onChange={handleChange} placeholder={strings.phPhone} />
         </div>
         <div className="order-field">
-          <label>Delivery address</label>
-          <input name="address" value={form.address} onChange={handleChange} placeholder="Street, city, country" />
+          <label>{strings.address}</label>
+          <input name="address" value={form.address} onChange={handleChange} placeholder={strings.phAddress} />
         </div>
         <div className="order-field">
-          <label>Additional wishes</label>
-          <textarea name="message" value={form.message} onChange={handleChange} rows={3} placeholder="Any special requests…" />
+          <label>{strings.wishes}</label>
+          <textarea name="message" value={form.message} onChange={handleChange} rows={3} placeholder={strings.phWishes} />
         </div>
       </div>
 
       {error && <p className="order-error">{error}</p>}
       <button type="submit" className="order-btn" disabled={loading}>
-        {loading ? 'Sending…' : 'Send order request'}
+        {loading ? strings.sending : strings.send}
       </button>
     </form>
   )
@@ -102,9 +103,10 @@ function OrderForm({ color, interior }) {
 
 export function SaunaPanel({
   modelName, colors, interiors, rooms,
-  colorId, view, interiorId, roomId,
+  colorId, view, interiorId, roomId, lang = 'en',
   onColorChange, onViewChange, onInteriorChange, onRoomChange,
 }) {
+  const strings = t[lang]
   const color = colors.find((c) => c.id === colorId)
   const interior = interiors.find((i) => i.id === interiorId)
   const currentRoom = rooms?.find((r) => r.id === roomId)
@@ -115,25 +117,25 @@ export function SaunaPanel({
 
       <div className="view-tabs">
         <button className={`view-tab${view === 'exterior' ? ' active' : ''}`} onClick={() => onViewChange('exterior')}>
-          Exterior
+          {strings.exterior}
         </button>
         <button className={`view-tab${view === 'interior' ? ' active' : ''}`} onClick={() => onViewChange('interior')}>
-          Interior
+          {strings.interior}
         </button>
         <button className={`view-tab${view === 'order' ? ' active' : ''}`} onClick={() => onViewChange('order')}>
-          Summary
+          {strings.summary}
         </button>
       </div>
 
       <div className="tab-body">
         <div className="config-header">
           <h1 className="config-title">{modelName}</h1>
-          <p className="config-subtitle">Configure your sauna</p>
+          <p className="config-subtitle">{strings.configureSub}</p>
         </div>
 
         {view === 'exterior' && (
           <div className="tab-section">
-            <p className="section-label">Color</p>
+            <p className="section-label">{strings.color}</p>
             <div className="color-grid">
               {colors.map((c) => (
                 <button
@@ -146,7 +148,7 @@ export function SaunaPanel({
                 </button>
               ))}
             </div>
-            <button className="next-btn" onClick={() => onViewChange('interior')}>Next →</button>
+            <button className="next-btn" onClick={() => onViewChange('interior')}>{strings.next}</button>
           </div>
         )}
 
@@ -154,7 +156,7 @@ export function SaunaPanel({
           <div className="tab-section">
             {rooms && (
               <>
-                <p className="section-label">Room</p>
+                <p className="section-label">{strings.room}</p>
                 <div className="color-grid" style={{ marginBottom: 20 }}>
                   {rooms.map((r) => (
                     <button
@@ -170,7 +172,7 @@ export function SaunaPanel({
             )}
             {showHeaters && (
               <>
-                <p className="section-label">Heater</p>
+                <p className="section-label">{strings.heater}</p>
                 <div className="interior-list">
                   {interiors.map((item) => (
                     <button
@@ -189,13 +191,13 @@ export function SaunaPanel({
                 </div>
               </>
             )}
-            <button className="next-btn" onClick={() => onViewChange('order')}>Next →</button>
+            <button className="next-btn" onClick={() => onViewChange('order')}>{strings.next}</button>
           </div>
         )}
 
         {view === 'order' && (
           <div className="tab-section">
-            <OrderForm color={color} interior={interior} />
+            <OrderForm color={color} interior={interior} strings={strings} />
           </div>
         )}
       </div>

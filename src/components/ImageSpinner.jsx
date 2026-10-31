@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react'
 import { MODELS, FRAME_COUNT } from '../config/sauna.js'
+import { t } from '../i18n.js'
 
 const SENSITIVITY = 18 // px per frame step
 const MIN_SCALE = 1
@@ -25,7 +26,8 @@ Object.values(MODELS).forEach((model) => {
   model.colors.forEach((c) => { if (c.folder) preloadFolder(c.folder, FRAME_COUNT, c.fileSuffix || '') })
 })
 
-export function ImageSpinner({ folder, fileSuffix = '', frameCount, frameIndex, onFrameChange }) {
+export function ImageSpinner({ folder, fileSuffix = '', frameCount, frameIndex, onFrameChange, lang = 'en' }) {
+  const strings = t[lang]
   const [dragging, setDragging] = useState(false)
   const [ready, setReady]       = useState(false)
   const [scale, setScale]       = useState(1)
@@ -174,11 +176,11 @@ export function ImageSpinner({ folder, fileSuffix = '', frameCount, frameIndex, 
             borderTopColor: '#fff',
             animation: 'spin 0.8s linear infinite',
           }} />
-          <span style={{ fontSize: 13, opacity: 0.85, letterSpacing: '0.02em' }}>Loading images…</span>
+          <span style={{ fontSize: 13, opacity: 0.85, letterSpacing: '0.02em' }}>{strings.loadingImages}</span>
           <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
         </div>
       )}
-      {ready && <div className="spinner-hint">Drag to rotate · Scroll to zoom</div>}
+      {ready && <div className="spinner-hint">{strings.spinnerHint}</div>}
     </div>
   )
 }

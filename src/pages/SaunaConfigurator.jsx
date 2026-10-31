@@ -5,7 +5,7 @@ import { InteriorViewer } from '../components/InteriorViewer.jsx'
 import { SaunaPanel } from '../components/SaunaPanel.jsx'
 import { MODELS, FRAME_COUNT } from '../config/sauna.js'
 
-export default function SaunaConfigurator() {
+export default function SaunaConfigurator({ lang = 'en' }) {
   const { modelId } = useParams()
   const model = MODELS[modelId] ?? MODELS['city-xs']
 
@@ -35,6 +35,7 @@ export default function SaunaConfigurator() {
         frameCount={FRAME_COUNT}
         frameIndex={frameIndex}
         onFrameChange={setFrameIndex}
+        lang={lang}
       />
     )
   }
@@ -54,6 +55,7 @@ export default function SaunaConfigurator() {
           view={view}
           interiorId={interiorId}
           roomId={roomId}
+          lang={lang}
           onColorChange={setColorId}
           onViewChange={setView}
           onInteriorChange={setInteriorId}

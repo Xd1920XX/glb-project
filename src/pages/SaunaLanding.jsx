@@ -1,9 +1,10 @@
 import { useNavigate } from 'react-router-dom'
+import { t } from '../i18n.js'
 
 const COLLECTIONS = [
   {
     id: 'premium',
-    label: 'Premium Collection',
+    labelKey: 'premium',
     models: [
       { id: '01', name: 'City XS',      folder: '/Mudelid/02_City XS/Pööratav must',           modelId: 'city-xs' },
       { id: '02', name: 'City',         folder: '/Mudelid/03_Saun City/Pööratav must',         modelId: 'city' },
@@ -14,7 +15,7 @@ const COLLECTIONS = [
   },
   {
     id: 'premium-plus',
-    label: 'Premium Plus Collection',
+    labelKey: 'premiumPlus',
     models: [
       { id: '06', name: 'Panorama', folder: '/Mudelid/06_Panorama/Pööratav must',          modelId: 'panorama' },
       { id: '07', name: 'Grande',   folder: '/Mudelid/08_Grande/Pööratav_Must',            modelId: 'grande' },
@@ -27,7 +28,7 @@ const COLLECTIONS = [
 
 const frameUrl = (folder, n) => encodeURI(`${folder}/${n}.jpg`)
 
-function ModelCard({ model, onClick }) {
+function ModelCard({ model, onClick, strings }) {
   return (
     <div className="sl-model-card" onClick={onClick}>
       <div className="sl-model-img-wrap">
@@ -38,7 +39,7 @@ function ModelCard({ model, onClick }) {
           className="sl-model-frame is-active"
         />
         <div className="sl-model-overlay">
-          <span className="sl-model-configure">Configure →</span>
+          <span className="sl-model-configure">{strings.configure}</span>
         </div>
       </div>
       <div className="sl-model-info">
@@ -49,8 +50,10 @@ function ModelCard({ model, onClick }) {
   )
 }
 
-export default function SaunaLanding() {
+export default function SaunaLanding({ lang = 'en' }) {
   const navigate = useNavigate()
+  const strings = t[lang]
+  const basePath = lang === 'et' ? '/et' : ''
 
   return (
     <div className="sl-page">
@@ -60,27 +63,28 @@ export default function SaunaLanding() {
         <span className="sl-logo">
           <img src="https://minisaun.ee/wp-content/uploads/2022/08/Minisaunlogo2-valge-1024x289.png"></img>
         </span>
-        <button className="sl-header-cta" onClick={() => navigate('/configure')}>
-          Configure →
+        <button className="sl-header-cta" onClick={() => navigate(`${basePath}/configure`)}>
+          {strings.configure}
         </button>
       </header>
 
       {/* ── Models (grouped by collection) ── */}
       <section className="sl-models" id="models">
         <div className="sl-models-header">
-          <p className="sl-section-eyebrow">Our models</p>
-          <h2 className="sl-section-title">Choose your model</h2>
+          <p className="sl-section-eyebrow">{strings.ourModels}</p>
+          <h2 className="sl-section-title">{strings.chooseModel}</h2>
         </div>
 
         {COLLECTIONS.map((col) => (
           <div key={col.id} className="sl-collection">
-            <h3 className="sl-collection-label">{col.label}</h3>
+            <h3 className="sl-collection-label">{strings[col.labelKey]}</h3>
             <div className="sl-models-grid">
               {col.models.map((model) => (
                 <ModelCard
                   key={model.id}
                   model={model}
-                  onClick={() => navigate(model.modelId ? `/configure/${model.modelId}` : '/configure')}
+                  strings={strings}
+                  onClick={() => navigate(model.modelId ? `${basePath}/configure/${model.modelId}` : `${basePath}/configure`)}
                 />
               ))}
             </div>
@@ -93,7 +97,7 @@ export default function SaunaLanding() {
         <span className="sl-logo">
                     <img src="https://minisaun.ee/wp-content/uploads/2022/08/Minisaunlogo2-valge-1024x289.png"></img>
         </span>
-        <p className="sl-footer-copy">© {new Date().getFullYear()} All rights reserved.</p>
+        <p className="sl-footer-copy">© {new Date().getFullYear()} {strings.allRights}</p>
       </footer>
     </div>
   )
