@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { t } from '../i18n.js'
+import { t, resolveLabel } from '../i18n.js'
 
 function encodeForm(data) {
   return Object.entries(data)
@@ -7,7 +7,9 @@ function encodeForm(data) {
     .join('&')
 }
 
-function OrderForm({ color, interior, strings }) {
+function OrderForm({ color, interior, strings, lang }) {
+  const colorLabel = resolveLabel(color, lang)
+  const interiorLabel = resolveLabel(interior, lang)
   const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', message: '' })
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState(null)
@@ -29,8 +31,8 @@ function OrderForm({ color, interior, strings }) {
           'form-name': 'sauna-order',
           'bot-field': '',
           ...form,
-          color: color.label,
-          heater: interior.label,
+          color: colorLabel,
+          heater: interiorLabel,
         }),
       })
       if (!res.ok) throw new Error('Submission failed')
@@ -61,12 +63,12 @@ function OrderForm({ color, interior, strings }) {
           <span>{strings.color}</span>
           <span>
             <span className="order-swatch" style={{ background: color.swatch }} />
-            {color.label}
+            {colorLabel}
           </span>
         </div>
         <div className="order-summary-row">
           <span>{strings.heater}</span>
-          <span>{interior.label}</span>
+          <span>{interiorLabel}</span>
         </div>
       </div>
 
@@ -144,7 +146,7 @@ export function SaunaPanel({
                   onClick={() => onColorChange(c.id)}
                 >
                   <span className="color-dot" style={{ background: c.swatch }} />
-                  <span className="color-label">{c.label}</span>
+                  <span className="color-label">{resolveLabel(c, lang)}</span>
                 </button>
               ))}
             </div>
@@ -164,7 +166,7 @@ export function SaunaPanel({
                       className={`color-card${roomId === r.id ? ' selected' : ''}`}
                       onClick={() => onRoomChange(r.id)}
                     >
-                      <span className="color-label">{r.label}</span>
+                      <span className="color-label">{resolveLabel(r, lang)}</span>
                     </button>
                   ))}
                 </div>
@@ -185,7 +187,7 @@ export function SaunaPanel({
                           <img src={item.icon} alt="" />
                         </div>
                       )}
-                      <span className="interior-item-label">{item.label}</span>
+                      <span className="interior-item-label">{resolveLabel(item, lang)}</span>
                     </button>
                   ))}
                 </div>
@@ -197,7 +199,7 @@ export function SaunaPanel({
 
         {view === 'order' && (
           <div className="tab-section">
-            <OrderForm color={color} interior={interior} strings={strings} />
+            <OrderForm color={color} interior={interior} strings={strings} lang={lang} />
           </div>
         )}
       </div>

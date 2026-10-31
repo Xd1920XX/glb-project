@@ -17,8 +17,8 @@ const BROWN_MATERIALS   = ['black_walls']
 const makeColors = ({ blackFolder, brownFolder, glb }) => {
   const base = (folder) => glb ? { folder: encode(folder), glb: encode(glb) } : { folder: encode(folder) }
   return [
-    { id: 'black', label: 'Black', swatch: '#1A1A1A', ...base(blackFolder) },
-    { id: 'brown', label: 'Brown', swatch: '#6B4226', ...base(brownFolder),
+    { id: 'black', label: 'Black', labelKey: 'colorBlack', swatch: '#1A1A1A', ...base(blackFolder) },
+    { id: 'brown', label: 'Brown', labelKey: 'colorBrown', swatch: '#6B4226', ...base(brownFolder),
       texture: BROWN_TEXTURE, textureMaterials: BROWN_MATERIALS },
   ]
 }
@@ -107,8 +107,8 @@ export const MODELS = {
       glb:         '/Mudelid/07_Saun City Elegant/Sauna City Elegant.glb',
     }),
     rooms: [
-      { id: 'sauna',    label: 'Sauna room' },
-      { id: 'changing', label: 'Changing room', path: encode('/Mudelid/07_Saun City Elegant/CIty Elegant_6k_2nd room.jpg') },
+      { id: 'sauna',    label: 'Sauna room', labelKey: 'roomSauna' },
+      { id: 'changing', label: 'Changing room', labelKey: 'roomChanging', path: encode('/Mudelid/07_Saun City Elegant/CIty Elegant_6k_2nd room.jpg') },
     ],
     interiors: [
       { id: 'huum-drop',     label: 'Huum Drop 9kw WI-FI',        icon: ICON.huum,    path: encode('/Mudelid/07_Saun City Elegant/CIty Elegant_6k_Huum Drop.jpg') },
@@ -141,8 +141,8 @@ export const MODELS = {
       glb:         '/Mudelid/09_Saun Elegant/Saun Elegant.glb',
     }),
     rooms: [
-      { id: 'sauna',    label: 'Sauna room' },
-      { id: 'changing', label: 'Changing room', path: encode('/Mudelid/09_Saun Elegant/Saun Elegant_6k_2nd room.jpg') },
+      { id: 'sauna',    label: 'Sauna room', labelKey: 'roomSauna' },
+      { id: 'changing', label: 'Changing room', labelKey: 'roomChanging', path: encode('/Mudelid/09_Saun Elegant/Saun Elegant_6k_2nd room.jpg') },
     ],
     interiors: [
       { id: 'huum-flow',     label: 'Huum Flow Mini 8.5kw',        icon: ICON.flow,    path: encode('/Mudelid/09_Saun Elegant/Saun Elegant_6k_Huum Flow.jpg') },
@@ -175,9 +175,9 @@ export const MODELS = {
       glb:         '/Mudelid/01_Saun Duširuumiga/Saun Dushiga.glb',
     }),
     rooms: [
-      { id: 'sauna',    label: 'Sauna room' },
-      { id: 'shower',   label: 'Shower room',   path: encode('/Mudelid/01_Saun Duširuumiga/Saun Duširuumiga_6k_shower room.jpg') },
-      { id: 'changing', label: 'Changing room', path: encode('/Mudelid/01_Saun Duširuumiga/Saun Duširuumiga_6k_2nd room.jpg') },
+      { id: 'sauna',    label: 'Sauna room', labelKey: 'roomSauna' },
+      { id: 'shower',   label: 'Shower room',   labelKey: 'roomShower',   path: encode('/Mudelid/01_Saun Duširuumiga/Saun Duširuumiga_6k_shower room.jpg') },
+      { id: 'changing', label: 'Changing room', labelKey: 'roomChanging', path: encode('/Mudelid/01_Saun Duširuumiga/Saun Duširuumiga_6k_2nd room.jpg') },
     ],
     interiors: [
       { id: 'huum-flow',     label: 'Huum Flow Mini 8.5kw',                icon: ICON.flow,    path: encode('/Mudelid/01_Saun Duširuumiga/Saun Duširuumiga_6k_Huum Flow.jpg') },

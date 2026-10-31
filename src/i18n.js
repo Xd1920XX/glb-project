@@ -38,6 +38,12 @@ export const t = {
 
     loadingImages: 'Loading images…',
     spinnerHint: 'Drag to rotate · Scroll to zoom',
+
+    colorBlack: 'Black',
+    colorBrown: 'Brown',
+    roomSauna: 'Sauna room',
+    roomChanging: 'Changing room',
+    roomShower: 'Shower room',
   },
   et: {
     configure: 'Konfigureeri →',
@@ -76,5 +82,28 @@ export const t = {
 
     loadingImages: 'Piltide laadimine…',
     spinnerHint: 'Lohista pööramiseks · Keri suurendamiseks',
+
+    colorBlack: 'Must',
+    colorBrown: 'Pruun',
+    roomSauna: 'Leiliruum',
+    roomChanging: 'Riietusruum',
+    roomShower: 'Duširuum',
   },
+}
+
+const ET_LABEL_RULES = [
+  [/\bInfrared\b/g, 'Infrapuna'],
+]
+
+export function translateLabel(label, lang) {
+  if (lang !== 'et' || !label) return label
+  let out = label
+  for (const [re, rep] of ET_LABEL_RULES) out = out.replace(re, rep)
+  return out
+}
+
+export function resolveLabel(item, lang) {
+  if (!item) return ''
+  if (item.labelKey && t[lang]?.[item.labelKey]) return t[lang][item.labelKey]
+  return translateLabel(item.label, lang)
 }
