@@ -1,12 +1,6 @@
 import { useState } from 'react'
 import { t, resolveLabel } from '../i18n.js'
 
-function encodeForm(data) {
-  return Object.entries(data)
-    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
-    .join('&')
-}
-
 function OrderForm({ color, interior, strings, lang }) {
   const colorLabel = resolveLabel(color, lang)
   const interiorLabel = resolveLabel(interior, lang)
@@ -24,12 +18,10 @@ function OrderForm({ color, interior, strings, lang }) {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/', {
+      const res = await fetch('/api/submit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: encodeForm({
-          'form-name': 'sauna-order',
-          'bot-field': '',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           ...form,
           color: colorLabel,
           heater: interiorLabel,
