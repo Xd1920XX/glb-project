@@ -6,17 +6,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/"                       element={<SaunaLanding      lang="en" />} />
-        <Route path="/configure"              element={<SaunaConfigurator lang="en" />} />
-        <Route path="/configure/:modelId"     element={<SaunaConfigurator lang="en" />} />
-
-        <Route path="/et"                     element={<SaunaLanding      lang="et" />} />
-        <Route path="/et/configure"           element={<SaunaConfigurator lang="et" />} />
-        <Route path="/et/configure/:modelId"  element={<SaunaConfigurator lang="et" />} />
-
-        <Route path="/is"                     element={<SaunaLanding      lang="is" />} />
-        <Route path="/is/configure"           element={<SaunaConfigurator lang="is" />} />
-        <Route path="/is/configure/:modelId"  element={<SaunaConfigurator lang="is" />} />
+        <Route path="/"                   element={<SaunaLanding      lang="is" />} />
+        <Route path="/configure"          element={<SaunaConfigurator lang="is" />} />
+        <Route path="/configure/:modelId" element={<SaunaConfigurator lang="is" />} />
       </Routes>
     </BrowserRouter>
   )
