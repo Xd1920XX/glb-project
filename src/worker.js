@@ -31,7 +31,7 @@ async function handleSubmit(request, env) {
 
   if (body.botField) return json({ ok: true })
 
-  const { name, email, phone, address, message, color, heater } = body
+  const { name, email, phone, address, message, model, color, room, heater } = body
   if (!name || !email) return json({ error: 'Missing required fields' }, 400)
 
   const fields = [
@@ -39,7 +39,9 @@ async function handleSubmit(request, env) {
     ['Email', email],
     ['Phone', phone],
     ['Address', address],
+    ['Model', model],
     ['Color', color],
+    ['Room', room],
     ['Heater', heater],
     ['Message', message],
   ].filter(([, v]) => v)

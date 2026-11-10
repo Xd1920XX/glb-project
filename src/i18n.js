@@ -19,6 +19,7 @@ export const t = {
     heater: 'Heater',
 
     yourConfig: 'Your configuration',
+    model: 'Model',
     fullName: 'Full name *',
     email: 'Email *',
     phone: 'Phone',
@@ -63,6 +64,7 @@ export const t = {
     heater: 'Küttekeha',
 
     yourConfig: 'Sinu konfiguratsioon',
+    model: 'Mudel',
     fullName: 'Täisnimi *',
     email: 'E-post *',
     phone: 'Telefon',
