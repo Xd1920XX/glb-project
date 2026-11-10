@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { t, resolveLabel } from '../i18n.js'
 
-function OrderForm({ color, interior, strings, lang }) {
+function OrderForm({ modelName, color, interior, room, strings, lang }) {
   const colorLabel = resolveLabel(color, lang)
   const interiorLabel = resolveLabel(interior, lang)
+  const roomLabel = room ? resolveLabel(room, lang) : ''
   const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', message: '' })
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState(null)
@@ -23,8 +24,10 @@ function OrderForm({ color, interior, strings, lang }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
+          model: modelName,
           color: colorLabel,
           heater: interiorLabel,
+          room: roomLabel,
         }),
       })
       if (!res.ok) throw new Error('Submission failed')
@@ -51,6 +54,12 @@ function OrderForm({ color, interior, strings, lang }) {
     <form className="order-form" onSubmit={handleSubmit}>
       <div className="order-summary">
         <p className="section-label">{strings.yourConfig}</p>
+        {modelName && (
+          <div className="order-summary-row">
+            <span>{strings.model || 'Model'}</span>
+            <span>{modelName}</span>
+          </div>
+        )}
         <div className="order-summary-row">
           <span>{strings.color}</span>
           <span>
@@ -58,6 +67,12 @@ function OrderForm({ color, interior, strings, lang }) {
             {colorLabel}
           </span>
         </div>
+        {roomLabel && (
+          <div className="order-summary-row">
+            <span>{strings.room}</span>
+            <span>{roomLabel}</span>
+          </div>
+        )}
         <div className="order-summary-row">
           <span>{strings.heater}</span>
           <span>{interiorLabel}</span>
@@ -105,6 +120,7 @@ export function SaunaPanel({
   const interior = interiors.find((i) => i.id === interiorId)
   const currentRoom = rooms?.find((r) => r.id === roomId)
   const showHeaters = !rooms || !currentRoom?.path
+  const orderRoom = rooms ? currentRoom : null
 
   return (
     <div className="config-panel">
@@ -191,7 +207,7 @@ export function SaunaPanel({
 
         {view === 'order' && (
           <div className="tab-section">
-            <OrderForm color={color} interior={interior} strings={strings} lang={lang} />
+            <OrderForm modelName={modelName} color={color} interior={interior} room={orderRoom} strings={strings} lang={lang} />
           </div>
         )}
       </div>

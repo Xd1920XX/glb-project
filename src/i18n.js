@@ -107,6 +107,7 @@ export const t = {
     heater: 'Saunaofn',
 
     yourConfig: 'Þín samsetning',
+    model: 'Gerð',
     fullName: 'Fullt nafn *',
     email: 'Netfang *',
     phone: 'Sími',
