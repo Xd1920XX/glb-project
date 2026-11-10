@@ -1,4 +1,4 @@
-export const LANGS = ['en', 'et']
+export const LANGS = ['en', 'et', 'is']
 
 export const t = {
   en: {
@@ -88,6 +88,50 @@ export const t = {
     roomSauna: 'Leiliruum',
     roomChanging: 'Riietusruum',
     roomShower: 'Duširuum',
+  },
+  is: {
+    configure: 'Hannaðu →',
+    ourModels: 'Okkar vörulína',
+    chooseModel: 'Veldu þína gerð',
+    premium: 'Premium Collection',
+    premiumPlus: 'Premium Plus Collection',
+    allRights: 'Allur réttur áskilinn.',
+
+    exterior: 'Exterior',
+    interior: 'Interior',
+    summary: 'Samantekt',
+    configureSub: 'Settu saman þína sauna',
+    color: 'Litur',
+    next: 'Næst →',
+    room: 'Rými',
+    heater: 'Saunaofn',
+
+    yourConfig: 'Þín samsetning',
+    fullName: 'Fullt nafn *',
+    email: 'Netfang *',
+    phone: 'Sími',
+    address: 'Heimilisfang',
+    wishes: 'Séróskir',
+    phName: 'Jón Jónsson',
+    phEmail: 'jon@daemi.is',
+    phPhone: '+354 555 0000',
+    phAddress: 'Bæjarfélag',
+    phWishes: 'Einhverjar séróskir…',
+    send: 'Senda inn fyrirspurn',
+    sending: 'Sendi…',
+    thanks: 'Takk!',
+    thanksBody: 'Fyrirspurn þín er tilbúin. Vinsamlegast sendu tölvupóstinn sem opnaðist í póstforritinu þínu.',
+    back: 'Til baka',
+    errGeneric: 'Eitthvað fór úrskeiðis. Vinsamlegast reyndu aftur eða hafðu samband beint.',
+
+    loadingImages: 'Hleð myndir…',
+    spinnerHint: 'Dragðu til að snúa · Skrollaðu til að sjá nær',
+
+    colorBlack: 'Svartur',
+    colorBrown: 'Brúnn',
+    roomSauna: 'Sauna rými',
+    roomChanging: 'Búningsherbergi',
+    roomShower: 'Sturtu rými',
   },
 }
 

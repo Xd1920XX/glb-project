@@ -53,7 +53,7 @@ function ModelCard({ model, onClick, strings }) {
 export default function SaunaLanding({ lang = 'en' }) {
   const navigate = useNavigate()
   const strings = t[lang]
-  const basePath = lang === 'et' ? '/et' : ''
+  const basePath = lang === 'en' ? '' : `/${lang}`
 
   return (
     <div className="sl-page">

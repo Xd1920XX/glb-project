@@ -13,6 +13,10 @@ export default function App() {
         <Route path="/et"                     element={<SaunaLanding      lang="et" />} />
         <Route path="/et/configure"           element={<SaunaConfigurator lang="et" />} />
         <Route path="/et/configure/:modelId"  element={<SaunaConfigurator lang="et" />} />
+
+        <Route path="/is"                     element={<SaunaLanding      lang="is" />} />
+        <Route path="/is/configure"           element={<SaunaConfigurator lang="is" />} />
+        <Route path="/is/configure/:modelId"  element={<SaunaConfigurator lang="is" />} />
       </Routes>
     </BrowserRouter>
   )
