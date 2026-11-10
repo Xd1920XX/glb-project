@@ -61,7 +61,7 @@ export default function SaunaLanding({ lang = 'en' }) {
       {/* ── Header ── */}
       <header className="sl-header">
         <span className="sl-logo">
-          <img src="https://minisaun.ee/wp-content/uploads/2022/08/Minisaunlogo2-valge-1024x289.png"></img>
+          <img src="/heitirpottar-logo.png" alt="Heitirpottar.is" />
         </span>
         <button className="sl-header-cta" onClick={() => navigate(`${basePath}/configure`)}>
           {strings.configure}
@@ -95,7 +95,7 @@ export default function SaunaLanding({ lang = 'en' }) {
       {/* ── Footer ── */}
       <footer className="sl-footer" id="contact">
         <span className="sl-logo">
-                    <img src="https://minisaun.ee/wp-content/uploads/2022/08/Minisaunlogo2-valge-1024x289.png"></img>
+          <img src="/heitirpottar-logo.png" alt="Heitirpottar.is" />
         </span>
         <p className="sl-footer-copy">© {new Date().getFullYear()} {strings.allRights}</p>
       </footer>
