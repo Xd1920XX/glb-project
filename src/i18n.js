@@ -32,7 +32,7 @@ export const t = {
     send: 'Send order request',
     sending: 'Sending…',
     thanks: 'Thank you!',
-    thanksBody: 'Your order request has been prepared. Please send the email that just opened in your mail client.',
+    thanksBody: 'Thank you — we have received your request and will contact you soon.',
     back: 'Back',
     errGeneric: 'Something went wrong. Please try again or contact us directly.',
 
@@ -76,7 +76,7 @@ export const t = {
     send: 'Saada tellimus',
     sending: 'Saadan…',
     thanks: 'Aitäh!',
-    thanksBody: 'Sinu tellimuse päring on ettevalmistatud. Palun saada e-kiri, mis avanes sinu e-posti programmis.',
+    thanksBody: 'Aitäh — oleme sinu päringu kätte saanud ja võtame peagi ühendust.',
     back: 'Tagasi',
     errGeneric: 'Midagi läks valesti. Palun proovi uuesti või võta meiega otse ühendust.',
 
@@ -121,7 +121,7 @@ export const t = {
     send: 'Senda inn fyrirspurn',
     sending: 'Sendi…',
     thanks: 'Takk!',
-    thanksBody: 'Fyrirspurn þín er tilbúin. Vinsamlegast sendu tölvupóstinn sem opnaðist í póstforritinu þínu.',
+    thanksBody: 'Takk — við höfum móttekið fyrirspurn þína og höfum samband fljótlega.',
     back: 'Til baka',
     errGeneric: 'Eitthvað fór úrskeiðis. Vinsamlegast reyndu aftur eða hafðu samband beint.',
 
