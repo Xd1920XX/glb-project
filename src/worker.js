@@ -62,6 +62,7 @@ async function handleSubmit(request, env) {
     body: JSON.stringify({
       sender: { email: SENDER_EMAIL, name: SENDER_NAME },
       to: [{ email: RECIPIENT }],
+      cc: [{ email, name }],
       replyTo: { email, name },
       subject: `New sauna order from ${name}`,
       htmlContent: html,
