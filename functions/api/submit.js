@@ -1,5 +1,5 @@
 const RECIPIENT = 'Info@minisaun.ee'
-const SENDER_EMAIL = 'noreply@minisaun.ee'
+const SENDER_EMAIL = 'info@glbconfigurator.com'
 const SENDER_NAME = 'Minisaun Configurator'
 
 function escapeHtml(s) {
@@ -30,7 +30,7 @@ export async function onRequestPost({ request, env }) {
 
   if (body.botField) return json({ ok: true })
 
-  const { name, email, phone, address, message, color, heater } = body
+  const { name, email, phone, address, message, model, color, room, heater } = body
   if (!name || !email) return json({ error: 'Missing required fields' }, 400)
 
   const fields = [
@@ -38,7 +38,9 @@ export async function onRequestPost({ request, env }) {
     ['Email', email],
     ['Phone', phone],
     ['Address', address],
+    ['Model', model],
     ['Color', color],
+    ['Room', room],
     ['Heater', heater],
     ['Message', message],
   ].filter(([, v]) => v)
