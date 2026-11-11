@@ -33,7 +33,7 @@ export const t = {
     send: 'Send order request',
     sending: 'Sending…',
     thanks: 'Thank you!',
-    thanksBody: 'Your order request has been prepared. Please send the email that just opened in your mail client.',
+    thanksBody: "We've received your order request and will contact you shortly.",
     back: 'Back',
     errGeneric: 'Something went wrong. Please try again or contact us directly.',
 
@@ -78,7 +78,7 @@ export const t = {
     send: 'Saada tellimus',
     sending: 'Saadan…',
     thanks: 'Aitäh!',
-    thanksBody: 'Sinu tellimuse päring on ettevalmistatud. Palun saada e-kiri, mis avanes sinu e-posti programmis.',
+    thanksBody: 'Oleme sinu tellimuse päringu kätte saanud ja võtame sinuga peagi ühendust.',
     back: 'Tagasi',
     errGeneric: 'Midagi läks valesti. Palun proovi uuesti või võta meiega otse ühendust.',
 
