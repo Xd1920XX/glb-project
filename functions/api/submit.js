@@ -1,5 +1,5 @@
 const RECIPIENT = 'Info@minisaun.ee'
-const SENDER_EMAIL = 'noreply@minisaun.ee'
+const SENDER_EMAIL = 'info@glbconfigurator.com'
 const SENDER_NAME = 'Minisaun Configurator'
 
 function escapeHtml(s) {
