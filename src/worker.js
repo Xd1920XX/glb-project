@@ -1,4 +1,4 @@
-const RECIPIENT = 'Info@minisaun.ee'
+const RECIPIENT = 'heitirpottar@heitirpottar.is'
 const SENDER_EMAIL = 'info@glbconfigurator.com'
 const SENDER_NAME = 'Minisaun Configurator'
 
@@ -49,8 +49,8 @@ async function handleSubmit(request, env) {
   const rows = fields
     .map(([k, v]) => `<tr><td style="padding:4px 12px 4px 0;font-weight:600">${escapeHtml(k)}</td><td style="padding:4px 0">${escapeHtml(v)}</td></tr>`)
     .join('')
-  const html = `<h2>New sauna order</h2><table>${rows}</table>`
-  const text = `New sauna order\n\n` + fields.map(([k, v]) => `${k}: ${v}`).join('\n')
+  const html = `<h2>Ný saunahús fyrirspurn</h2><table>${rows}</table>`
+  const text = `Ný saunahús fyrirspurn\n\n` + fields.map(([k, v]) => `${k}: ${v}`).join('\n')
 
   const res = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
@@ -64,7 +64,7 @@ async function handleSubmit(request, env) {
       to: [{ email: RECIPIENT }],
       cc: [{ email, name }],
       replyTo: { email, name },
-      subject: `New sauna order from ${name}`,
+      subject: `Ný saunahús fyrirspurn frá ${name}`,
       htmlContent: html,
       textContent: text,
     }),

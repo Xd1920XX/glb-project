@@ -25,7 +25,7 @@ const makeColors = ({ blackFolder, brownFolder, glb }) => {
 
 export const MODELS = {
   'city-xs': {
-    name: 'City XS',
+    name: 'FORSETI',
     colors: makeColors({
       blackFolder: '/Mudelid/02_City XS/Pööratav must',
       brownFolder: '/Mudelid/02_City XS/Pööratav pruun',
@@ -40,7 +40,7 @@ export const MODELS = {
   },
 
   'city': {
-    name: 'City',
+    name: 'ALÞINGI',
     colors: makeColors({
       blackFolder: '/Mudelid/03_Saun City/Pööratav must',
       brownFolder: '/Mudelid/03_Saun City/Pööratav pruun',
@@ -55,7 +55,7 @@ export const MODELS = {
   },
 
   'city-lux': {
-    name: 'City LUX',
+    name: 'ALÞINGI með verönd',
     colors: makeColors({
       blackFolder: '/Mudelid/04_Saun City LUX/Pööratav must',
       brownFolder: '/Mudelid/04_Saun City LUX/Pööratav pruun',
@@ -70,7 +70,7 @@ export const MODELS = {
   },
 
   'city-xl': {
-    name: 'City XL',
+    name: 'DÓMSALUR',
     colors: makeColors({
       blackFolder: '/Mudelid/05_City XL/Pööratav must',
       brownFolder: '/Mudelid/05_City XL/Pööratav pruun',
@@ -85,7 +85,7 @@ export const MODELS = {
   },
 
   'panorama': {
-    name: 'Panorama',
+    name: 'FLATEYRI',
     colors: makeColors({
       blackFolder: '/Mudelid/06_Panorama/Pööratav must',
       brownFolder: '/Mudelid/06_Panorama/Pööratav pruun',
@@ -100,7 +100,7 @@ export const MODELS = {
   },
 
   'city-elegant': {
-    name: 'City Elegant',
+    name: 'ALÞINGI með millirými',
     colors: makeColors({
       blackFolder: '/Mudelid/07_Saun City Elegant/Must pööratav',
       brownFolder: '/Mudelid/07_Saun City Elegant/Pruun pööratav',
@@ -119,7 +119,7 @@ export const MODELS = {
   },
 
   'grande': {
-    name: 'Grande',
+    name: 'ÞINGSALUR',
     colors: makeColors({
       blackFolder: '/Mudelid/08_Grande/Pööratav_Must',
       brownFolder: '/Mudelid/08_Grande/Pööratav_Pruun',
@@ -134,7 +134,7 @@ export const MODELS = {
   },
 
   'elegant': {
-    name: 'Elegant',
+    name: 'ÞINGVELLIR',
     colors: makeColors({
       blackFolder: '/Mudelid/09_Saun Elegant/Must pööratav',
       brownFolder: '/Mudelid/09_Saun Elegant/Pruun pööratav',
@@ -153,7 +153,7 @@ export const MODELS = {
   },
 
   'denmark': {
-    name: 'Nordic',
+    name: 'BESSASTAÐIR',
     colors: makeColors({
       blackFolder: '/Mudelid/10_Denmark/Pööratav must',
       brownFolder: '/Mudelid/10_Denmark/Pööratav pruun',
@@ -168,7 +168,7 @@ export const MODELS = {
   },
 
   'sauna-dushiga': {
-    name: 'Imperial',
+    name: 'SEÐLABANKINN',
     colors: makeColors({
       blackFolder: '/Mudelid/01_Saun Duširuumiga/Pööratav must',
       brownFolder: '/Mudelid/01_Saun Duširuumiga/Pööratav pruun',
